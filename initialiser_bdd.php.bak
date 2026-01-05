@@ -1,0 +1,61 @@
+<?php
+$database_file = 'facturation.sqlite';
+
+try {
+    $pdo = new PDO('sqlite:' . $database_file);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+    // Créer la table utilisateurs
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS utilisateurs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nom_utilisateur TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            mot_de_passe TEXT NOT NULL
+        );
+    ");
+
+    // Créer la table ventes
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS ventes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            description TEXT NOT NULL,
+            montant REAL NOT NULL,
+            date TEXT NOT NULL,
+            cree_par TEXT NOT NULL
+        );
+    ");
+
+    // Créer la table depenses
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS depenses (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            description TEXT NOT NULL,
+            montant REAL NOT NULL,
+            date TEXT NOT NULL,
+            cree_par TEXT NOT NULL
+        );
+    ");
+
+    // Créer la table factures
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS factures (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id_facture TEXT UNIQUE NOT NULL,
+            nom_client TEXT NOT NULL,
+            email_client TEXT,
+            date TEXT NOT NULL,
+            articles TEXT NOT NULL,
+            montant_total REAL NOT NULL,
+            cree_par TEXT NOT NULL
+        );
+    ");
+
+    echo "Base de données et tables (noms français) créées avec succès dans {$database_file}\n";
+
+} catch (PDOException $e) {
+    echo "Erreur de base de données : " . $e->getMessage() . "\n";
+    exit();
+}
+
+?>
