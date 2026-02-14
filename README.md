@@ -1,13 +1,13 @@
-# 📚 FACTUPRO - Gestion de Facturation avec Module B2B
+# 📚 FACTUPRO - Gestion de Facturation avec Module B2B (WebSocket & Env)
 
 **Projet BTS - Version Simplifiée et Maîtrisée**  
-**6 Tables | 16 Fichiers | 100% Maîtrisé**
+**6 Tables | 20 Fichiers | 100% Maîtrisé | WebSocket Chat**
 
 ---
 
 ## 🎯 DESCRIPTION DU PROJET
 
-**FactuPro** est une application web de gestion de facturation destinée aux PME, intégrant un module innovant **B2B Connect** permettant aux entreprises de commercer entre elles avec **gestion automatique des stocks**.
+**FactuPro** est une application web de gestion de facturation destinée aux PME, intégrant un module innovant **B2B Connect** permettant aux entreprises de commercer entre elles avec **gestion automatique des stocks**. Cette version intègre désormais une messagerie en temps réel et une gestion sécurisée des configurations.
 
 ### Problématique Résolue
 
@@ -15,6 +15,7 @@ Les entreprises utilisent souvent plusieurs outils pour :
 - Gérer leurs stocks et factures
 - Trouver des fournisseurs
 - Passer des commandes B2B
+- Discuter avec leurs partenaires
 
 **Solution** : FactuPro centralise tout en une seule application.
 
@@ -32,15 +33,16 @@ Les entreprises utilisent souvent plusieurs outils pour :
 ### Module B2B Connect
 6. ✅ Annuaire des entreprises avec scores de fiabilité
 7. ✅ Produits en déstockage B2B
-8. ✅ Annonces (appels d'offres, partenariats)
-9. ✅ Commandes inter-entreprises
+8. ✅ Commandes inter-entreprises
+9. ✅ **Messagerie Instantanée (WebSocket)** ⭐ (Nouveau)
 10. ✅ **Flux de stock automatique entre entreprises** ⭐
 
 ---
 
 ## 🗄️ STRUCTURE DE LA BASE DE DONNÉES
 
-### 6 Tables Simplifiées
+### 7 Tables (dont 1 pour la messagerie)
+*Note : Le projet utilise principalement 6 tables métier + 1 table technique Message*
 
 ```
 1. ENTREPRISE (avec score intégré)
@@ -70,6 +72,11 @@ Les entreprises utilisent souvent plusieurs outils pour :
    - Transactions inter-entreprises
    - Statut (en_attente → validee → expediee → livree)
    - Articles_JSON
+
+7. MESSAGE
+   - Messagerie interne
+   - Id_Expediteur, Id_Destinataire
+   - Contenu, Date_Envoi, Lu
 ```
 
 ### Schéma Relationnel
@@ -77,11 +84,11 @@ Les entreprises utilisent souvent plusieurs outils pour :
 ```
                     ENTREPRISE
                         │
-        ┌───────────────┼───────────────┬──────────────┐
-        │               │               │              │
-        ▼ N             ▼ N             ▼ N            ▼ N
-   UTILISATEUR      PRODUIT         VENTE         ANNONCE
-                                                       
+        ┌───────┬───────┼───────────────┬──────────────┐
+        │       │       │               │              │
+        ▼       ▼ N     ▼ N             ▼ N            ▼ N
+    MESSAGE  UTILISATEUR PRODUIT       VENTE         ANNONCE
+   (Emet/Reçoit)                                                       
               ENTREPRISE (Relations B2B)
                         │
                 ┌───────┴───────┐
@@ -92,11 +99,16 @@ Les entreprises utilisent souvent plusieurs outils pour :
 
 ---
 
-## 📁 STRUCTURE DES FICHIERS (13 fichiers principaux)
+## 📁 STRUCTURE DES FICHIERS
 
-### Configuration (2)
-- `db.php` - Connexion PDO à la base de données
-- `auth.php` - Gestion de l'authentification
+### Configuration & Environnement (3)
+- `.env` - Variables d'environnement (Base de données, etc.) **(Nouveau)**
+- `.env.example` - Modèle de fichier .env
+- `db.php` - Connexion PDO via phpdotenv
+
+### WebSocket Server (2)
+- `bin/chat-server.php` - Serveur WebSocket (Ratchet)
+- `src/Chat.php` - Logique de la messagerie instantanée
 
 ### Interface (2)
 - `header.php` - Navigation et en-tête (inclut le footer)
@@ -114,14 +126,13 @@ Les entreprises utilisent souvent plusieurs outils pour :
 - `sales.php` - Historique des ventes/factures
 - `invoice_add.php` - Créer une vente/facture
 
-### Module B2B (3)
+### Module B2B & Messagerie (3)
 - `reseau_b2b.php` - Annuaire des entreprises
-- `annonces.php` - Gestion des annonces
+- `messages.php` - Messagerie WebSocket (Client)
 - `commandes_b2b.php` - Commandes B2B (Création & Suivi)
 
-### Base de Données (3)
+### Base de Données (2)
 - `facturation.sql` - Schéma
-- `installation_complete.sql` - Installation auto
 - `reset_donnees_test.sql` - Données de démo
 
 ---
@@ -130,42 +141,43 @@ Les entreprises utilisent souvent plusieurs outils pour :
 
 ### Prérequis
 - XAMPP ou Laragon
-- PHP 7.4+
+- PHP 8.0+
 - MySQL / MariaDB
+- Composer (Gestionnaire de dépendances)
 
 ### Étapes d'Installation
 
-#### 1. Créer la base de données
-```sql
-CREATE DATABASE facturation CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+#### 1. Cloner et Installer Dépendances
+```bash
+git clone [URL_REPO]
+cd facturation
+composer install
 ```
 
-#### 2. Importer le schéma
-- Ouvrir phpMyAdmin
-- Sélectionner la base `facturation`
-- Importer le fichier `facturation.sql`
-- Vérifier que les 6 tables sont créées
-
-#### 3. Charger les données de test (optionnel)
-- Importer le fichier `reset_donnees_test.sql`
-- Cela créera :
-  - 2 entreprises (FourniPro, MaBoutique)
-  - 2 utilisateurs (admin_fourni, admin_boutique)
-  - 4 produits (dont 2 en déstockage B2B)
-
-#### 4. Configuration
-Vérifier `db.php` :
-```php
-$pdo = new PDO(
-    'mysql:host=localhost;dbname=facturation;charset=utf8mb4',
-    'root',
-    ''
-);
+#### 2. Configurer l'Environnement
+- Copiez le fichier `.env.example` en `.env` :
+- Modifiez `.env` avec vos paramètres BDD :
+```ini
+DB_HOST=localhost
+DB_NAME=facturation
+DB_USER=root
+DB_PASS=
 ```
+
+#### 3. Base de Données
+- Importez `facturation.sql` dans votre SGBD.
+- Importez `reset_donnees_test.sql` pour avoir des données.
+
+#### 4. Lancer le Serveur WebSocket
+Pour que la messagerie fonctionne, lancez dans un terminal séparé :
+```bash
+php bin/chat-server.php
+```
+*Le serveur écoutera sur le port 8080.*
 
 #### 5. Accéder à l'application
 - URL : `http://localhost/facturation`
-- Créer un compte ou utiliser les comptes de test :
+- Comptes de test :
   - **FourniPro** : `admin_fourni` / `admin123`
   - **MaBoutique** : `admin_boutique` / `admin123`
 
@@ -173,336 +185,53 @@ $pdo = new PDO(
 
 ## 💡 POINTS TECHNIQUES CLÉS
 
-### 1. Stockage JSON (La "Botte Secrète")
+### 1. Variables d'Environnement (.env)
+Utilisation de la bibliothèque `vlucas/phpdotenv` pour sécuriser les identifiants en dehors du code source.
 
+### 2. WebSocket & Ratchet (Messagerie)
+La messagerie utilise le protocole **WebSocket** (via la librairie `cboden/ratchet`) pour une communication bidirectionnelle temps réel.
+- **Client (JS)** : Ouvre une connexion `ws://` et envoie/reçoit des messages JSON.
+- **Serveur (PHP)** : Gère les connexions, authentifie les clients par leur ID Session, et route les messages.
+
+### 3. Stockage JSON (La "Botte Secrète")
 **Pourquoi JSON ?**
-> "Je stocke les articles en JSON pour **figer les prix au moment de la vente**. Si le prix d'un produit change demain, ma facture passée reste correcte. C'est un snapshot de la transaction."
-
-**Format** :
-```json
-[
-  {
-    "id_produit": 1,
-    "nom": "Papier A4",
-    "quantite": 10,
-    "prix": 5000
-  }
-]
-```
-
-**Code** :
+Pour **figer les prix au moment de la vente**. C'est un snapshot de la transaction.
 ```php
-// Encodage
 $articles_json = json_encode($articles, JSON_UNESCAPED_UNICODE);
-
-// Décodage
-$articles = json_decode($vente['Articles_JSON'], true);
 ```
 
-### 2. Mise à Jour Automatique du Stock ⭐
-
-**Lors d'une vente** :
-```php
-foreach ($articles as $article) {
-    $stmt = $pdo->prepare("
-        UPDATE Produit 
-        SET Quantite_En_Stock = Quantite_En_Stock - ? 
-        WHERE Id_Produit = ?
-    ");
-    $stmt->execute([$article['quantite'], $article['id_produit']]);
-}
-```
-
-**Lors de la validation d'une commande B2B** :
-```php
-// Même code, exécuté automatiquement lors de la validation
-```
-
-### 3. Mise à Jour Automatique du Score ⭐
-
-**Lors de la livraison d'une commande B2B** :
-```php
-$stmt = $pdo->prepare("
-    UPDATE Entreprise 
-    SET Score_Fiabilite = Score_Fiabilite + 1,
-        Nombre_Commandes_Completees = Nombre_Commandes_Completees + 1
-    WHERE Id_Entreprise = ?
-");
-$stmt->execute([$id_vendeur]);
-```
-
-### 4. Sécurité
-
-- **Anti-SQL Injection** : Requêtes préparées PDO
-- **Mots de passe** : Hash bcrypt avec `password_hash()`
-- **Anti-XSS** : Échappement HTML avec `htmlspecialchars()`
-- **Sessions** : Authentification sécurisée
-- **Isolation** : Chaque entreprise ne voit que ses données
+### 4. Mise à Jour Automatique du Stock ⭐
+Lors de la validation d'une commande B2B, le stock est décrémenté automatiquement. Cela garantit la cohérence des inventaires entre partenaires.
 
 ---
 
-## 🎬 WORKFLOW COMMANDE B2B
+## � DÉMONSTRATION (MESSAGERIE)
 
-```
-1. EN_ATTENTE
-   ↓ (Vendeur valide)
-   
-2. VALIDEE → Stock mis à jour automatiquement ⭐
-   ↓ (Vendeur expédie)
-   
-3. EXPEDIEE
-   ↓ (Acheteur confirme)
-   
-4. LIVREE → Score vendeur +1 automatiquement ⭐
-
-Alternative : REFUSEE (Vendeur refuse)
-```
+1. **Ouvrir 2 Navigateurs** : L'un connecté en tant que FourniPro, l'autre MaBoutique.
+2. **Lancer le serveur chat** : `php bin/chat-server.php`
+3. **FourniPro** : Va dans "Réseau B2B", clique sur "Discuter" avec MaBoutique.
+4. **MaBoutique** : Fait de même.
+5. **Envoyer un message** : Le message apparaît **instantanément** sur l'autre écran sans recharger la page.
+6. **Persistence** : Si on ferme et rouvre, l'historique est chargé depuis la base de données.
 
 ---
 
-## 📊 DÉMONSTRATION (10 MINUTES)
+## ✅ CHECKLIST SOUTENANCE
 
-### Préparation
-- 2 navigateurs : Chrome (FourniPro) + Firefox (MaBoutique)
-- Connexions prêtes
-
-### Scénario
-
-**1. Introduction (1 min)** - Chrome
-- Dashboard FourniPro
-- Expliquer le concept
-
-**2. Produits (1 min)** - Chrome
-- Voir les produits
-- Montrer Papier A4 en déstockage B2B (Stock: 150)
-
-**3. Annuaire B2B (1 min)** - Firefox
-- MaBoutique voit FourniPro
-- Score 100/100
-- Liens email/téléphone
-
-**4. Commande B2B (5 min)** ⭐ **CŒUR DE LA DÉMO**
-
-**4.1 Création** - Firefox
-- Aller dans le menu "**Commandes B2B**"
-- Voir la section "**Passer une nouvelle commande**"
-- Choisir "FourniPro" dans la liste
-- Liste des produits B2B apparaît
-- Choisir **20** ramettes de Papier A4 (Stock visible: 150)
-- Cliquer sur "Envoyer la commande"
-- Montant : 20 × 4500 = 90 000 FCFA
-
-**4.2 Validation** - Chrome
-- FourniPro valide la commande
-- **MONTRER : Stock passe de 150 à 130** ⭐
-
-**4.3 Expédition** - Chrome
-- Marquer comme "Expédiée"
-
-**4.4 Livraison** - Firefox
-- MaBoutique confirme la réception
-- **MONTRER : Score FourniPro passe à 101** ⭐
-
-**5. Conclusion (1 min)**
-- Récapituler la gestion automatique
-- Insister sur la valeur métier
-
----
-
-## 💬 QUESTIONS/RÉPONSES POUR LE JURY
-
-### Q1 : "Pourquoi seulement 6 tables ?"
-
-**Réponse** :
-> "J'ai appliqué le principe KISS (Keep It Simple). Chaque table a un rôle clair. J'ai fusionné certaines tables pour éviter la redondance :
-> - Score intégré dans Entreprise (pas de table séparée)
-> - Déstockage intégré dans Produit
-> - Vente unifie Facture et Vente
-> 
-> Cette structure est normalisée (3NF) tout en restant simple à maintenir."
-
-### Q2 : "Pourquoi stocker en JSON ?"
-
-**Réponse** :
-> "Pour **figer les prix au moment de la vente**. Si le prix d'un produit change demain, ma facture passée reste correcte. C'est un snapshot de la transaction.
-> 
-> De plus, cela simplifie le code : pas besoin de table Ligne_Vente avec des jointures complexes. Pour un projet BTS, c'est un bon compromis entre normalisation et pragmatisme."
-
-### Q3 : "Comment fonctionne la mise à jour automatique du stock ?"
-
-**Réponse** :
-> "Lors de la validation d'une commande B2B :
-> 1. Le vendeur clique sur 'Valider'
-> 2. Mon code parcourt les articles (stockés en JSON)
-> 3. Pour chaque article, j'exécute : `UPDATE Produit SET Quantite_En_Stock = Quantite_En_Stock - ?`
-> 4. Le stock est mis à jour en temps réel
-> 
-> C'est automatique, fiable et évite les erreurs humaines."
-
-### Q4 : "Pourquoi pas de messagerie ?"
-
-**Réponse** :
-> "La messagerie en temps réel nécessite du JavaScript asynchrone (AJAX/WebSocket) qui dépasse le cadre du BTS. Les entreprises peuvent se contacter par email ou téléphone via les coordonnées affichées dans l'annuaire. J'ai préféré me concentrer sur le cœur métier : la gestion fiable des transactions B2B."
-
----
-
-## 🎯 SIMPLIFICATIONS PAR RAPPORT À UNE VERSION COMPLÈTE
-
-### Ce qui a été fusionné/simplifié
-
-| Avant | Après | Raison |
-|-------|-------|--------|
-| Table Score_Fiabilite | Colonnes dans Entreprise | Éviter une table pour une seule valeur |
-| Table Facture + Table Vente | Table Vente unique | Une facture est une vente formalisée |
-| Annonce "déstockage" | Colonnes dans Produit | Le déstockage concerne un produit existant |
-| Table Message | Liens email/téléphone | Messagerie temps réel trop complexe pour BTS |
-
-### Avantages
-
-✅ **Moins de tables** = Plus facile à expliquer  
-✅ **Moins de jointures** = Requêtes plus simples  
-✅ **Code plus clair** = Maîtrise à 100%  
-✅ **Parfait pour BTS** = Complexité adaptée  
-
----
-
-## 📈 STATISTIQUES DU PROJET
-
-| Métrique | Valeur |
-|----------|--------|
-| **Tables** | 6 |
-| **Fichiers PHP** | 13 |
-| **Fichiers SQL** | 2 |
-| **Fichiers CSS** | 1 |
-| **Fonctionnalités** | 10 |
-| **Relations BDD** | 8 |
-| **Niveau de maîtrise** | 100% ✅ |
-
----
-
-## 🔧 TECHNOLOGIES UTILISÉES
-
-- **Backend** : PHP 7.4+ (natif, sans framework)
-- **Base de données** : MySQL / MariaDB
-- **Frontend** : HTML5, CSS3
-- **Icônes** : Font Awesome
-- **Sécurité** : PDO, bcrypt, htmlspecialchars
-
----
-
-## 📝 CODE SIMPLE ET LISIBLE
-
-Le code est volontairement simple et commenté pour être compréhensible par un étudiant BTS :
-- Pas de frameworks complexes
-- PHP natif avec PDO
-- Commentaires explicatifs
-- Structure claire
-
----
-
-## 🎓 PROJET BTS
-
-Ce projet est conçu pour être présenté en BTS :
-- ✅ Code clair et commenté
-- ✅ Architecture simple (6 tables)
-- ✅ Fonctionnalités essentielles
-- ✅ Documentation complète
-- ✅ Démonstration fluide (10 min)
-- ✅ Arguments solides pour le jury
-
----
-
-## 🏆 POINTS FORTS À METTRE EN AVANT
-
-### 1. Innovation
-Premier logiciel de gestion avec réseau B2B intégré pour PME
-
-### 2. Automatisation
-- Mise à jour automatique du stock ⭐
-- Calcul automatique du score de fiabilité ⭐
-- Génération dynamique des factures
-
-### 3. Sécurité
-- Requêtes préparées (anti-SQL injection)
-- Hash bcrypt pour mots de passe
-- Échappement HTML (anti-XSS)
-
-### 4. Valeur Métier
-- Gain de temps pour les entreprises
-- Réduction des erreurs (automatisation)
-- Traçabilité complète
-- Système de confiance entre entreprises
-
----
-
-## 🚀 AMÉLIORATIONS FUTURES POSSIBLES
-
-### Court terme
-- Upload de logo d'entreprise
-- Export PDF des factures
-- Notifications par email
-
-### Moyen terme
-- Prix dégressifs automatiques
-- Statistiques avancées avec graphiques
-- Gestion des stocks avec alertes
-
-### Long terme
-- Application mobile (API REST)
-- Système de paiement en ligne
-- Intelligence artificielle pour recommandations
-
----
-
-## ✅ CHECKLIST AVANT SOUTENANCE
-
-### Préparation Technique
-- [ ] Base de données `facturation` créée
-- [ ] 6 tables présentes
-- [ ] Données de test chargées
-- [ ] 2 navigateurs prêts (Chrome + Firefox)
-- [ ] Connexions testées
-
-### Préparation Personnelle
-- [ ] Démo répétée 3 fois minimum
-- [ ] Arguments JSON maîtrisés
-- [ ] Réponses aux questions préparées
-- [ ] README.md imprimé
-- [ ] Schéma BDD imprimé
-
-### Fonctionnalités
-- [ ] Stock se met à jour automatiquement
-- [ ] Score se met à jour automatiquement
-- [ ] Liens email/téléphone fonctionnels
-- [ ] Workflow complet testé
+- [ ] `.env` configuré et non-commité
+- [ ] `composer install` effectué
+- [ ] Serveur WebSocket lancé (`php bin/chat-server.php`)
+- [ ] Base de données importée
+- [ ] Démonstration Messagerie Temps Réel prête
 
 ---
 
 ## 📞 SUPPORT
 
-Pour toute question sur le projet :
 1. Consulter ce README.md
-2. Vérifier `PLAN_ACTION_FINAL.md`
-3. Tester avec `reset_donnees_test.sql`
+2. Vérifier que le serveur WebSocket tourne
+3. Vérifier les logs PHP si besoin
 
 ---
-
-## 🎯 CONCLUSION
-
-**FactuPro** est un projet BTS :
-- ✅ **Simple** : 6 tables, 16 fichiers
-- ✅ **Maîtrisé** : Vous connaissez chaque ligne
-- ✅ **Fonctionnel** : 10 fonctionnalités solides
-- ✅ **Innovant** : Module B2B avec gestion automatique
-- ✅ **Sécurisé** : Bonnes pratiques appliquées
-- ✅ **Prêt** : Documentation complète
 
 **Bonne chance pour votre soutenance ! 🍀**
-
----
-
-**Projet créé le** : Janvier 2026  
-**Version** : 1.0 Simplifiée  
-**Niveau** : BTS SIO / BTS Informatique  
-**Base de données** : 6 tables (facturation.sql)  
-**Fichiers** : 16 fichiers PHP/CSS/SQL
