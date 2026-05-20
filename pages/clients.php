@@ -65,17 +65,23 @@ $clients_b2b = $stmt->fetchAll();
                             <th class="text-center">Commandes</th>
                             <th class="text-right">Volume Achat</th>
                             <th class="text-right">Dernière commande</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($clients_b2b as $c): ?>
                             <tr>
                                 <td>
-                                    <div class="font-weight-bold"><?= htmlspecialchars($c['Nom_Client']) ?></div>
+                                    <div class="font-weight-bold"><?= htmlspecialchars($c['Nom_Client'] ?? '') ?></div>
                                 </td>
                                 <td class="text-center"><span class="badge badge-info"><?= $c['Nb_Commandes'] ?></span></td>
                                 <td class="text-right font-weight-bold text-success"><?= number_format($c['Total_Depense'], 0, ',', ' ') ?> F</td>
                                 <td class="text-right text-muted"><?= date('d/m/Y', strtotime($c['Derniere_Commande'])) ?></td>
+                                <td class="text-center">
+                                    <a href="client_history.php?type=b2b&id=<?= $c['Id_Entreprise'] ?? 0 ?>" class="btn btn-sm btn-outline-primary" title="Voir l'historique d'achat">
+                                        <i class="fas fa-history"></i> Historique
+                                    </a>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -99,17 +105,23 @@ $clients_b2b = $stmt->fetchAll();
                             <th class="text-center">Ventes</th>
                             <th class="text-right">Volume Achat</th>
                             <th class="text-right">Dernier Achat</th>
+                            <th class="text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($clients_directs as $c): ?>
                             <tr>
                                 <td>
-                                    <div class="font-weight-bold"><?= htmlspecialchars($c['Nom_Client']) ?></div>
+                                    <div class="font-weight-bold"><?= htmlspecialchars($c['Nom_Client'] ?? '') ?></div>
                                 </td>
                                 <td class="text-center"><span class="badge badge-secondary"><?= $c['Nb_Commandes'] ?></span></td>
                                 <td class="text-right font-weight-bold text-success"><?= number_format($c['Total_Depense'], 0, ',', ' ') ?> F</td>
                                 <td class="text-right text-muted"><?= date('d/m/Y', strtotime($c['Derniere_Commande'])) ?></td>
+                                <td class="text-center">
+                                    <a href="client_history.php?type=direct&name=<?= urlencode($c['Nom_Client'] ?? '') ?>" class="btn btn-sm btn-outline-primary" title="Voir l'historique d'achat">
+                                        <i class="fas fa-history"></i> Historique
+                                    </a>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

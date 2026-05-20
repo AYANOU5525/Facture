@@ -2,11 +2,7 @@
 require_once '../includes/auth.php';
 require_once '../config/db.php';
 
-$page_title = 'Gestion des Produits';
-include '../includes/header.php';
-
 // Récupérer l'ID de l'entreprise de l'utilisateur connecté
-// Utilisation préférentielle de la session si définie dans auth.php, sinon DB
 $entreprise_id = $_SESSION['entreprise_id'] ?? null;
 
 if (!$entreprise_id) {
@@ -15,7 +11,6 @@ if (!$entreprise_id) {
     $user = $stmt->fetch();
 
     if (!$user) {
-        // Session invalide (ex: après seed), redirection
         header('Location: ../includes/logout.php');
         exit();
     }
@@ -25,6 +20,9 @@ if (!$entreprise_id) {
 $success = '';
 $error = '';
 $edit_mode = false;
+
+$page_title = 'Gestion des Produits';
+include '../includes/header.php';
 // === TRAITEMENT DU FORMULAIRE (AJOUT / MODIFICATION / SUPPRESSION) ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -118,7 +116,7 @@ $produits = $stmt->fetchAll();
             <div class="col-md-3">
                 <div class="form-group">
                     <label>Nom du produit *</label>
-                    <input type="text" name="nom" required class="form-control" value="<?= $edit_mode ? htmlspecialchars($product_data['Nom_Produit']) : '' ?>">
+                    <input type="text" name="nom" required class="form-control" value="<?= $edit_mode ? htmlspecialchars($product_data['Nom_Produit'] ?? '') : '' ?>">
                 </div>
             </div>
 
@@ -139,7 +137,7 @@ $produits = $stmt->fetchAll();
             <div class="col-md-4">
                 <div class="form-group">
                     <label>Description</label>
-                    <input type="text" name="description" class="form-control" value="<?= $edit_mode ? htmlspecialchars($product_data['Description_Produit']) : '' ?>">
+                    <input type="text" name="description" class="form-control" value="<?= $edit_mode ? htmlspecialchars($product_data['Description_Produit'] ?? '') : '' ?>">
                 </div>
             </div>
         </div>
@@ -207,8 +205,8 @@ $produits = $stmt->fetchAll();
                 <?php foreach ($produits as $p): ?>
                     <tr>
                         <td>
-                            <strong><?= htmlspecialchars($p['Nom_Produit']) ?></strong><br>
-                            <small style="color: #666;"><?= htmlspecialchars($p['Description_Produit']) ?></small>
+                            <strong><?= htmlspecialchars($p['Nom_Produit'] ?? '') ?></strong><br>
+                            <small style="color: #666;"><?= htmlspecialchars($p['Description_Produit'] ?? '') ?></small>
                         </td>
                         <td><?= number_format($p['Prix_Unitaire_Produit'], 0, ',', ' ') ?> FCFA</td>
                         <td>

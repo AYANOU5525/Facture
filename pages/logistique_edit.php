@@ -84,7 +84,7 @@ include '../includes/header.php';
     <?php if ($error): ?> <div class="alert alert-danger"><?= $error ?></div> <?php endif; ?>
 
     <div class="card">
-        <h2 style="margin-bottom: 20px;">Vente <?= htmlspecialchars($log['Numero_Vente']) ?> - <?= htmlspecialchars($log['Nom_Client']) ?></h2>
+        <h2 style="margin-bottom: 20px;">Vente <?= htmlspecialchars($log['Numero_Vente'] ?? '') ?> - <?= htmlspecialchars($log['Nom_Client'] ?? '') ?></h2>
 
         <form method="POST">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">

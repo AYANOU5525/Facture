@@ -60,33 +60,33 @@ $ent = $stmt->fetch();
         <form method="POST">
             <div class="form-group">
                 <label>Nom de l'entreprise *</label>
-                <input type="text" name="nom" class="form-control" value="<?= htmlspecialchars($ent['Nom_Entreprise']) ?>" required>
+                <input type="text" name="nom" class="form-control" value="<?= htmlspecialchars($ent['Nom_Entreprise'] ?? '') ?>" required>
             </div>
 
             <div class="row" style="display:flex; gap:20px;">
                 <div class="form-group" style="flex:1;">
                     <label>Email de contact *</label>
-                    <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($ent['Email_Entreprise']) ?>" required>
+                    <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($ent['Email_Entreprise'] ?? '') ?>" required>
                 </div>
                 <div class="form-group" style="flex:1;">
                     <label>Téléphone *</label>
-                    <input type="text" name="tel" class="form-control" value="<?= htmlspecialchars($ent['Tel_Entreprise']) ?>" required>
+                    <input type="text" name="tel" class="form-control" value="<?= htmlspecialchars($ent['Tel_Entreprise'] ?? '') ?>" required>
                 </div>
             </div>
 
             <div class="form-group">
                 <label>Adresse complète (Rue, Ville, BP...) *</label>
-                <textarea name="adresse" class="form-control" rows="2" required><?= htmlspecialchars($ent['Adresse_Entreprise']) ?></textarea>
+                <textarea name="adresse" class="form-control" rows="2" required><?= htmlspecialchars($ent['Adresse_Entreprise'] ?? '') ?></textarea>
             </div>
 
             <div class="form-group">
                 <label>Numéro NIF / RC (Identifiant fiscal)</label>
-                <input type="text" name="nif" class="form-control" value="<?= htmlspecialchars($ent['NIF_Entreprise']) ?>">
+                <input type="text" name="nif" class="form-control" value="<?= htmlspecialchars($ent['NIF_Entreprise'] ?? '') ?>">
             </div>
 
             <div class="form-group">
                 <label>Description courte (Slogan)</label>
-                <textarea name="description" class="form-control" rows="2"><?= htmlspecialchars($ent['Description_Entreprise']) ?></textarea>
+                <textarea name="description" class="form-control" rows="2"><?= htmlspecialchars($ent['Description_Entreprise'] ?? '') ?></textarea>
             </div>
 
             <button type="submit" class="btn btn-primary">

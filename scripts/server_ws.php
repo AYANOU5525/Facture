@@ -7,8 +7,6 @@ use App\Chat;
 
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/db.php';
-// On s'assure que la classe Chat est bien chargée. 
-// Si App\Chat n'est pas trouvé via l'autoloader, on peut inclure le fichier directement.
 if (!class_exists('App\Chat')) {
     require __DIR__ . '/src/Chat.php';
 }
