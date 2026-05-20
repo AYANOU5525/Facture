@@ -5,7 +5,6 @@ require_once '../config/db.php';
 $page_title = 'Nouvelle Vente / Facture';
 include '../includes/header.php';
 
-// entreprise_id déjà disponible via auth.php
 $stmt = $pdo->prepare("SELECT Nom_Utilisateur, Prenom_Utilisateur FROM Utilisateur WHERE Id_Utilisateur = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch();
@@ -30,7 +29,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo->beginTransaction();
 
         try {
-            // Vérification anti-doublons côté serveur aussi
             $produits_deja_pris = [];
 
             foreach ($items as $item) {
@@ -74,18 +72,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$numero, $client, $nom_vendeur, json_encode($articles_json, JSON_UNESCAPED_UNICODE), $total_vente, $entreprise_id]);
             $id_vente = $pdo->lastInsertId();
 
-            // Création automatique de la Facture
             $stmt = $pdo->prepare("INSERT INTO Facture (Id_Vente, Numero_Facture, Date_Echeance, Montant_HT, Montant_TTC, Id_Entreprise) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY), ?, ?, ?)");
             $stmt->execute([$id_vente, $numero, $total_vente * 0.8, $total_vente, $entreprise_id]);
             $id_facture = $pdo->lastInsertId();
 
-            // Création automatique de l'entrée Logistique
             $stmt = $pdo->prepare("INSERT INTO Logistique (Id_Vente, Id_Facture, Statut_Livraison, Id_Entreprise) VALUES (?, ?, 'traitement', ?)");
             $stmt->execute([$id_vente, $id_facture, $entreprise_id]);
 
             $pdo->commit();
 
-            // Rediriger vers le workflow au lieu de sales.php
             header('Location: vente_workflow.php?ref=' . urlencode($numero) . '&etape=1');
             exit;
         } catch (Exception $e) {
@@ -111,7 +106,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <h3>Articles</h3>
         <div id="items-container">
-            <!-- JS générera les lignes -->
         </div>
 
         <button type="button" onclick="addItem()" class="btn btn-secondary btn-sm" style="margin: 20px 0;">
@@ -128,13 +122,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script>
     let itemCount = 0;
 
-    // Données produits PHP -> JS
     const products = <?php echo json_encode($produits) ?>;
 
     function renderOptions(selectedValue) {
         let opts = '<option value="">Sélectionner un produit</option>';
         products.forEach(p => {
-            // Création de l'option
             let isSelected = (p.Id_Produit == selectedValue);
             opts += `<option value="${p.Id_Produit}" ${isSelected ? 'selected' : ''}>
                         ${p.Nom_Produit} (${p.Prix_Unitaire_Produit} F - Stock: ${p.Quantite_En_Stock})
@@ -159,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         `;
         container.appendChild(div);
         itemCount++;
-        updateOptions(); // Mettre à jour les grisés
+        updateOptions(); 
     }
 
     function removeItem(btn) {
@@ -167,37 +159,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         updateOptions();
     }
 
-    // FONCTION CLÉ : Griser les options déjà sélectionnées
+  
     function updateOptions() {
-        // 1. Lister tous les IDs actuellement sélectionnés
         const allSelects = document.querySelectorAll('.product-select');
         const selectedValues = [];
         allSelects.forEach(select => {
             if (select.value) selectedValues.push(select.value);
         });
 
-        // 2. Parcourir chaque select pour désactiver les options prises (sauf la sienne)
         allSelects.forEach(select => {
-            const myValue = select.value; // Ma valeur actuelle
+            const myValue = select.value; 
 
-            // Pour chaque option de ce select
             Array.from(select.options).forEach(option => {
-                // Si l'option est vide (placeholder), on ignore
                 if (!option.value) return;
 
-                // Si cette option est dans la liste des valeurs prises...
                 if (selectedValues.includes(option.value)) {
-                    // ... et que ce n'est PAS ma valeur (c'est une valeur prise par un AUTRE select)
                     if (option.value !== myValue) {
                         option.disabled = true;
                         option.text = option.text.replace(' (Déjà sélectionné)', '') + ' (Déjà sélectionné)';
                     } else {
-                        // C'est ma valeur, donc elle est active pour moi
                         option.disabled = false;
                         option.text = option.text.replace(' (Déjà sélectionné)', '');
                     }
                 } else {
-                    // Option libre
                     option.disabled = false;
                     option.text = option.text.replace(' (Déjà sélectionné)', '');
                 }

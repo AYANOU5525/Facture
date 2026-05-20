@@ -2,18 +2,14 @@
 require_once '../includes/auth.php';
 require_once '../config/db.php';
 
-$page_title = "Messagerie B2B";
-include '../includes/header.php';
-
 // ID de mon entreprise
 $stmt = $pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $mon_id = (int)$stmt->fetchColumn();
 
-// Gestion de l'ID destinataire via Session pour cacher l'URL
+// --- LOGIQUE DE REDIRECTION (AVANT LE HEADER) ---
 if (isset($_GET['destinataire'])) {
     $target_id = (int)$_GET['destinataire'];
-    // Sécurité: ne pas s'écrire à soi-même
     if ($target_id !== $mon_id) {
         $_SESSION['active_chat_id'] = $target_id;
     }
@@ -31,19 +27,20 @@ $destinataire_id = $_SESSION['active_chat_id'] ?? 0;
 
 // Envoyer un message
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && $destinataire_id) {
-    // Vérif CSRF simple ou juste auth
     $msg = trim($_POST['message']);
     if (!empty($msg)) {
         $stmt = $pdo->prepare("INSERT INTO Message (Id_Expediteur, Id_Destinataire, Contenu) VALUES (?, ?, ?)");
         $stmt->execute([$mon_id, $destinataire_id, $msg]);
     }
-    // Si c'est une requête AJAX (fetch), on ne redirige pas, on laisse le script recharger
-    // Mais pour faire simple : on redirige toujours, le fetch gérait le GET
     if (!isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
         header("Location: messages.php?destinataire=$destinataire_id");
         exit();
     }
 }
+
+$page_title = "Messagerie B2B";
+include '../includes/header.php';
+// --- FIN LOGIQUE DE REDIRECTION ---
 
 // 1. Lister les conversations
 $sql_conversations = "
