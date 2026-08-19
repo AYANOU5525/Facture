@@ -14,25 +14,40 @@ $error = '';
 
 // === TRAITEMENT DU CHANGEMENT DE STATUT ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
+    requireCsrf();
     $id_facture = $_POST['id_facture'];
     $nouveau_statut = $_POST['nouveau_statut'];
 
     // Vérifier que la facture appartient à l'entreprise
-    $stmt = $pdo->prepare("SELECT Id_Facture FROM Facture WHERE Id_Facture = ? AND Id_Entreprise = ?");
+    $stmt = $pdo->prepare("SELECT Id_Facture, Date_Facture FROM Facture WHERE Id_Facture = ? AND Id_Entreprise = ?");
     $stmt->execute([$id_facture, $entreprise_id]);
+    $facture_a_modifier = $stmt->fetch();
 
-    if ($stmt->fetch()) {
-        $stmt = $pdo->prepare("UPDATE Facture SET Statut_Paiement = ? WHERE Id_Facture = ?");
-        $stmt->execute([$nouveau_statut, $id_facture]);
-        $success = "Statut mis à jour avec succès.";
+    if ($facture_a_modifier) {
+        // PROTECTION LÉGALE : impossible d'annuler une facture encore sous période de conservation (10 ans)
+        $date_conservation = new DateTime($facture_a_modifier['Date_Facture']);
+        $date_conservation->modify('+10 years');
+        $en_retention = $date_conservation > new DateTime();
+
+        if ($nouveau_statut === 'annulee' && $en_retention) {
+            $annee_archivage = $date_conservation->format('d/m/Y');
+            $error = "❌ Impossible d'annuler cette facture : elle doit être conservée jusqu'au <strong>$annee_archivage</strong> (obligation légale de 10 ans).";
+        } else {
+            $stmt = $pdo->prepare("UPDATE Facture SET Statut_Paiement = ? WHERE Id_Facture = ?");
+            $stmt->execute([$nouveau_statut, $id_facture]);
+            $success = "Statut mis à jour avec succès.";
+        }
     } else {
         $error = "Facture introuvable.";
     }
 }
 
 // On récupère les factures liées à l'entreprise
+// Date_Archivage = Date_Facture + 10 ans (obligation légale de conservation)
 $stmt = $pdo->prepare("
-    SELECT f.*, v.Nom_Client, v.Numero_Vente 
+    SELECT f.*, v.Nom_Client, v.Numero_Vente,
+           DATE_ADD(f.Date_Facture, INTERVAL 10 YEAR) AS Date_Conservation,
+           CASE WHEN DATE_ADD(f.Date_Facture, INTERVAL 10 YEAR) > NOW() THEN 1 ELSE 0 END AS En_Retention
     FROM Facture f
     LEFT JOIN Vente v ON f.Id_Vente = v.Id_Vente
     WHERE f.Id_Entreprise = ? 
@@ -78,11 +93,21 @@ $factures = $stmt->fetchAll();
                             <th>Échéance</th>
                             <th>Statut</th>
                             <th>Montant TTC</th>
+                            <th title="Obligation légale de conservation : 10 ans minimum">🔒 Conservée jusqu'au</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($factures as $f): ?>
+                            <?php
+                                $date_conservation = new DateTime($f['Date_Facture']);
+                                $date_conservation->modify('+10 years');
+                                $en_retention = $date_conservation > new DateTime();
+                                $label_conservation = $date_conservation->format('d/m/Y');
+                                // Années restantes
+                                $diff = (new DateTime())->diff($date_conservation);
+                                $annees_restantes = $en_retention ? $diff->y : 0;
+                            ?>
                             <tr data-statut="<?= $f['Statut_Paiement'] ?>">
                                 <td><strong><?= htmlspecialchars($f['Numero_Facture']) ?></strong></td>
                                 <td><?= htmlspecialchars($f['Nom_Client'] ?? 'N/A') ?></td>
@@ -95,18 +120,32 @@ $factures = $stmt->fetchAll();
                                 <td style="font-weight: bold;">
                                     <?= number_format($f['Montant_TTC'], 0, ',', ' ') ?> F
                                 </td>
+                                <td style="white-space: nowrap;">
+                                    <?php if ($en_retention): ?>
+                                        <span title="Conservation légale obligatoire jusqu'au <?= $label_conservation ?> (encore <?= $annees_restantes ?> an<?= $annees_restantes > 1 ? 's' : '' ?>)" style="color: #e67e22; font-weight: 600; font-size: 0.85em;">
+                                            🔒 <?= $label_conservation ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span style="color: #27ae60; font-size: 0.85em;">✅ Période expirée</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <a href="invoice_view.php?ref=<?= htmlspecialchars($f['Numero_Vente']) ?>" target="_blank" class="btn btn-sm btn-secondary">
                                         <i class="fas fa-print"></i>
                                     </a>
                                     <form method="POST" style="display: inline-block; margin-left: 5px;">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                                         <input type="hidden" name="id_facture" value="<?= $f['Id_Facture'] ?>">
                                         <input type="hidden" name="update_status" value="1">
                                         <select name="nouveau_statut" class="form-control" style="display: inline-block; width: auto; padding: 5px 8px; font-size: 0.85em;" onchange="this.form.submit()">
                                             <option value="">Changer statut...</option>
                                             <option value="payee" <?= $f['Statut_Paiement'] === 'payee' ? 'selected' : '' ?>>Payée</option>
                                             <option value="non_payee" <?= $f['Statut_Paiement'] === 'non_payee' ? 'selected' : '' ?>>Non Payée</option>
-                                            <option value="annulee" <?= $f['Statut_Paiement'] === 'annulee' ? 'selected' : '' ?>>Annulée</option>
+                                            <?php if ($en_retention): ?>
+                                                <option value="annulee" disabled title="Annulation bloquée : conservation légale jusqu'au <?= $label_conservation ?>">🔒 Annulée (bloqué)</option>
+                                            <?php else: ?>
+                                                <option value="annulee" <?= $f['Statut_Paiement'] === 'annulee' ? 'selected' : '' ?>>Annulée</option>
+                                            <?php endif; ?>
                                         </select>
                                     </form>
                                 </td>
