@@ -49,17 +49,17 @@ $ventes = $stmt->fetchAll();
                     </thead>
                     <tbody>
                         <?php foreach ($ventes as $v): ?>
-                            <tr data-date="<?= $v['Date_Vente'] ?>" data-client="<?= htmlspecialchars($v['Nom_Client']) ?>">
-                                <td><strong><?= htmlspecialchars($v['Numero_Vente']) ?></strong></td>
+                            <tr data-date="<?= $v['Date_Vente'] ?>" data-client="<?= htmlspecialchars($v['Nom_Client'] ?? '') ?>">
+                                <td><strong><?= htmlspecialchars($v['Numero_Vente'] ?? '') ?></strong></td>
                                 <td><?= date('d/m/Y H:i', strtotime($v['Date_Vente'])) ?></td>
-                                <td><?= htmlspecialchars($v['Nom_Client']) ?></td>
+                                <td><?= htmlspecialchars($v['Nom_Client'] ?? '') ?></td>
                                 <td>
                                     <?php $articles = json_decode($v['Articles_JSON'], true); ?>
                                     <small style="display: block; color: var(--text-muted);">
                                         <?php if ($articles): ?>
                                             <?= count($articles) ?> article(s) :
                                             <?php foreach (array_slice($articles, 0, 2) as $art): ?>
-                                                <?= htmlspecialchars($art['nom']) ?>,
+                                                <?= htmlspecialchars($art['nom'] ?? '') ?>,
                                             <?php endforeach; ?>
                                             <?php if (count($articles) > 2) echo '...'; ?>
                                         <?php endif; ?>
@@ -74,7 +74,7 @@ $ventes = $stmt->fetchAll();
                                     <?= number_format((float)($v['Montant_Total'] ?? 0), 0, ',', ' ') ?> F
                                 </td>
                                 <td>
-                                    <a href="invoice_view.php?ref=<?= htmlspecialchars($v['Numero_Vente']) ?>" target="_blank" class="btn btn-sm btn-secondary" style="padding: 5px 10px; font-size: 0.85em;">
+                                    <a href="invoice_view.php?ref=<?= htmlspecialchars($v['Numero_Vente'] ?? '') ?>" target="_blank" class="btn btn-sm btn-secondary" style="padding: 5px 10px; font-size: 0.85em;">
                                         <i class="fas fa-print"></i> Voir
                                     </a>
                                 </td>

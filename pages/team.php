@@ -1,3 +1,4 @@
+
 <?php
 require_once '../includes/auth.php';
 require_once '../config/db.php';
@@ -22,6 +23,7 @@ $error = '';
 
 // === TRAITEMENT DU FORMULAIRE (AJOUT) ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    requireCsrf();
 
     // 1. AJOUT
     if ($_POST['action'] === 'add') {
@@ -33,13 +35,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         if (empty($username) || empty($password) || empty($email)) {
             $error = "Tous les champs sont requis.";
         } else {
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM Utilisateur WHERE Nom_Utilisateur = ? OR Email_Utilisateur = ?");
+            $stmt = $pdo->prepare(
+                "SELECT COUNT(*) FROM Utilisateur WHERE Nom_Utilisateur = ? OR Email_Utilisateur = ?"
+            );
             $stmt->execute([$username, $email]);
             if ($stmt->fetchColumn() > 0) {
                 $error = "Ce nom d'utilisateur ou cet email est déjà pris.";
             } else {
                 $hash = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $pdo->prepare("INSERT INTO Utilisateur (Nom_Utilisateur, Email_Utilisateur, Mot_De_Passe_Utilisateur, Role_Utilisateur, Id_Entreprise) VALUES (?, ?, ?, ?, ?)");
+                $stmt = $pdo->prepare(
+                    "INSERT INTO Utilisateur "
+                    . "(Nom_Utilisateur, Email_Utilisateur, Mot_De_Passe_Utilisateur, Role_Utilisateur, Id_Entreprise) "
+                    . "VALUES (?, ?, ?, ?, ?)"
+                );
                 if ($stmt->execute([$username, $email, $hash, $role, $entreprise_id])) {
                     $success = "Utilisateur ajouté avec succès !";
                 } else {
@@ -59,7 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $error = "Mot de passe administrateur incorrect. Action annulée.";
         } else {
             // B. Vérifier que la cible est bien dans mon entreprise
-            $stmt = $pdo->prepare("SELECT Role_Utilisateur FROM Utilisateur WHERE Id_Utilisateur = ? AND Id_Entreprise = ?");
+            $stmt = $pdo->prepare(
+                "SELECT Role_Utilisateur FROM Utilisateur WHERE Id_Utilisateur = ? AND Id_Entreprise = ?"
+            );
             $stmt->execute([$target_id, $entreprise_id]);
             $target_user_role = $stmt->fetchColumn();
 
@@ -80,7 +90,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // LISTE DES MEMBRES
-$stmt = $pdo->prepare("SELECT * FROM Utilisateur WHERE Id_Entreprise = ? ORDER BY Nom_Utilisateur");
+$stmt = $pdo->prepare(
+    "SELECT Id_Utilisateur, Nom_Utilisateur, Email_Utilisateur, Role_Utilisateur "
+    . "FROM Utilisateur WHERE Id_Entreprise = ? ORDER BY Nom_Utilisateur"
+);
 $stmt->execute([$entreprise_id]);
 $membres = $stmt->fetchAll();
 ?>
@@ -100,6 +113,7 @@ $membres = $stmt->fetchAll();
             <div class="card">
                 <h3><i class="fas fa-user-plus"></i> Nouveau Membre</h3>
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                     <input type="hidden" name="action" value="add">
                     <div class="form-group">
                         <label>Nom d'utilisateur</label>
@@ -143,17 +157,23 @@ $membres = $stmt->fetchAll();
                             <tr>
                                 <td>
                                     <strong><?= htmlspecialchars($u['Nom_Utilisateur']) ?></strong>
-                                    <?php if ($u['Id_Utilisateur'] == $_SESSION['user_id']): ?> <small>(Vous)</small> <?php endif; ?>
+                                    <?php if ($u['Id_Utilisateur'] == $_SESSION['user_id']): ?>
+                                        <small>(Vous)</small>
+                                    <?php endif; ?>
                                 </td>
                                 <td><?= htmlspecialchars($u['Email_Utilisateur']) ?></td>
                                 <td>
-                                    <span class="badge badge-<?= $u['Role_Utilisateur'] === 'admin' ? 'primary' : 'secondary' ?>">
+                                    <span class="badge badge-<?= $u['Role_Utilisateur'] === 'admin'
+                                        ? 'primary'
+                                        : 'secondary' ?>">
                                         <?= ucfirst($u['Role_Utilisateur']) ?>
                                     </span>
                                 </td>
                                 <td>
                                     <?php if ($u['Id_Utilisateur'] != $_SESSION['user_id']): ?>
-                                        <button onclick="openModal(<?= $u['Id_Utilisateur'] ?>, '<?= $u['Nom_Utilisateur'] ?>')" class="btn btn-sm btn-info" style="padding: 5px 10px; font-size: 0.8em;">
+                                        <button onclick="openModal(<?= $u['Id_Utilisateur'] ?>, '<?= htmlspecialchars($u['Nom_Utilisateur'], ENT_QUOTES) ?>')"
+                                                class="btn btn-sm btn-info"
+                                                style="padding: 5px 10px; font-size: 0.8em;">
                                             <i class="fas fa-sync-alt"></i> Changer rôle
                                         </button>
                                     <?php else: ?>
@@ -177,11 +197,17 @@ $membres = $stmt->fetchAll();
         <p>Veuillez confirmer votre mot de passe administrateur pour continuer :</p>
 
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
             <input type="hidden" name="action" value="switch">
             <input type="hidden" name="target_id" id="modalTargetId">
 
             <div class="form-group">
-                <input type="password" name="admin_password" class="form-control" placeholder="Votre mot de passe actuel" required autofocus>
+                <input type="password" 
+                       name="admin_password" 
+                       class="form-control" 
+                       placeholder="Votre mot de passe actuel" 
+                       required 
+                       autofocus>
             </div>
 
             <div style="display: flex; gap: 10px; justify-content: flex-end;">

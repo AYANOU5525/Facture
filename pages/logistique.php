@@ -11,14 +11,47 @@ $entreprise_id = $stmt->fetchColumn();
 
 // On récupère les entrées logistiques
 $stmt = $pdo->prepare("
-    SELECT l.*, v.Nom_Client, v.Numero_Vente
+    SELECT l.*, 
+           v.Nom_Client, 
+           v.Numero_Vente,
+           c.Numero_Commande,
+           e.Nom_Entreprise AS Nom_Acheteur
     FROM Logistique l
     LEFT JOIN Vente v ON l.Id_Vente = v.Id_Vente
+    LEFT JOIN Commande_B2B c ON l.Id_Commande_B2B = c.Id_Commande_B2B
+    LEFT JOIN Entreprise e ON c.Id_Entreprise_Acheteuse = e.Id_Entreprise
     WHERE l.Id_Entreprise = ? 
     ORDER BY l.Id_Logistique DESC
 ");
 $stmt->execute([$entreprise_id]);
 $logistique = $stmt->fetchAll();
+
+$recherche = trim($_GET['q'] ?? '');
+$statut_filtre = $_GET['statut'] ?? '';
+$statuts_valides = ['traitement', 'en_attente', 'expediee', 'livree', 'annulee'];
+if (!in_array($statut_filtre, $statuts_valides, true)) {
+    $statut_filtre = '';
+}
+
+if ($recherche !== '' || $statut_filtre !== '') {
+    $logistique = array_values(array_filter($logistique, function (array $ligne) use ($recherche, $statut_filtre): bool {
+        $texte = implode(' ', [
+            $ligne['Numero_Commande'] ?? '',
+            $ligne['Numero_Vente'] ?? '',
+            $ligne['Nom_Acheteur'] ?? '',
+            $ligne['Nom_Client'] ?? '',
+            $ligne['Transporteur'] ?? '',
+            $ligne['Numero_Suivi'] ?? '',
+        ]);
+
+        $correspond_recherche = $recherche === ''
+            || stripos($texte, $recherche) !== false;
+        $correspond_statut = $statut_filtre === ''
+            || ($ligne['Statut_Livraison'] ?? '') === $statut_filtre;
+
+        return $correspond_recherche && $correspond_statut;
+    }));
+}
 ?>
 
 <div class="container fade-in">
@@ -27,9 +60,27 @@ $logistique = $stmt->fetchAll();
     </div>
 
     <div class="card">
-        <h2 style="margin-bottom: 20px; font-size: 1.5rem;">Expéditions & Livraisons</h2>
+        <div class="logistique-toolbar">
+            <h2>Expéditions & Livraisons</h2>
+            <form method="GET" class="logistique-filters">
+                <input type="search" name="q" class="form-control" value="<?= htmlspecialchars($recherche) ?>" placeholder="Commande, client, suivi...">
+                <select name="statut" class="form-control" onchange="this.form.submit()">
+                    <option value="">Tous les statuts</option>
+                    <option value="traitement" <?= $statut_filtre === 'traitement' ? 'selected' : '' ?>>Traitement</option>
+                    <option value="en_attente" <?= $statut_filtre === 'en_attente' ? 'selected' : '' ?>>En attente</option>
+                    <option value="expediee" <?= $statut_filtre === 'expediee' ? 'selected' : '' ?>>Expédiée</option>
+                    <option value="livree" <?= $statut_filtre === 'livree' ? 'selected' : '' ?>>Livrée</option>
+                    <option value="annulee" <?= $statut_filtre === 'annulee' ? 'selected' : '' ?>>Annulée</option>
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Filtrer</button>
+                <?php if ($recherche !== '' || $statut_filtre !== ''): ?>
+                    <a href="logistique.php" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i> Réinitialiser</a>
+                <?php endif; ?>
+            </form>
+        </div>
 
         <?php if (count($logistique) > 0): ?>
+            <div class="table-responsive">
             <table class="table">
                 <thead>
                     <tr>
@@ -46,8 +97,21 @@ $logistique = $stmt->fetchAll();
                 <tbody>
                     <?php foreach ($logistique as $l): ?>
                         <tr>
-                            <td><?= htmlspecialchars($l['Numero_Vente'] ?? 'N/A') ?></td>
-                            <td><?= htmlspecialchars($l['Nom_Client'] ?? 'N/A') ?></td>
+                            <td>
+                                <?php if ($l['Id_Commande_B2B']): ?>
+                                    <span class="badge badge-info" style="font-size:0.7rem; padding: 2px 6px;"><i class="fas fa-handshake"></i> B2B</span><br>
+                                    <code><?= htmlspecialchars($l['Numero_Commande'] ?? 'N/A') ?></code>
+                                <?php else: ?>
+                                    <code><?= htmlspecialchars($l['Numero_Vente'] ?? 'N/A') ?></code>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($l['Id_Commande_B2B']): ?>
+                                    <strong><?= htmlspecialchars($l['Nom_Acheteur'] ?? 'Acheteur inconnu') ?></strong>
+                                <?php else: ?>
+                                    <?= htmlspecialchars($l['Nom_Client'] ?? 'N/A') ?>
+                                <?php endif; ?>
+                            </td>
                             <td><?= htmlspecialchars($l['Transporteur'] ?? 'Non assigné') ?></td>
                             <td><code><?= htmlspecialchars($l['Numero_Suivi'] ?? '-') ?></code></td>
                             <td>
@@ -57,8 +121,8 @@ $logistique = $stmt->fetchAll();
                             </td>
                             <td><?= $l['Date_Livraison_Prevue'] ? date('d/m/Y', strtotime($l['Date_Livraison_Prevue'])) : 'TBD' ?></td>
                             <td>
-                                <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-primary">
-                                    <i class="fas fa-edit"></i>
+                                <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-primary" title="Suivi Logistique & Carte">
+                                    <i class="fas fa-map-marked-alt"></i> Carte
                                 </a>
                             </td>
                         </tr>
@@ -66,6 +130,7 @@ $logistique = $stmt->fetchAll();
 
                 </tbody>
             </table>
+            </div>
         <?php else: ?>
             <div class="alert alert-info">
                 Aucune expédition en cours.

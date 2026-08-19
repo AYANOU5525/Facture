@@ -1,6 +1,12 @@
 <?php
 require_once '../includes/auth.php';
 require_once '../config/db.php';
+require_once '../vendor/autoload.php';
+
+use App\Application\Billing\SalesWorkflowService;
+use App\Infrastructure\Persistence\SalesWorkflowRepository;
+
+$salesWorkflow = new SalesWorkflowService(new SalesWorkflowRepository($pdo));
 
 // Récupérer le numéro de vente depuis l'URL
 $numero_vente = $_GET['ref'] ?? null;
@@ -14,14 +20,7 @@ $stmt->execute([$_SESSION['user_id']]);
 $entreprise_id = $stmt->fetchColumn();
 
 // Récupérer les informations de la vente
-$stmt = $pdo->prepare("
-    SELECT v.*, f.Id_Facture, f.Statut_Paiement, f.Montant_TTC
-    FROM Vente v
-    LEFT JOIN Facture f ON v.Id_Vente = f.Id_Vente
-    WHERE v.Numero_Vente = ? AND v.Id_Entreprise = ?
-");
-$stmt->execute([$numero_vente, $entreprise_id]);
-$vente = $stmt->fetch();
+$vente = $salesWorkflow->findSale($numero_vente, (int) $entreprise_id);
 
 if (!$vente) {
     header('Location: dashboard.php');
@@ -29,9 +28,7 @@ if (!$vente) {
 }
 
 // Vérifier si logistique existe déjà
-$stmt = $pdo->prepare("SELECT Id_Logistique FROM Logistique WHERE Id_Vente = ?");
-$stmt->execute([$vente['Id_Vente']]);
-$logistique_existe = $stmt->fetch();
+$logistique_existe = $salesWorkflow->hasLogistics((int) $vente['Id_Vente']);
 
 $success = '';
 $error = '';
@@ -39,41 +36,30 @@ $etape = $_GET['etape'] ?? '1';
 
 // === TRAITEMENT VALIDATION PAIEMENT ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['valider_paiement'])) {
-    $stmt = $pdo->prepare("UPDATE Facture SET Statut_Paiement = 'payee' WHERE Id_Facture = ?");
-    $stmt->execute([$vente['Id_Facture']]);
+    requireCsrf();
+    $salesWorkflow->markPaid((int) $vente['Id_Facture']);
     $success = "Paiement validé avec succès !";
     $etape = '2'; // Passer à l'étape logistique
 
     // Recharger les données
-    $stmt = $pdo->prepare("
-        SELECT v.*, f.Id_Facture, f.Statut_Paiement, f.Montant_TTC
-        FROM Vente v
-        LEFT JOIN Facture f ON v.Id_Vente = f.Id_Vente
-        WHERE v.Numero_Vente = ? AND v.Id_Entreprise = ?
-    ");
-    $stmt->execute([$numero_vente, $entreprise_id]);
-    $vente = $stmt->fetch();
+    $vente['Statut_Paiement'] = 'payee';
 }
 
 // === TRAITEMENT CRÉATION LOGISTIQUE ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['creer_logistique'])) {
-    $transporteur = $_POST['transporteur'] ?? '';
-    $numero_suivi = $_POST['numero_suivi'] ?? '';
+    requireCsrf();
+    $transporteur = trim($_POST['transporteur'] ?? '');
+    $numero_suivi = trim($_POST['numero_suivi'] ?? '');
     $date_livraison = $_POST['date_livraison'] ?? null;
 
     try {
-        $stmt = $pdo->prepare("
-            INSERT INTO Logistique 
-            (Id_Vente, Id_Entreprise, Transporteur, Numero_Suivi, Date_Livraison_Prevue, Statut_Livraison)
-            VALUES (?, ?, ?, ?, ?, 'en_preparation')
-        ");
-        $stmt->execute([
+        $salesWorkflow->createLogistics(
             $vente['Id_Vente'],
             $entreprise_id,
             $transporteur,
             $numero_suivi,
             $date_livraison
-        ]);
+        );
         $success = "Logistique créée avec succès !";
         $etape = '3'; // Terminé
         $logistique_existe = true;
@@ -158,7 +144,10 @@ include '../includes/header.php';
 <div class="container fade-in">
     <div class="page-header">
         <h1><i class="fas fa-clipboard-check"></i> Finalisation de la Vente</h1>
-        <p>Vente <strong><?= htmlspecialchars($numero_vente) ?></strong> - <?= htmlspecialchars($vente['Nom_Client']) ?></p>
+        <p>
+            Vente <strong><?= htmlspecialchars($numero_vente) ?></strong> 
+            - <?= htmlspecialchars($vente['Nom_Client']) ?>
+        </p>
     </div>
 
     <?php if ($success): ?>
@@ -213,6 +202,7 @@ include '../includes/header.php';
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
                 <?php if ($vente['Statut_Paiement'] !== 'payee'): ?>
                     <form method="POST" style="display: inline;">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                         <button type="submit" name="valider_paiement" class="btn btn-success">
                             <i class="fas fa-check-circle"></i> Marquer comme Payé
                         </button>
@@ -222,7 +212,9 @@ include '../includes/header.php';
                         <i class="fas fa-arrow-right"></i> Passer à la logistique
                     </a>
                 <?php endif; ?>
-                <a href="invoice_view.php?ref=<?= urlencode($numero_vente) ?>" target="_blank" class="btn btn-secondary">
+                <a href="invoice_view.php?ref=<?= urlencode($numero_vente) ?>" 
+                   target="_blank" 
+                   class="btn btn-secondary">
                     <i class="fas fa-print"></i> Voir la Facture
                 </a>
                 <a href="dashboard.php" class="btn btn-secondary">
@@ -246,17 +238,24 @@ include '../includes/header.php';
                 </a>
             <?php else: ?>
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Transporteur</label>
-                                <input type="text" name="transporteur" class="form-control" placeholder="Ex: DHL, Fedex, UPS...">
+                                <input type="text" 
+                                       name="transporteur" 
+                                       class="form-control" 
+                                       placeholder="Ex: DHL, Fedex, UPS...">
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label>Numéro de Suivi</label>
-                                <input type="text" name="numero_suivi" class="form-control" placeholder="Code de suivi...">
+                                <input type="text" 
+                                       name="numero_suivi" 
+                                       class="form-control" 
+                                       placeholder="Code de suivi...">
                             </div>
                         </div>
                     </div>

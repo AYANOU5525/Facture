@@ -10,7 +10,6 @@ $stmt = $pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateu
 $stmt->execute([$_SESSION['user_id']]);
 $entreprise_id = $stmt->fetchColumn();
 
-// --- CALCUL DES STATISTIQUES ---
 
 // 1. Chiffre d'Affaires (Ventes + B2B Vendu)
 $stmt = $pdo->prepare("SELECT SUM(Montant_Total) FROM Vente WHERE Id_Entreprise = ?");
@@ -61,15 +60,30 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
         </div>
     </div>
 
-    <!-- ACCÈS RAPIDE -->
+    <!-- QUICK ACTION CARDS -->
+    <div class="dashboard-featured-actions" style="background: white; padding: 25px; border-radius: 16px; margin-bottom: 30px; box-shadow: var(--shadow-md); border: 2px solid #e2e8f0;">
+        <h2 style="margin-top: 0; margin-bottom: 20px; font-size: 1.4rem; color: #1e293b;"><i class="fas fa-bolt"></i> Actions Rapides Caisse & Stock</h2>
+        <div class="dashboard-featured-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+
+            <a href="approvisionnement.php" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border-radius: 16px; padding: 30px; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.3);" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <i class="fas fa-box-open" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                <h3 style="margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px;">Entrée Stock</h3>
+
+            </a>
+
+            <a href="invoice_add.php" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border-radius: 16px; padding: 30px; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                <i class="fas fa-cash-register" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                <h3 style="margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px;">Vente Produit</h3>
+
+            </a>
+
+        </div>
+    </div>
+
     <div class="quick-actions">
         <a href="products.php" class="action-btn">
             <div class="icon-box blue"><i class="fas fa-plus"></i></div>
             <span>Nouveau Produit</span>
-        </a>
-        <a href="invoice_add.php" class="action-btn">
-            <div class="icon-box green"><i class="fas fa-file-invoice-dollar"></i></div>
-            <span>Facturer Client</span>
         </a>
         <a href="reseau_b2b.php" class="action-btn">
             <div class="icon-box purple"><i class="fas fa-search"></i></div>
@@ -85,14 +99,16 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
     <!-- STATS CARDS (GRID 4 COLONNES) -->
     <div class="stats-grid">
         <!-- CA -->
-        <div class="stat-card gradient-blue">
-            <div class="stat-icon"><i class="fas fa-wallet"></i></div>
-            <div class="stat-info">
-                <h3>Chiffre d'Affaires</h3>
-                <div class="stat-value"><?= number_format($total_ca, 0, ',', ' ') ?> <small>F</small></div>
+        <a href="sales.php" target="_blank" rel="noopener noreferrer">
+            <div class="stat-card gradient-blue">
+                <div class="stat-icon"><i class="fas fa-wallet"></i></div>
+                <div class="stat-info">
+                    <h3>Chiffre d'Affaires</h3>
+                    <div class="stat-value"><?= number_format($total_ca, 0, ',', ' ') ?> <small>F</small></div>
+                </div>
+                <div class="stat-wave"></div>
             </div>
-            <div class="stat-wave"></div>
-        </div>
+        </a>
 
         <!-- Dépenses -->
         <div class="stat-card gradient-orange">
@@ -103,7 +119,6 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
             </div>
         </div>
 
-        <!-- Clients -->
         <a href="clients.php" class="stat-card bg-white" style="text-decoration: none; display: flex; color: inherit;">
             <div class="stat-icon text-purple"><i class="fas fa-users"></i></div>
             <div class="stat-info">
@@ -219,6 +234,7 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
         justify-content: space-between;
         align-items: flex-end;
         margin-bottom: 25px;
+        gap: 16px;
     }
 
     .dashboard-header h1 {
@@ -244,6 +260,7 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
         display: flex;
         gap: 15px;
         margin-bottom: 30px;
+        flex-wrap: wrap;
     }
 
     .action-btn {
@@ -381,8 +398,23 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
     /* Grid Layout */
     .dashboard-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 25px;
+    }
+
+    .dashboard-featured-grid > a,
+    .quick-actions > .action-btn,
+    .dashboard-grid > .card {
+        min-width: 0;
+    }
+
+    .list-item > .d-flex {
+        min-width: 0;
+    }
+
+    .list-item > .d-flex > div:last-child {
+        min-width: 0;
+        overflow-wrap: anywhere;
     }
 
     .card-header-flex {
@@ -451,6 +483,89 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
         font-size: 3rem;
         margin-bottom: 15px;
         opacity: 0.3;
+    }
+
+    @media (max-width: 768px) {
+        .dashboard-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .dashboard-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .dashboard-featured-actions {
+            padding: 18px !important;
+        }
+
+        .dashboard-featured-actions h2 {
+            font-size: 1.15rem !important;
+        }
+
+        .dashboard-featured-grid {
+            grid-template-columns: 1fr !important;
+        }
+
+        .dashboard-featured-grid > a {
+            padding: 24px !important;
+        }
+
+        .quick-actions {
+            flex-direction: column;
+        }
+
+        .action-btn {
+            width: 100%;
+        }
+
+        .dashboard-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .card-header-flex {
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .card-header-flex h3 {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .list-item {
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .list-item > .text-right {
+            flex-shrink: 0;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .dashboard-featured-grid > a {
+            min-height: 150px;
+            padding: 20px !important;
+        }
+
+        .dashboard-featured-grid > a h3 {
+            font-size: 1.15rem !important;
+        }
+
+        .stat-card {
+            padding: 18px;
+            gap: 14px;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            overflow-wrap: anywhere;
+        }
+
+        .list-item > .text-right {
+            font-size: 0.85rem;
+        }
     }
 </style>
 
