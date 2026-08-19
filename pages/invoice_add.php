@@ -1,94 +1,43 @@
 <?php
 require_once '../includes/auth.php';
 require_once '../config/db.php';
+require_once '../vendor/autoload.php';
 
-$page_title = 'Nouvelle Vente / Facture';
-include '../includes/header.php';
+use App\Application\Billing\InvoiceService;
+use App\Infrastructure\Persistence\InvoiceRepository;
 
-$stmt = $pdo->prepare("SELECT Nom_Utilisateur, Prenom_Utilisateur FROM Utilisateur WHERE Id_Utilisateur = ?");
+$invoiceService = new InvoiceService($pdo, new InvoiceRepository($pdo));
+
+$stmt = $pdo->prepare("SELECT Nom_Utilisateur FROM Utilisateur WHERE Id_Utilisateur = ?");
 $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch();
-$nom_vendeur = trim(($user['Prenom_Utilisateur'] ?? '') . ' ' . ($user['Nom_Utilisateur'] ?? ''));
+$nom_vendeur = trim($user['Nom_Utilisateur'] ?? '');
 
-$stmt = $pdo->prepare("SELECT Id_Produit, Nom_Produit, Prix_Unitaire_Produit, Quantite_En_Stock FROM Produit WHERE Id_Entreprise = ? AND Quantite_En_Stock > 0 ORDER BY Nom_Produit");
-$stmt->execute([$entreprise_id]);
-$produits = $stmt->fetchAll();
+$produits = $invoiceService->availableProducts((int) $entreprise_id);
 
 $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
     $client = trim($_POST['client'] ?? '');
     $items = $_POST['items'] ?? [];
 
     if (empty($items)) {
         $error = 'Veuillez ajouter au moins un produit.';
     } else {
-        $total_vente = 0;
-        $articles_json = [];
-        $pdo->beginTransaction();
-
         try {
-            $produits_deja_pris = [];
-
-            foreach ($items as $item) {
-                if (empty($item['produit']) || empty($item['quantite'])) continue;
-
-                $id_produit = intval($item['produit']);
-                $quantite = intval($item['quantite']);
-
-                if (in_array($id_produit, $produits_deja_pris)) {
-                    throw new Exception("Le produit ID $id_produit est présent plusieurs fois. Veuillez regrouper.");
-                }
-                $produits_deja_pris[] = $id_produit;
-
-                $stmt = $pdo->prepare("SELECT Id_Produit, Nom_Produit, Prix_Unitaire_Produit, Quantite_En_Stock FROM Produit WHERE Id_Produit = ? AND Id_Entreprise = ? FOR UPDATE");
-                $stmt->execute([$id_produit, $entreprise_id]);
-                $produit = $stmt->fetch();
-
-                if (!$produit || $produit['Quantite_En_Stock'] < $quantite) {
-                    throw new Exception("Stock insuffisant pour " . ($produit['Nom_Produit'] ?? 'produit'));
-                }
-
-                $prix_unitaire = $produit['Prix_Unitaire_Produit'];
-                $total_vente += ($prix_unitaire * $quantite);
-
-                $articles_json[] = [
-                    'id_produit' => $id_produit,
-                    'nom' => $produit['Nom_Produit'],
-                    'quantite' => $quantite,
-                    'prix' => $prix_unitaire,
-                    'total' => ($prix_unitaire * $quantite)
-                ];
-
-                $nouveau_stock = $produit['Quantite_En_Stock'] - $quantite;
-                $pdo->prepare("UPDATE Produit SET Quantite_En_Stock = ? WHERE Id_Produit = ?")->execute([$nouveau_stock, $id_produit]);
-            }
-
-            if (empty($articles_json)) throw new Exception("Aucun article valide.");
-
-            $numero = 'FAC-' . date('Ymd') . '-' . rand(1000, 9999);
-            $stmt = $pdo->prepare("INSERT INTO Vente (Numero_Vente, Nom_Client, Nom_Vendeur, Articles_JSON, Montant_Total, Type_Vente, Id_Entreprise, Date_Vente) VALUES (?, ?, ?, ?, ?, 'directe', ?, NOW())");
-            $stmt->execute([$numero, $client, $nom_vendeur, json_encode($articles_json, JSON_UNESCAPED_UNICODE), $total_vente, $entreprise_id]);
-            $id_vente = $pdo->lastInsertId();
-
-            $stmt = $pdo->prepare("INSERT INTO Facture (Id_Vente, Numero_Facture, Date_Echeance, Montant_HT, Montant_TTC, Id_Entreprise) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY), ?, ?, ?)");
-            $stmt->execute([$id_vente, $numero, $total_vente * 0.8, $total_vente, $entreprise_id]);
-            $id_facture = $pdo->lastInsertId();
-
-            $stmt = $pdo->prepare("INSERT INTO Logistique (Id_Vente, Id_Facture, Statut_Livraison, Id_Entreprise) VALUES (?, ?, 'traitement', ?)");
-            $stmt->execute([$id_vente, $id_facture, $entreprise_id]);
-
-            $pdo->commit();
-
+            $numero = $invoiceService->createDirectSale($client, $nom_vendeur, $items, (int) $entreprise_id);
             header('Location: vente_workflow.php?ref=' . urlencode($numero) . '&etape=1');
             exit;
-        } catch (Exception $e) {
-            $pdo->rollBack();
+        } catch (Throwable $e) {
             $error = $e->getMessage();
         }
     }
 }
+
+$page_title = 'Nouvelle Vente / Facture';
+include '../includes/header.php';
 ?>
 
 <div class="container fade-in">
@@ -99,10 +48,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if ($error): ?> <div class="alert alert-danger" style="margin-bottom:20px;"><?= htmlspecialchars($error) ?></div> <?php endif; ?>
 
     <form method="POST" id="invoiceForm" class="card">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
         <div class="form-group" style="margin-bottom: 20px;">
             <label style="font-weight: bold;">Nom du client</label>
-            <input type="text" name="client" class="form-control" value="Client Comptant" required>
+            <input type="text" name="client" class="form-control" placeholder="Client Comptant" required>
         </div>
+
+
 
         <h3>Articles</h3>
         <div id="items-container">
@@ -146,12 +98,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <select name="items[${itemCount}][produit]" class="form-control product-select" required style="flex: 3;" onchange="updateOptions()">
                 ${renderOptions(selectedId)}
             </select>
-            <input type="number" name="items[${itemCount}][quantite]" class="form-control" placeholder="Qté" min="1" required style="flex: 1;">
+            <input type="hidden" name="items[${itemCount}][facteur_conversion]" class="facteur-input" value="1">
+            
+            <input type="number" name="items[${itemCount}][quantite]" class="form-control qty-input" placeholder="Qté" min="1" value="1" required style="flex: 1;">
             <button type="button" onclick="removeItem(this)" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
         `;
         container.appendChild(div);
         itemCount++;
-        updateOptions(); 
+        updateOptions();
+        return div;
     }
 
     function removeItem(btn) {
@@ -159,7 +114,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         updateOptions();
     }
 
-  
     function updateOptions() {
         const allSelects = document.querySelectorAll('.product-select');
         const selectedValues = [];
@@ -168,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
 
         allSelects.forEach(select => {
-            const myValue = select.value; 
+            const myValue = select.value;
 
             Array.from(select.options).forEach(option => {
                 if (!option.value) return;
@@ -189,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
     }
 
-    // Initialiser avec une ligne
+    // Initialiser avec une ligne vide
     window.onload = function() {
         addItem();
     };
