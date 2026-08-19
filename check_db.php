@@ -1,4 +1,10 @@
 <?php
+
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit('Not found');
+}
+
 require 'config/db.php';
 try {
     echo "Check for Vente table structure:\n";
@@ -7,7 +13,9 @@ try {
     echo "Columns: " . implode(", ", $columns) . "\n";
 
     echo "\nTesting sales.php query:\n";
-    $q1 = "SELECT Id_Vente, Numero_Vente, Nom_Client, Nom_Vendeur, Date_Vente, Articles_JSON, Montant_Total, Type_Vente FROM Vente WHERE Id_Entreprise = 1 ORDER BY Date_Vente DESC";
+    $q1 = "SELECT Id_Vente, Numero_Vente, Nom_Client, Nom_Vendeur, Date_Vente, "
+        . "Articles_JSON, Montant_Total, Type_Vente "
+        . "FROM Vente WHERE Id_Entreprise = 1 ORDER BY Date_Vente DESC";
     $pdo->prepare($q1);
     echo "SUCCESS: sales.php query prepared.\n";
 

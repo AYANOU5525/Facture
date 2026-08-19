@@ -1,12 +1,14 @@
 <?php
 require_once '../includes/auth.php';
 require_once '../config/db.php';
+require_once '../vendor/autoload.php';
 
-$page_title = 'Gestion des Produits';
-include '../includes/header.php';
+use App\Application\Inventory\ProductService;
+use App\Infrastructure\Persistence\ProductRepository;
+
+$productService = new ProductService(new ProductRepository($pdo));
 
 // Récupérer l'ID de l'entreprise de l'utilisateur connecté
-// Utilisation préférentielle de la session si définie dans auth.php, sinon DB
 $entreprise_id = $_SESSION['entreprise_id'] ?? null;
 
 if (!$entreprise_id) {
@@ -15,7 +17,6 @@ if (!$entreprise_id) {
     $user = $stmt->fetch();
 
     if (!$user) {
-        // Session invalide (ex: après seed), redirection
         header('Location: ../includes/logout.php');
         exit();
     }
@@ -25,23 +26,25 @@ if (!$entreprise_id) {
 $success = '';
 $error = '';
 $edit_mode = false;
+
+$page_title = 'Gestion des Produits';
+include '../includes/header.php';
 // === TRAITEMENT DU FORMULAIRE (AJOUT / MODIFICATION / SUPPRESSION) ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
 
     // CAS 1 : SUPPRESSION
     if (isset($_POST['action']) && $_POST['action'] === 'delete') {
         $id_to_delete = $_POST['id_produit'];
         try {
-            $stmt = $pdo->prepare("DELETE FROM Produit WHERE Id_Produit = ? AND Id_Entreprise = ?");
-            $stmt->execute([$id_to_delete, $entreprise_id]);
+            $productService->delete((int) $id_to_delete, (int) $entreprise_id);
             $success = "Produit supprimé avec succès.";
-        } catch (PDOException $e) {
+        } catch (Throwable $e) {
             $error = "Erreur lors de la suppression : " . $e->getMessage();
         }
     }
     // CAS 2 : AJOUT OU MODIFICATION
     else {
-        // Récupération des données
         $nom = $_POST['nom'];
         $description = $_POST['description'];
         $prix = $_POST['prix'];
@@ -53,28 +56,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($id_produit) {
             try {
-                $stmt = $pdo->prepare("
-                    UPDATE Produit SET 
-                    Nom_Produit = ?, Description_Produit = ?, Prix_Unitaire_Produit = ?, 
-                    Quantite_En_Stock = ?, En_Destockage_B2B = ?, Prix_B2B = ?, Quantite_Min_B2B = ?
-                    WHERE Id_Produit = ? AND Id_Entreprise = ?
-                ");
-                $stmt->execute([$nom, $description, $prix, $stock, $en_destockage, $prix_b2b, $qte_min_b2b, $id_produit, $entreprise_id]);
+                    $productService->save($_POST, (int) $entreprise_id, (int) $id_produit);
                 $success = "Produit modifié avec succès.";
-            } catch (PDOException $e) {
+            } catch (Throwable $e) {
                 $error = "Erreur lors de la modification : " . $e->getMessage();
             }
         } else {
             try {
-                $stmt = $pdo->prepare("
-                    INSERT INTO Produit 
-                    (Nom_Produit, Description_Produit, Prix_Unitaire_Produit, Quantite_En_Stock, 
-                     En_Destockage_B2B, Prix_B2B, Quantite_Min_B2B, Id_Entreprise)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ");
-                $stmt->execute([$nom, $description, $prix, $stock, $en_destockage, $prix_b2b, $qte_min_b2b, $entreprise_id]);
+                $productService->save($_POST, (int) $entreprise_id);
                 $success = "Produit ajouté avec succès.";
-            } catch (PDOException $e) {
+            } catch (Throwable $e) {
                 $error = "Erreur lors de l'ajout : " . $e->getMessage();
             }
         }
@@ -83,18 +74,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // === GESTION DE L'AFFICHAGE POUR ÉDITION ===
 if (isset($_GET['edit'])) {
-    $stmt = $pdo->prepare("SELECT Id_Produit, Nom_Produit, Description_Produit, Prix_Unitaire_Produit, Quantite_En_Stock, En_Destockage_B2B, Prix_B2B FROM Produit WHERE Id_Produit = ? AND Id_Entreprise = ?");
-    $stmt->execute([$_GET['edit'], $entreprise_id]);
-    $product_data = $stmt->fetch();
+    $product_data = $productService->find((int) $_GET['edit'], (int) $entreprise_id);
     if ($product_data) {
         $edit_mode = true;
     }
 }
 
 // === RÉCUPÉRATION DE LA LISTE DES PRODUITS ===
-$stmt = $pdo->prepare("SELECT Id_Produit, Nom_Produit, Description_Produit, Prix_Unitaire_Produit, Quantite_En_Stock, En_Destockage_B2B, Prix_B2B FROM Produit WHERE Id_Entreprise = ? ORDER BY Nom_Produit");
-$stmt->execute([$entreprise_id]);
-$produits = $stmt->fetchAll();
+$produits = $productService->list((int) $entreprise_id);
 ?>
 
 <h1><i class="fas fa-box"></i> Gestion des Produits</h1>
@@ -110,6 +97,7 @@ $produits = $stmt->fetchAll();
 <div class="card" style="margin-bottom: 30px;">
     <h2><?= $edit_mode ? 'Modifier le produit' : 'Nouveau produit' ?></h2>
     <form method="POST" action="products.php">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
         <?php if ($edit_mode): ?>
             <input type="hidden" name="id_produit" value="<?= $product_data['Id_Produit'] ?>">
         <?php endif; ?>
@@ -118,7 +106,7 @@ $produits = $stmt->fetchAll();
             <div class="col-md-3">
                 <div class="form-group">
                     <label>Nom du produit *</label>
-                    <input type="text" name="nom" required class="form-control" value="<?= $edit_mode ? htmlspecialchars($product_data['Nom_Produit']) : '' ?>">
+                    <input type="text" name="nom" required class="form-control" value="<?= $edit_mode ? htmlspecialchars($product_data['Nom_Produit'] ?? '') : '' ?>">
                 </div>
             </div>
 
@@ -139,7 +127,7 @@ $produits = $stmt->fetchAll();
             <div class="col-md-4">
                 <div class="form-group">
                     <label>Description</label>
-                    <input type="text" name="description" class="form-control" value="<?= $edit_mode ? htmlspecialchars($product_data['Description_Produit']) : '' ?>">
+                    <input type="text" name="description" class="form-control" value="<?= $edit_mode ? htmlspecialchars($product_data['Description_Produit'] ?? '') : '' ?>">
                 </div>
             </div>
         </div>
@@ -207,8 +195,8 @@ $produits = $stmt->fetchAll();
                 <?php foreach ($produits as $p): ?>
                     <tr>
                         <td>
-                            <strong><?= htmlspecialchars($p['Nom_Produit']) ?></strong><br>
-                            <small style="color: #666;"><?= htmlspecialchars($p['Description_Produit']) ?></small>
+                            <strong><?= htmlspecialchars($p['Nom_Produit'] ?? '') ?></strong><br>
+                            <small style="color: #666;"><?= htmlspecialchars($p['Description_Produit'] ?? '') ?></small>
                         </td>
                         <td><?= number_format($p['Prix_Unitaire_Produit'], 0, ',', ' ') ?> FCFA</td>
                         <td>
@@ -231,6 +219,7 @@ $produits = $stmt->fetchAll();
                                 <i class="fas fa-edit"></i>
                             </a>
                             <form method="POST" action="products.php" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce produit ?');">
+                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="id_produit" value="<?= $p['Id_Produit'] ?>">
                                 <button type="submit" class="btn btn-sm btn-danger">

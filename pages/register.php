@@ -1,11 +1,13 @@
 <?php
 session_start();
+require_once '../includes/csrf.php';
 require_once '../config/db.php';
 
 $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireCsrf();
     $company_name = trim($_POST['company_name'] ?? '');
     $username = trim($_POST['username'] ?? '');
     $email = trim($_POST['email'] ?? '');
@@ -81,6 +83,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
             <div class="form-group">
                 <label><i class="fas fa-building" style="margin-right: 8px; color: var(--primary);"></i>Nom de l'entreprise</label>
                 <input type="text" name="company_name" class="form-control" placeholder="Ma Super Entreprise" required>
@@ -98,12 +101,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="form-group">
                 <label><i class="fas fa-lock" style="margin-right: 8px; color: var(--primary);"></i>Mot de passe</label>
-                <input type="password" name="password" class="form-control" placeholder="Minimum 6 caractères" required>
+                <div class="password-wrapper">
+                    <input type="password" 
+                           id="reg-password" 
+                           name="password" 
+                           class="form-control" 
+                           placeholder="Minimum 6 caractères" 
+                           required>
+                    <button type="button" 
+                            class="password-toggle" 
+                            onclick="togglePassword('reg-password', this)" 
+                            title="Afficher / masquer" 
+                            aria-label="Afficher le mot de passe">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
             </div>
 
             <div class="form-group">
                 <label><i class="fas fa-lock" style="margin-right: 8px; color: var(--primary);"></i>Confirmer le mot de passe</label>
-                <input type="password" name="confirm_password" class="form-control" placeholder="Confirmez votre mot de passe" required>
+                <div class="password-wrapper">
+                    <input type="password" 
+                           id="reg-confirm-password" 
+                           name="confirm_password" 
+                           class="form-control" 
+                           placeholder="Confirmez votre mot de passe" 
+                           required>
+                    <button type="button" 
+                            class="password-toggle" 
+                            onclick="togglePassword('reg-confirm-password', this)" 
+                            title="Afficher / masquer" 
+                            aria-label="Afficher le mot de passe">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
             </div>
 
             <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1rem;">
@@ -118,5 +149,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 </body>
+
+<style>
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+.password-wrapper .form-control {
+    padding-right: 46px;
+}
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 1rem;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s;
+}
+.password-toggle:hover {
+    color: var(--primary);
+}
+</style>
+
+<script>
+function togglePassword(inputId, btn) {
+    var input = document.getElementById(inputId);
+    var icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+        btn.setAttribute('aria-label', 'Masquer le mot de passe');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+        btn.setAttribute('aria-label', 'Afficher le mot de passe');
+    }
+}
+</script>
 
 </html>

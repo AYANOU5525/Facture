@@ -2,20 +2,24 @@
 // Page: Gestion des Annonces B2B
 require_once '../includes/auth.php';
 require_once '../config/db.php';
+require_once '../includes/b2b_helpers.php';
 
 $page_title = "Annonces B2B";
 include '../includes/header.php';
 
-// Récupérer l'ID de l'entreprise connectée
-$stmt = $pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");
+// Récupérer l'ID de l'entreprise connectée et ses coordonnées
+$stmt = $pdo->prepare("SELECT Id_Entreprise, Latitude, Longitude FROM Entreprise WHERE Id_Entreprise = (SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?)");
 $stmt->execute([$_SESSION['user_id']]);
-$mon_entreprise_id = $stmt->fetchColumn();
+$mon_ent = $stmt->fetch();
+$mon_entreprise_id = $mon_ent['Id_Entreprise'];
+$j_ai_coords = !empty($mon_ent['Latitude']) && !empty($mon_ent['Longitude']);
 
 // Traitement de l'ajout d'une annonce
 $success = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'ajouter') {
+    requireCsrf();
     try {
         $type = $_POST['type_annonce'];
         $titre = $_POST['titre'];
@@ -44,7 +48,7 @@ $entreprise_filtre = $_GET['entreprise'] ?? '';
 $type_filtre = $_GET['type'] ?? '';
 
 // Récupérer les annonces
-$sql = "SELECT a.*, e.Nom_Entreprise, e.Tel_Entreprise, e.Email_Entreprise
+$sql = "SELECT a.*, e.Nom_Entreprise, e.Tel_Entreprise, e.Email_Entreprise, e.Latitude, e.Longitude
         FROM Annonce a
         JOIN Entreprise e ON a.Id_Entreprise = e.Id_Entreprise
         WHERE a.Statut = 'active'";
@@ -103,6 +107,7 @@ $annonces = $stmt->fetchAll();
         <div class="form-section">
             <h2><i class="fas fa-plus-circle"></i> Publier une annonce</h2>
             <form method="POST" class="annonce-form">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="action" value="ajouter">
 
                 <div class="form-group">
@@ -176,6 +181,10 @@ $annonces = $stmt->fetchAll();
                                 <div class="entreprise-info">
                                     <i class="fas fa-building"></i>
                                     <strong><?= htmlspecialchars($annonce['Nom_Entreprise']) ?></strong>
+                                    <?php if ($j_ai_coords && !empty($annonce['Latitude']) && !empty($annonce['Longitude'])): ?>
+                                        <?php $dist = calculDistanceHaversine((float)$mon_ent['Latitude'], (float)$mon_ent['Longitude'], (float)$annonce['Latitude'], (float)$annonce['Longitude']); ?>
+                                        <span class="badge badge-secondary" style="margin-left:8px;"><i class="fas fa-route"></i> <?= formaterDistance($dist) ?></span>
+                                    <?php endif; ?>
                                 </div>
 
                                 <?php if ($annonce['Id_Entreprise'] !== $mon_entreprise_id): ?>

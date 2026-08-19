@@ -32,6 +32,11 @@ if (!$vente) {
 }
 
 $articles = json_decode($vente['Articles_JSON'], true);
+
+// Calcul de la date de conservation légale (10 ans à compter de la date de facture)
+$date_conservation = new DateTime($vente['Date_Vente']);
+$date_conservation->modify('+10 years');
+$label_conservation = $date_conservation->format('d/m/Y');
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -236,6 +241,10 @@ $articles = json_decode($vente['Articles_JSON'], true);
         <div class="footer">
             <p>Merci de votre confiance.</p>
             <p>Facture générée numériquement via FactuPro le <?= date('d/m/Y à H:i') ?></p>
+            <p style="margin-top: 10px; border-top: 1px solid #ddd; padding-top: 10px; font-style: italic;">
+                🔒 Ce document comptable est conservé conformément aux obligations légales —
+                durée minimale : <strong>10 ans</strong> — jusqu'au <strong><?= $label_conservation ?></strong>.
+            </p>
         </div>
     </div>
 
