@@ -468,7 +468,7 @@ CREATE TABLE `utilisateur` (
   `Nom_Utilisateur` varchar(50) NOT NULL,
   `Email_Utilisateur` varchar(100) NOT NULL,
   `Mot_De_Passe_Utilisateur` varchar(255) NOT NULL,
-  `Role_Utilisateur` enum('admin','utilisateur') DEFAULT 'utilisateur',
+  `Role_Utilisateur` enum('admin','proprio','vendeur','livreur') NOT NULL DEFAULT 'proprio',
   `Id_Entreprise` int DEFAULT NULL,
   PRIMARY KEY (`Id_Utilisateur`),
   UNIQUE KEY `Nom_Utilisateur` (`Nom_Utilisateur`),
@@ -484,7 +484,14 @@ CREATE TABLE `utilisateur` (
 
 LOCK TABLES `utilisateur` WRITE;
 /*!40000 ALTER TABLE `utilisateur` DISABLE KEYS */;
-INSERT INTO `utilisateur` VALUES (1,'alex_admin','alex@techvision.tg','$2y$10$r/z6iUXGII3XB4BunN8LxOFKBxuotlZSKpnSAE9WlyfZUPBkfCTvW','admin',1),(2,'marie_tech','marie@techvision.tg','$2y$10$uFzgG715mE5d8ommB.7KJ.EWpLyMnCRrSUVQBAK5gxrpwgGDry5Aq','utilisateur',1),(3,'fourni_admin','admin@fournibien.tg','$2y$10$r/z6iUXGII3XB4BunN8LxOFKBxuotlZSKpnSAE9WlyfZUPBkfCTvW','admin',2),(4,'jean_fourni','jean@fournibien.tg','$2y$10$uFzgG715mE5d8ommB.7KJ.EWpLyMnCRrSUVQBAK5gxrpwgGDry5Aq','utilisateur',2);
+INSERT INTO `utilisateur` VALUES
+  (1,'alex_admin','alex@techvision.tg','$2y$10$r/z6iUXGII3XB4BunN8LxOFKBxuotlZSKpnSAE9WlyfZUPBkfCTvW','proprio',1),
+  (2,'marie_tech','marie@techvision.tg','$2y$10$uFzgG715mE5d8ommB.7KJ.EWpLyMnCRrSUVQBAK5gxrpwgGDry5Aq','vendeur',1),
+  (3,'fourni_admin','admin@fournibien.tg','$2y$10$r/z6iUXGII3XB4BunN8LxOFKBxuotlZSKpnSAE9WlyfZUPBkfCTvW','proprio',2),
+  (4,'jean_fourni','jean@fournibien.tg','$2y$10$uFzgG715mE5d8ommB.7KJ.EWpLyMnCRrSUVQBAK5gxrpwgGDry5Aq','vendeur',2),
+  (5,'superadmin','admin@factupro.tg','$2y$10$f41d038k3qee32WyjJGRTucpXBqFrD.mwylqfFQid2R8CwZlGqYLK','admin',NULL),
+  (6,'livreur_tech','livreur@techvision.tg','$2y$10$xckap4MbKm0Q1jtgw1SYEuo/.JbliNCY8v7fvb2.5CBsHTgY/X/gm','livreur',1),
+  (7,'livreur_fourni','livreur@fournibien.tg','$2y$10$xckap4MbKm0Q1jtgw1SYEuo/.JbliNCY8v7fvb2.5CBsHTgY/X/gm','livreur',2);
 /*!40000 ALTER TABLE `utilisateur` ENABLE KEYS */;
 UNLOCK TABLES;
 
