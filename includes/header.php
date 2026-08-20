@@ -99,11 +99,13 @@ if (session_status() === PHP_SESSION_NONE) {
                         <i class="fas fa-moon" id="dark-icon"></i>
                     </button>
 
-                    <!-- Notification Bell (B2B) -->
+                    <!-- Notification Bell (B2B — proprio uniquement) -->
+                    <?php if (canAccessB2B()): ?>
                     <a href="notifications_b2b.php" class="btn btn-secondary" style="position:relative; padding:0 12px; height:40px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; text-decoration:none; color:var(--text-main);">
                         <i class="fas fa-bell"></i>
                         <span id="nav-notif-badge" class="badge" style="position:absolute; top:-6px; right:-6px; display:none; background:var(--danger); color:white; border-radius:50%; width:18px; height:18px; font-size:0.65rem; align-items:center; justify-content:center; padding:0;">0</span>
                     </a>
+                    <?php endif; ?>
 
                     <div class="user-dropdown" style="position: relative;">
                         <button id="burgerBtn"
@@ -295,7 +297,8 @@ if (session_status() === PHP_SESSION_NONE) {
                     });
                 }
 
-                // Polling Notifications B2B
+                // Polling Notifications B2B (proprio uniquement)
+                <?php if (canAccessB2B()): ?>
                 function updateNotifBadge() {
                     fetch('../api/notifications.php?action=count')
                         .then(res => res.json())
@@ -312,10 +315,9 @@ if (session_status() === PHP_SESSION_NONE) {
                         })
                         .catch(err => console.error('Erreur check notifications:', err));
                 }
-
-                // Init & check every 30s
                 updateNotifBadge();
                 setInterval(updateNotifBadge, 30000);
+                <?php endif; ?>
 
                 // === Mode sombre ===
                 const root     = document.documentElement;

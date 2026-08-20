@@ -124,6 +124,126 @@ if (isAppAdmin()) {
     exit();
 }
 
+// ── Vendeur → tableau de bord simplifié ──
+if (hasRole(ROLE_VENDEUR)) {
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM Vente WHERE Id_Entreprise = ? AND DATE(Date_Vente) = CURDATE()");
+    $stmt->execute([$entreprise_id]);
+    $ventes_jour = (int) $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(Montant_Total), 0) FROM Vente WHERE Id_Entreprise = ? AND DATE(Date_Vente) = CURDATE()");
+    $stmt->execute([$entreprise_id]);
+    $ca_jour = (float) $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(Montant_Total), 0) FROM Vente WHERE Id_Entreprise = ?");
+    $stmt->execute([$entreprise_id]);
+    $ca_total = (float) $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare("SELECT COUNT(DISTINCT Nom_Client) FROM Vente WHERE Id_Entreprise = ?");
+    $stmt->execute([$entreprise_id]);
+    $nb_clients = (int) $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare("SELECT Id_Vente, Numero_Vente, Nom_Client, Date_Vente, Montant_Total FROM Vente WHERE Id_Entreprise = ? ORDER BY Date_Vente DESC LIMIT 8");
+    $stmt->execute([$entreprise_id]);
+    $ventes_recentes = $stmt->fetchAll();
+
+    $heure = date('H');
+    $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
+    ?>
+    <div class="container fade-in">
+        <div class="dashboard-header">
+            <div>
+                <h1><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?> !</h1>
+                <p style="color:var(--text-muted);">Votre tableau de bord vendeur — <?= date('d/m/Y') ?></p>
+            </div>
+            <span class="badge badge-success" style="font-size:0.9rem; padding:8px 14px;">
+                <i class="fas fa-cash-register"></i> Vendeur
+            </span>
+        </div>
+
+        <!-- Stats du jour -->
+        <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 25px;">
+            <div class="stat-card gradient-blue">
+                <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+                <div class="stat-info">
+                    <h3>Ventes aujourd'hui</h3>
+                    <div class="stat-value"><?= $ventes_jour ?></div>
+                </div>
+            </div>
+            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+                <div class="stat-icon text-success"><i class="fas fa-wallet"></i></div>
+                <div class="stat-info">
+                    <h3>CA du jour</h3>
+                    <div class="stat-value text-dark"><?= number_format($ca_jour, 0, ',', ' ') ?> <small style="font-size:0.6em;">F</small></div>
+                </div>
+            </div>
+            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+                <div class="stat-icon text-purple"><i class="fas fa-users"></i></div>
+                <div class="stat-info">
+                    <h3>Clients servis</h3>
+                    <div class="stat-value text-dark"><?= $nb_clients ?></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action principale -->
+        <div style="margin-bottom: 25px;">
+            <a href="invoice_add.php" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border-radius: 16px; padding: 28px 36px; text-decoration: none; display: inline-flex; align-items: center; gap: 16px; box-shadow: 0 10px 15px -3px rgba(16,185,129,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
+                <i class="fas fa-cash-register" style="font-size: 2rem;"></i>
+                <div>
+                    <div style="font-size: 1.2rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Nouvelle Vente</div>
+                    <div style="font-size: 0.85rem; opacity: 0.85; margin-top: 2px;">Créer une nouvelle facture</div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Ventes récentes -->
+        <div class="card">
+            <div class="card-header-flex">
+                <h3><i class="fas fa-receipt text-primary"></i> Ventes récentes</h3>
+                <a href="sales.php" class="btn-link">Tout voir</a>
+            </div>
+            <?php if ($ventes_recentes): ?>
+                <div class="scrollable-list">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Client</th>
+                                <th>Référence</th>
+                                <th>Date</th>
+                                <th class="text-right">Montant</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($ventes_recentes as $v): ?>
+                                <tr>
+                                    <td><strong><?= htmlspecialchars($v['Nom_Client']) ?></strong></td>
+                                    <td style="color:var(--text-muted); font-size:0.85rem;"><?= htmlspecialchars($v['Numero_Vente']) ?></td>
+                                    <td style="color:var(--text-muted); font-size:0.85rem;"><?= date('d/m/Y H:i', strtotime($v['Date_Vente'])) ?></td>
+                                    <td class="text-right font-weight-bold text-success"><?= number_format($v['Montant_Total'], 0, ',', ' ') ?> F</td>
+                                    <td>
+                                        <a href="invoice_view.php?ref=<?= urlencode($v['Numero_Vente']) ?>" target="_blank" class="btn btn-sm btn-secondary" title="Voir facture">
+                                            <i class="fas fa-file-invoice"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class="fas fa-receipt"></i>
+                    <p>Aucune vente enregistrée.</p>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    </body></html>
+    <?php
+    exit();
+}
+
 // 1. Chiffre d'Affaires (Ventes + B2B Vendu)
 $stmt = $pdo->prepare("SELECT SUM(Montant_Total) FROM Vente WHERE Id_Entreprise = ?");
 $stmt->execute([$entreprise_id]);
