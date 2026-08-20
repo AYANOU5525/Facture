@@ -50,16 +50,21 @@ if (session_status() === PHP_SESSION_NONE) {
                                 class="<?= basename($_SERVER['PHP_SELF']) == 'dashboard.php' ? 'active' : '' ?>"
                                 title="Tableau de bord"><i class="fas fa-chart-pie"></i> Dash</a>
                         </li>
+                        <?php if (canViewStock()): ?>
                         <li>
                             <a href="products.php"
                                 class="<?= basename($_SERVER['PHP_SELF']) == 'products.php' ? 'active' : '' ?>"
                                 title="Inventaire"><i class="fas fa-box"></i> Stocks</a>
                         </li>
+                        <?php endif; ?>
+                        <?php if (canManageStock()): ?>
                         <li>
                             <a href="approvisionnement.php"
                                 class="<?= basename($_SERVER['PHP_SELF']) == 'approvisionnement.php' ? 'active' : '' ?>"
                                 title="Entrée en stock"><i class="fas fa-truck-loading"></i> Réception</a>
                         </li>
+                        <?php endif; ?>
+                        <?php if (canSell()): ?>
                         <li>
                             <a href="sales.php"
                                 class="<?= basename($_SERVER['PHP_SELF']) == 'sales.php' ? 'active' : '' ?>"
@@ -75,11 +80,14 @@ if (session_status() === PHP_SESSION_NONE) {
                                 class="<?= basename($_SERVER['PHP_SELF']) == 'clients.php' ? 'active' : '' ?>"
                                 title="Base clients"><i class="fas fa-users"></i> Clients</a>
                         </li>
+                        <?php endif; ?>
+                        <?php if (canDeliver()): ?>
                         <li>
                             <a href="logistique.php"
                                 class="<?= basename($_SERVER['PHP_SELF']) == 'logistique.php' ? 'active' : '' ?>"
                                 title="Livraisons"><i class="fas fa-truck"></i> Logistique</a>
                         </li>
+                        <?php endif; ?>
                     </ul>
                 </div>
 
@@ -111,37 +119,29 @@ if (session_status() === PHP_SESSION_NONE) {
                                     box-shadow: var(--shadow-lg); background: #ffffff !important; 
                                     border: 1px solid var(--zinc-200);">
                             <ul style="list-style: none; padding: 0; margin: 0;">
-                                <li>
-                                    <a href="reseau_b2b.php" class="dropdown-item">
-                                        <i class="fas fa-globe" style="width: 20px; color: var(--primary);"></i>
-                                        <span>Réseau B2B</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="commandes_b2b.php" class="dropdown-item">
-                                        <i class="fas fa-comments" style="width: 20px; color: var(--primary);"></i>
-                                        <span>Commandes &amp; chat B2B</span>
-                                    </a>
-                                </li>
-
                                 <li class="mobile-nav-links">
                                     <a href="dashboard.php" class="dropdown-item">
                                         <i class="fas fa-chart-pie" style="width: 20px;"></i>
                                         <span>Tableau de bord</span>
                                     </a>
                                 </li>
+                                <?php if (canViewStock()): ?>
                                 <li class="mobile-nav-links">
                                     <a href="products.php" class="dropdown-item">
                                         <i class="fas fa-box" style="width: 20px;"></i>
                                         <span>Stocks</span>
                                     </a>
                                 </li>
+                                <?php endif; ?>
+                                <?php if (canManageStock()): ?>
                                 <li class="mobile-nav-links">
                                     <a href="approvisionnement.php" class="dropdown-item">
                                         <i class="fas fa-truck-loading" style="width: 20px;"></i>
                                         <span>Réception</span>
                                     </a>
                                 </li>
+                                <?php endif; ?>
+                                <?php if (canSell()): ?>
                                 <li class="mobile-nav-links">
                                     <a href="sales.php" class="dropdown-item">
                                         <i class="fas fa-receipt" style="width: 20px;"></i>
@@ -160,14 +160,17 @@ if (session_status() === PHP_SESSION_NONE) {
                                         <span>Clients</span>
                                     </a>
                                 </li>
+                                <?php endif; ?>
+                                <?php if (canDeliver()): ?>
                                 <li class="mobile-nav-links">
                                     <a href="logistique.php" class="dropdown-item">
                                         <i class="fas fa-truck" style="width: 20px;"></i>
                                         <span>Logistique</span>
                                     </a>
                                 </li>
+                                <?php endif; ?>
 
-                                <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin'): ?>
+                                <?php if (canManageTeam()): ?>
                                     <div class="dropdown-divider"></div>
                                     <li>
                                         <a href="team.php" class="dropdown-item">
@@ -183,7 +186,30 @@ if (session_status() === PHP_SESSION_NONE) {
                                         </a>
                                     </li>
                                 <?php endif; ?>
+                                <?php if (canAccessB2B()): ?>
+                                    <div class="dropdown-divider"></div>
+                                    <li>
+                                        <a href="reseau_b2b.php" class="dropdown-item">
+                                            <i class="fas fa-globe" style="width: 20px; color: var(--primary);"></i>
+                                            <span>Réseau B2B</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="commandes_b2b.php" class="dropdown-item">
+                                            <i class="fas fa-comments" style="width: 20px; color: var(--primary);"></i>
+                                            <span>Commandes &amp; chat B2B</span>
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
 
+                                        <div class="dropdown-divider"></div>
+                                <li style="padding:8px 12px;">
+                                    <small style="color:var(--text-muted);">Connecté en tant que</small><br>
+                                    <strong><?= htmlspecialchars($_SESSION['username'] ?? '') ?></strong>
+                                    <span class="badge <?= roleBadgeClass($_SESSION['role'] ?? '') ?>" style="font-size:0.7rem; margin-left:6px;">
+                                        <?= roleName($_SESSION['role'] ?? '') ?>
+                                    </span>
+                                </li>
                                 <div class="dropdown-divider"></div>
                                 <li>
                                     <a href="../includes/logout.php" class="dropdown-item logout-item">
