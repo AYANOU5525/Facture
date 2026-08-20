@@ -30,9 +30,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$company_name]);
             $entreprise_id = $pdo->lastInsertId();
 
-            // Créer l'utilisateur (premier utilisateur = admin)
+            // Créer l'utilisateur (premier utilisateur = proprio de l'entreprise)
             $password_hash = password_hash($password, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare("INSERT INTO Utilisateur (Nom_Utilisateur, Email_Utilisateur, Mot_De_Passe_Utilisateur, Role_Utilisateur, Id_Entreprise) VALUES (?, ?, ?, 'admin', ?)");
+            $stmt = $pdo->prepare("INSERT INTO Utilisateur (Nom_Utilisateur, Email_Utilisateur, Mot_De_Passe_Utilisateur, Role_Utilisateur, Id_Entreprise) VALUES (?, ?, ?, 'proprio', ?)");
             $stmt->execute([$username, $email, $password_hash, $entreprise_id]);
 
             $pdo->commit();
