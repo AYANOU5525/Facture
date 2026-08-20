@@ -17,6 +17,8 @@
 
 require_once '../includes/auth.php';
 require_once '../config/db.php';
+
+requireRole(ROLE_ADMIN, ROLE_PROPRIO);
 require_once '../includes/b2b_helpers.php';
 require_once '../vendor/autoload.php';
 

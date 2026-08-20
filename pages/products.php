@@ -3,6 +3,11 @@ require_once '../includes/auth.php';
 require_once '../config/db.php';
 require_once '../vendor/autoload.php';
 
+// livreur : pas accès aux produits
+requireRole(ROLE_ADMIN, ROLE_PROPRIO, ROLE_VENDEUR);
+
+$readonly = !canManageStock(); // vendeur = lecture seule
+
 use App\Application\Inventory\ProductService;
 use App\Infrastructure\Persistence\ProductRepository;
 
@@ -32,6 +37,10 @@ include '../includes/header.php';
 // === TRAITEMENT DU FORMULAIRE (AJOUT / MODIFICATION / SUPPRESSION) ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
+    if ($readonly) {
+        $error = "Accès refusé : vous n'avez pas la permission de modifier les produits.";
+        goto skip_product_form;
+    }
 
     // CAS 1 : SUPPRESSION
     if (isset($_POST['action']) && $_POST['action'] === 'delete') {
@@ -71,6 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+skip_product_form:
 
 // === GESTION DE L'AFFICHAGE POUR ÉDITION ===
 if (isset($_GET['edit'])) {
@@ -86,10 +96,17 @@ $produits = $productService->list((int) $entreprise_id);
 
 <div class="container fade-in">
     <div class="page-header" style="display:flex; justify-content:space-between; align-items:center;">
-        <h1><i class="fas fa-box"></i> Gestion des Produits</h1>
+        <div>
+            <h1><i class="fas fa-box"></i> Gestion des Produits</h1>
+            <?php if ($readonly): ?>
+                <p style="color:var(--text-muted); margin:4px 0 0; font-size:0.875rem;"><i class="fas fa-lock"></i> Consultation uniquement — votre rôle ne permet pas la modification</p>
+            <?php endif; ?>
+        </div>
+        <?php if (!$readonly): ?>
         <button class="btn btn-primary" onclick="openProductModal()">
             <i class="fas fa-plus"></i> Ajouter un produit
         </button>
+        <?php endif; ?>
     </div>
 
     <?php if ($success): ?>
@@ -146,6 +163,7 @@ $produits = $productService->list((int) $entreprise_id);
                                 <?php endif; ?>
                             </td>
                             <td>
+                                <?php if (!$readonly): ?>
                                 <button onclick="openProductModal(<?= htmlspecialchars(json_encode($p), ENT_QUOTES) ?>)" class="btn btn-sm btn-primary">
                                     <i class="fas fa-edit"></i>
                                 </button>
@@ -157,6 +175,9 @@ $produits = $productService->list((int) $entreprise_id);
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </form>
+                                <?php else: ?>
+                                <span style="color:var(--text-muted); font-size:0.8rem;"><i class="fas fa-lock"></i></span>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
