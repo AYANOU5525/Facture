@@ -5,12 +5,27 @@ require_once '../config/db.php';
 $page_title = 'Historique des Ventes';
 include '../includes/header.php';
 
-$stmt = $pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");
-$stmt->execute([$_SESSION['user_id']]);
-$entreprise_id = $stmt->fetchColumn();
+$entreprise_id = $_SESSION['entreprise_id'];
 
-$stmt = $pdo->prepare("SELECT Id_Vente, Numero_Vente, Nom_Client, Nom_Vendeur, Date_Vente, Articles_JSON, Montant_Total, Type_Vente FROM Vente WHERE Id_Entreprise = ? ORDER BY Date_Vente DESC");
+// Pagination
+$per_page = 25;
+$page     = max(1, (int) ($_GET['page'] ?? 1));
+$offset   = ($page - 1) * $per_page;
+
+// Total pour la pagination
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM Vente WHERE Id_Entreprise = ?");
 $stmt->execute([$entreprise_id]);
+$total_ventes = (int) $stmt->fetchColumn();
+$total_pages  = (int) ceil($total_ventes / $per_page);
+
+$stmt = $pdo->prepare("
+    SELECT Id_Vente, Numero_Vente, Nom_Client, Nom_Vendeur, Date_Vente, Articles_JSON, Montant_Total, Type_Vente
+    FROM Vente
+    WHERE Id_Entreprise = ?
+    ORDER BY Date_Vente DESC
+    LIMIT ? OFFSET ?
+");
+$stmt->execute([$entreprise_id, $per_page, $offset]);
 $ventes = $stmt->fetchAll();
 ?>
 
@@ -50,9 +65,9 @@ $ventes = $stmt->fetchAll();
                     <tbody>
                         <?php foreach ($ventes as $v): ?>
                             <tr data-date="<?= $v['Date_Vente'] ?>" data-client="<?= htmlspecialchars($v['Nom_Client'] ?? '') ?>">
-                                <td><strong><?= htmlspecialchars($v['Numero_Vente'] ?? '') ?></strong></td>
-                                <td><?= date('d/m/Y H:i', strtotime($v['Date_Vente'])) ?></td>
-                                <td><?= htmlspecialchars($v['Nom_Client'] ?? '') ?></td>
+                                <td><strong><?= htmlspecialchars($v['Numero_Vente'] ?? '-') ?></strong></td>
+                                <td><?= !empty($v['Date_Vente']) ? date('d/m/Y H:i', strtotime($v['Date_Vente'])) : '-' ?></td>
+                                <td><?= htmlspecialchars($v['Nom_Client'] ?? '-') ?></td>
                                 <td>
                                     <?php $articles = json_decode($v['Articles_JSON'], true); ?>
                                     <small style="display: block; color: var(--text-muted);">
@@ -87,6 +102,37 @@ $ventes = $stmt->fetchAll();
             <div class="alert alert-info">
                 Aucune vente enregistrée. <a href="invoice_add.php">Commencez ici</a>.
             </div>
+        <?php endif; ?>
+
+        <?php if ($total_pages > 1): ?>
+        <nav class="pagination">
+            <?php if ($page > 1): ?>
+                <a href="?page=<?= $page - 1 ?>"><i class="fas fa-chevron-left"></i></a>
+            <?php else: ?>
+                <span class="disabled"><i class="fas fa-chevron-left"></i></span>
+            <?php endif; ?>
+
+            <?php
+            $window = 2;
+            $start  = max(1, $page - $window);
+            $end    = min($total_pages, $page + $window);
+            if ($start > 1):  ?><a href="?page=1">1</a><?php if ($start > 2): ?><span>…</span><?php endif; endif;
+            for ($p = $start; $p <= $end; $p++):
+                if ($p === $page): ?><span class="active"><?= $p ?></span><?php
+                else: ?><a href="?page=<?= $p ?>"><?= $p ?></a><?php
+                endif;
+            endfor;
+            if ($end < $total_pages): if ($end < $total_pages - 1): ?><span>…</span><?php endif; ?><a href="?page=<?= $total_pages ?>"><?= $total_pages ?></a><?php endif; ?>
+
+            <?php if ($page < $total_pages): ?>
+                <a href="?page=<?= $page + 1 ?>"><i class="fas fa-chevron-right"></i></a>
+            <?php else: ?>
+                <span class="disabled"><i class="fas fa-chevron-right"></i></span>
+            <?php endif; ?>
+        </nav>
+        <p style="text-align:center; color:var(--text-muted); font-size:0.875rem; margin-top:8px;">
+            Page <?= $page ?> / <?= $total_pages ?> — <?= number_format($total_ventes) ?> ventes au total
+        </p>
         <?php endif; ?>
     </div>
 </div>

@@ -100,26 +100,26 @@ if ($recherche !== '' || $statut_filtre !== '') {
                             <td>
                                 <?php if ($l['Id_Commande_B2B']): ?>
                                     <span class="badge badge-info" style="font-size:0.7rem; padding: 2px 6px;"><i class="fas fa-handshake"></i> B2B</span><br>
-                                    <code><?= htmlspecialchars($l['Numero_Commande'] ?? 'N/A') ?></code>
+                                    <code><?= htmlspecialchars($l['Numero_Commande'] ?? '-') ?></code>
                                 <?php else: ?>
-                                    <code><?= htmlspecialchars($l['Numero_Vente'] ?? 'N/A') ?></code>
+                                    <code><?= htmlspecialchars($l['Numero_Vente'] ?? '-') ?></code>
                                 <?php endif; ?>
                             </td>
                             <td>
                                 <?php if ($l['Id_Commande_B2B']): ?>
-                                    <strong><?= htmlspecialchars($l['Nom_Acheteur'] ?? 'Acheteur inconnu') ?></strong>
+                                    <strong><?= htmlspecialchars($l['Nom_Acheteur'] ?? '-') ?></strong>
                                 <?php else: ?>
-                                    <?= htmlspecialchars($l['Nom_Client'] ?? 'N/A') ?>
+                                    <?= htmlspecialchars($l['Nom_Client'] ?? '-') ?>
                                 <?php endif; ?>
                             </td>
-                            <td><?= htmlspecialchars($l['Transporteur'] ?? 'Non assigné') ?></td>
+                            <td><?= htmlspecialchars($l['Transporteur'] ?? '-') ?></td>
                             <td><code><?= htmlspecialchars($l['Numero_Suivi'] ?? '-') ?></code></td>
                             <td>
                                 <span class="badge badge-<?= $l['Statut_Livraison'] === 'livree' ? 'success' : ($l['Statut_Livraison'] === 'expediee' ? 'info' : 'secondary') ?>">
                                     <?= strtoupper(str_replace('_', ' ', $l['Statut_Livraison'])) ?>
                                 </span>
                             </td>
-                            <td><?= $l['Date_Livraison_Prevue'] ? date('d/m/Y', strtotime($l['Date_Livraison_Prevue'])) : 'TBD' ?></td>
+                            <td><?= $l['Date_Livraison_Prevue'] ? date('d/m/Y', strtotime($l['Date_Livraison_Prevue'])) : '-' ?></td>
                             <td>
                                 <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-primary" title="Suivi Logistique & Carte">
                                     <i class="fas fa-map-marked-alt"></i> Carte

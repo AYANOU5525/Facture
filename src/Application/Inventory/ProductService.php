@@ -38,11 +38,17 @@ final class ProductService
             throw new InvalidArgumentException('Nom, prix et stock doivent être valides.');
         }
 
+        $seuil = filter_var($input['seuil_alerte'] ?? 5, FILTER_VALIDATE_INT);
+        if ($seuil === false || $seuil < 0) {
+            $seuil = 5;
+        }
+
         $this->repository->save([
             'nom' => $name,
             'description' => trim((string) ($input['description'] ?? '')),
             'prix' => $price,
             'stock' => $stock,
+            'seuil_alerte' => $seuil,
             'en_destockage' => isset($input['en_destockage_b2b']) ? 1 : 0,
             'prix_b2b' => ($input['prix_b2b'] ?? '') !== '' ? $input['prix_b2b'] : null,
             'qte_min_b2b' => ($input['quantite_min_b2b'] ?? '') !== '' ? $input['quantite_min_b2b'] : 1,

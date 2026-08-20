@@ -149,14 +149,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <form method="POST" id="approForm" class="card">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
 
-
         <h3>Brouillon d'Entrée en Stock</h3>
+
+        <!-- SCANNER CODE BARRE (ENTRÉE) -->
+        <div style="background:#f0fff4; padding:12px; border-radius:8px; border-left:4px solid #28a745; margin-bottom:15px;">
+            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <i class="fas fa-barcode" style="font-size:1.4rem; color:#28a745;"></i>
+                <input type="text"
+                       id="barcode_input"
+                       class="form-control"
+                       placeholder="Scanner ou saisir un code barre..."
+                       style="max-width:280px; flex:1;"
+                       autocomplete="off">
+                <button type="button" class="btn btn-success btn-sm" onclick="lookupBarcode()">
+                    <i class="fas fa-search"></i> Chercher
+                </button>
+                <button type="button" class="btn btn-dark btn-sm" onclick="openCamera()" id="btn-camera">
+                    <i class="fas fa-camera"></i> Caméra
+                </button>
+                <span id="barcode_feedback" style="font-size:0.9em; color:#666; width:100%;"></span>
+            </div>
+        </div>
+
         <div id="items-container">
             <!-- Items will be added here dynamically -->
         </div>
 
         <button type="button" onclick="addItem()" class="btn btn-secondary btn-sm" style="margin: 20px 0;">
-            <i class="fas fa-plus"></i> Ajouter un article
+            <i class="fas fa-plus"></i> Ajouter un article manuellement
         </button>
 
         <div style="border-top: 1px solid #eee; padding-top: 20px; display:flex; gap:10px;">
@@ -250,7 +270,149 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         submitBtn.disabled = selects.length === 0;
     }
 
+    document.addEventListener('DOMContentLoaded', function() {
+        const barcodeInput = document.getElementById('barcode_input');
+        barcodeInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                lookupBarcode();
+            }
+        });
+    });
+
+    /* ── CAMÉRA ── */
+    let qrScanner = null;
+
+    function openCamera() {
+        document.getElementById('cameraModal').style.display = 'flex';
+        document.getElementById('cam-status').textContent  = 'Pointez la caméra vers un code barre…';
+        document.getElementById('cam-status').style.color = '#aaa';
+
+        qrScanner = new Html5Qrcode('camera-reader');
+        qrScanner.start(
+            { facingMode: 'environment' },
+            { fps: 12, qrbox: { width: 260, height: 120 } },
+            (decodedText) => {
+                document.getElementById('barcode_input').value = decodedText;
+                document.getElementById('cam-status').textContent = '✔ Code détecté : ' + decodedText;
+                document.getElementById('cam-status').style.color = '#28a745';
+                setTimeout(() => {
+                    closeCamera();
+                    lookupBarcode();
+                }, 600);
+            },
+            () => {}
+        ).catch((err) => {
+            document.getElementById('cam-status').textContent = '⚠ Caméra inaccessible : ' + err;
+            document.getElementById('cam-status').style.color = '#dc3545';
+        });
+    }
+
+    function closeCamera() {
+        if (qrScanner) {
+            qrScanner.stop().catch(() => {}).finally(() => {
+                qrScanner.clear();
+                qrScanner = null;
+            });
+        }
+        document.getElementById('cameraModal').style.display = 'none';
+    }
+
+    function lookupBarcode() {
+        const input    = document.getElementById('barcode_input');
+        const feedback = document.getElementById('barcode_feedback');
+        const barcode  = input.value.trim();
+
+        if (!barcode) return;
+
+        feedback.textContent = 'Recherche...';
+        feedback.style.color = '#666';
+
+        fetch('../api/lookup_product.php?barcode=' + encodeURIComponent(barcode))
+            .then(r => r.json())
+            .then(data => {
+                if (!data.found) {
+                    feedback.textContent = '⚠ ' + (data.message || 'Produit introuvable');
+                    feedback.style.color = '#dc3545';
+                    return;
+                }
+
+                // Chercher si le produit est déjà dans le brouillon
+                const selects = document.querySelectorAll('.product-select');
+                let existingRow = null;
+                selects.forEach(sel => {
+                    if (sel.value == data.id) existingRow = sel.closest('.item-row');
+                });
+
+                const qty = data.is_carton ? data.quantite_par_carton : 1;
+
+                if (existingRow) {
+                    const qtyInput = existingRow.querySelector('.qty-input');
+                    qtyInput.value = parseInt(qtyInput.value || 1) + qty;
+                    feedback.textContent = '✔ Quantité mise à jour : ' + data.nom;
+                } else {
+                    const row = addItem(data.id);
+                    row.querySelector('.qty-input').value = qty;
+                    feedback.textContent = '✔ Ajouté : ' + data.nom + (data.is_carton ? ' (carton ×' + qty + ')' : '');
+                }
+
+                feedback.style.color = '#28a745';
+                input.value = '';
+                input.focus();
+            })
+            .catch(() => {
+                feedback.textContent = 'Erreur de connexion';
+                feedback.style.color = '#dc3545';
+            });
+    }
+
 </script>
+
+<!-- MODAL CAMÉRA -->
+<div id="cameraModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.85);
+     z-index:9000; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
+
+    <div style="background:#1a1a2e; border-radius:16px; width:100%; max-width:420px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,.6);">
+
+        <!-- Titre -->
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #2d2d44;">
+            <span style="color:#fff; font-weight:600; font-size:1rem;">
+                <i class="fas fa-camera" style="color:#28a745; margin-right:8px;"></i>Scanner un code barre
+            </span>
+            <button onclick="closeCamera()" style="background:none; border:none; color:#aaa; font-size:1.3rem; cursor:pointer; line-height:1;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Viseur caméra -->
+        <div style="position:relative; background:#000;">
+            <div id="camera-reader" style="width:100%;"></div>
+            <div style="position:absolute; left:10%; width:80%; height:2px; top:50%;
+                 background:linear-gradient(90deg,transparent,#28a745,transparent);
+                 animation:scanAnim 2s linear infinite; pointer-events:none;"></div>
+        </div>
+
+        <!-- Statut -->
+        <p id="cam-status" style="margin:0; padding:14px 20px; color:#aaa; font-size:0.9rem; text-align:center;">Initialisation…</p>
+
+        <!-- Bouton fermer -->
+        <div style="padding:0 20px 20px;">
+            <button onclick="closeCamera()" class="btn btn-secondary" style="width:100%;">
+                <i class="fas fa-times-circle"></i> Annuler
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes scanAnim {
+    0%   { top: 20%; opacity: .7; }
+    50%  { top: 80%; opacity: 1;  }
+    100% { top: 20%; opacity: .7; }
+}
+</style>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 </body>
 
