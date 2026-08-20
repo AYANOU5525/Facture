@@ -2,8 +2,7 @@
 require_once '../includes/auth.php';
 require_once '../config/db.php';
 
-// Propriétaire ou admin uniquement
-requireRole(ROLE_ADMIN, ROLE_PROPRIO);
+requireRole(ROLE_PROPRIO);
 
 $page_title = "Paramètres de l'entreprise";
 include '../includes/header.php';

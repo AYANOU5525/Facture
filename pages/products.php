@@ -3,8 +3,8 @@ require_once '../includes/auth.php';
 require_once '../config/db.php';
 require_once '../vendor/autoload.php';
 
-// livreur : pas accès aux produits
-requireRole(ROLE_ADMIN, ROLE_PROPRIO, ROLE_VENDEUR);
+// livreur et admin plateforme : pas d'accès aux produits
+requireRole(ROLE_PROPRIO, ROLE_VENDEUR);
 
 $readonly = !canManageStock(); // vendeur = lecture seule
 

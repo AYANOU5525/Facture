@@ -1,6 +1,8 @@
 <?php
-require_once '../includes/auth.php'; // Pour vérifier la connexion
+require_once '../includes/auth.php';
 require_once '../config/db.php';
+
+requireRole(ROLE_PROPRIO, ROLE_VENDEUR);
 
 if (!isset($_GET['ref'])) {
     die("Référence Facture manquante.");

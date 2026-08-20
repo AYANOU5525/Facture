@@ -2,6 +2,8 @@
 require_once '../includes/auth.php';
 require_once '../config/db.php';
 
+requireRole(ROLE_PROPRIO, ROLE_LIVREUR);
+
 $page_title = 'Suivi Logistique';
 include '../includes/header.php';
 

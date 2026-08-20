@@ -3,7 +3,7 @@ require_once '../includes/auth.php';
 require_once '../config/db.php';
 require_once '../vendor/autoload.php';
 
-requireRole(ROLE_ADMIN, ROLE_PROPRIO);
+requireRole(ROLE_PROPRIO);
 
 use App\Application\Inventory\StockService;
 use App\Infrastructure\Persistence\StockRepository;

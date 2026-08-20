@@ -3,6 +3,8 @@ require_once '../includes/auth.php';
 require_once '../config/db.php';
 require_once '../vendor/autoload.php';
 
+requireRole(ROLE_PROPRIO, ROLE_LIVREUR);
+
 use App\Application\Logistics\LogisticsService;
 use App\Infrastructure\Persistence\LogisticsRepository;
 

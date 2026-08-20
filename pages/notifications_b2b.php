@@ -2,7 +2,7 @@
 require_once '../includes/auth.php';
 require_once '../config/db.php';
 
-requireRole(ROLE_ADMIN, ROLE_PROPRIO);
+requireRole(ROLE_PROPRIO);
 
 $page_title = "Notifications B2B";
 $stmt = $pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");

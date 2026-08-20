@@ -2,6 +2,8 @@
 require_once '../includes/auth.php';
 require_once '../config/db.php';
 
+requireRole(ROLE_PROPRIO, ROLE_VENDEUR);
+
 $page_title = 'Historique des Ventes';
 include '../includes/header.php';
 
