@@ -1355,7 +1355,8 @@ include_once '../includes/header.php';
         font-size: 0.75rem;
         padding: 1px 6px;
         border-radius: 4px;
-        background: #e2e8f0;
+        background: var(--zinc-200);
+        color: var(--text-main);
     }
 
     /* ── Onglets B2B ── */
@@ -1390,7 +1391,7 @@ include_once '../includes/header.php';
     }
 
     .b2b-tab.active {
-        background: white;
+        background: var(--bg-card);
         color: var(--primary);
         box-shadow: var(--shadow-md);
     }
@@ -1401,7 +1402,7 @@ include_once '../includes/header.php';
 
     /* ── Carte commande ── */
     .commande-card {
-        background: white;
+        background: var(--bg-card);
         border-radius: 12px;
         border: 1px solid var(--zinc-200);
         margin-bottom: 16px;
@@ -1415,9 +1416,8 @@ include_once '../includes/header.php';
     }
 
     .commande-urgente {
-        border-left: 4px solid #e74c3c !important;
-        border-color: #fce4e4 !important;
-        background: #fffafa !important;
+        border-left: 4px solid var(--danger) !important;
+        background: color-mix(in srgb, var(--danger) 5%, var(--bg-card)) !important;
     }
 
     .commande-header {
@@ -1594,7 +1594,7 @@ include_once '../includes/header.php';
         align-items: center;
         justify-content: center;
         font-size: 0.7rem;
-        background: white;
+        background: var(--bg-card);
         border: 2px solid var(--zinc-200);
         transition: all 0.3s ease;
     }
@@ -1791,8 +1791,8 @@ include_once '../includes/header.php';
     /* ── Urgence section ── */
     .urgence-section {
         padding: 12px;
-        background: #fff8f0;
-        border: 1px solid #ffe0b2;
+        background: color-mix(in srgb, #f97316 8%, var(--bg-card));
+        border: 1px solid color-mix(in srgb, #f97316 30%, var(--zinc-200));
         border-radius: 8px;
         margin-bottom: 12px;
     }
@@ -1846,7 +1846,7 @@ include_once '../includes/header.php';
         border-radius: 8px;
         font-size: 0.82rem;
         transition: all 0.2s ease;
-        background: white;
+        background: var(--bg-card);
     }
 
     .retrait-card i {
@@ -1877,7 +1877,8 @@ include_once '../includes/header.php';
     }
 
     .b2b-modal {
-        background: white;
+        background: var(--bg-card);
+        color: var(--text-main);
         border-radius: 16px;
         width: 100%;
         max-width: 480px;
@@ -1932,7 +1933,8 @@ include_once '../includes/header.php';
         right: 24px;
         width: min(430px, calc(100vw - 48px));
         height: min(680px, calc(100vh - 48px));
-        background: white;
+        background: var(--bg-card);
+        color: var(--text-main);
         border-radius: 18px;
         box-shadow: 0 18px 55px rgba(15, 23, 42, 0.22);
         z-index: 1500;
@@ -2075,7 +2077,7 @@ include_once '../includes/header.php';
     }
 
     .bubble-autre .bubble-content {
-        background: white;
+        background: var(--zinc-100);
         color: var(--text-main);
         border: 1px solid var(--zinc-200);
         border-bottom-left-radius: 4px;
@@ -2122,7 +2124,7 @@ include_once '../includes/header.php';
     .chat-input-area {
         border-top: 1px solid var(--zinc-100);
         padding: 12px 14px 14px;
-        background: white;
+        background: var(--bg-card);
     }
 
     .chat-compose-label {
