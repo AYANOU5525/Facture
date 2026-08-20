@@ -8,10 +8,119 @@ include '../includes/header.php';
 // Récupération des données entreprise (déjà dans la session via auth.php)
 $entreprise_id = $_SESSION['entreprise_id'];
 
-
-// Livreur → redirection directe vers logistique
+// ── Livreur → redirection directe vers logistique ──
 if (hasRole(ROLE_LIVREUR)) {
     header('Location: logistique.php');
+    exit();
+}
+
+// ── Admin plateforme → tableau de bord plateforme uniquement ──
+if (isAppAdmin()) {
+    $nb_entreprises = (int) $pdo->query("SELECT COUNT(*) FROM Entreprise")->fetchColumn();
+    $nb_utilisateurs = (int) $pdo->query("SELECT COUNT(*) FROM Utilisateur")->fetchColumn();
+    $nb_ventes_total = (int) $pdo->query("SELECT COUNT(*) FROM Vente")->fetchColumn();
+    $ca_total_plateforme = (float) ($pdo->query("SELECT COALESCE(SUM(Montant_Total),0) FROM Vente")->fetchColumn());
+
+    $entreprises_recentes = $pdo->query("
+        SELECT e.Nom_Entreprise, e.Date_Creation,
+               COUNT(u.Id_Utilisateur) AS nb_membres
+        FROM Entreprise e
+        LEFT JOIN Utilisateur u ON u.Id_Entreprise = e.Id_Entreprise
+        GROUP BY e.Id_Entreprise
+        ORDER BY e.Date_Creation DESC
+        LIMIT 8
+    ")->fetchAll();
+
+    $heure = date('H');
+    $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
+    ?>
+    <div class="container fade-in">
+        <div class="dashboard-header">
+            <div>
+                <h1><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?> !</h1>
+                <p style="color:var(--text-muted);">Vue administrateur plateforme — accès en lecture seule sur les données globales.</p>
+            </div>
+            <span class="badge badge-danger" style="font-size:0.9rem; padding:8px 14px;">
+                <i class="fas fa-shield-alt"></i> Admin Plateforme
+            </span>
+        </div>
+
+        <!-- Stats globales -->
+        <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="stat-card gradient-blue">
+                <div class="stat-icon"><i class="fas fa-building"></i></div>
+                <div class="stat-info">
+                    <h3>Entreprises</h3>
+                    <div class="stat-value"><?= $nb_entreprises ?></div>
+                </div>
+            </div>
+            <div class="stat-card gradient-orange">
+                <div class="stat-icon"><i class="fas fa-users"></i></div>
+                <div class="stat-info">
+                    <h3>Utilisateurs</h3>
+                    <div class="stat-value"><?= $nb_utilisateurs ?></div>
+                </div>
+            </div>
+            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+                <div class="stat-icon text-success"><i class="fas fa-receipt"></i></div>
+                <div class="stat-info">
+                    <h3>Ventes totales</h3>
+                    <div class="stat-value text-dark"><?= number_format($nb_ventes_total, 0, ',', ' ') ?></div>
+                </div>
+            </div>
+            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+                <div class="stat-icon text-primary"><i class="fas fa-wallet"></i></div>
+                <div class="stat-info">
+                    <h3>CA Plateforme</h3>
+                    <div class="stat-value text-dark"><?= number_format($ca_total_plateforme, 0, ',', ' ') ?> <small>F</small></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Liste des entreprises -->
+        <div class="card">
+            <div class="card-header-flex">
+                <h3><i class="fas fa-building text-primary"></i> Entreprises enregistrées</h3>
+                <span style="color:var(--text-muted); font-size:0.85rem;"><?= $nb_entreprises ?> au total</span>
+            </div>
+            <?php if ($entreprises_recentes): ?>
+                <div class="scrollable-list">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Entreprise</th>
+                                <th>Membres</th>
+                                <th>Inscription</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($entreprises_recentes as $e): ?>
+                                <tr>
+                                    <td><strong><?= htmlspecialchars($e['Nom_Entreprise']) ?></strong></td>
+                                    <td><?= (int)$e['nb_membres'] ?></td>
+                                    <td style="color:var(--text-muted); font-size:0.85rem;">
+                                        <?= $e['Date_Creation'] ? date('d/m/Y', strtotime($e['Date_Creation'])) : '—' ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class="fas fa-building"></i>
+                    <p>Aucune entreprise enregistrée.</p>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <div class="alert alert-info" style="margin-top:20px;">
+            <i class="fas fa-info-circle"></i>
+            En tant qu'administrateur plateforme, vous n'avez pas accès aux données internes des entreprises (stocks, ventes, B2B, équipe).
+        </div>
+    </div>
+    </body></html>
+    <?php
     exit();
 }
 
@@ -115,38 +224,46 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
     <?php endif; ?>
 
     <!-- QUICK ACTION CARDS -->
-    <div class="dashboard-featured-actions" style="background: white; padding: 25px; border-radius: 16px; margin-bottom: 30px; box-shadow: var(--shadow-md); border: 2px solid #e2e8f0;">
-        <h2 style="margin-top: 0; margin-bottom: 20px; font-size: 1.4rem; color: #1e293b;"><i class="fas fa-bolt"></i> Actions Rapides Caisse & Stock</h2>
-        <div class="dashboard-featured-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    <div class="dashboard-featured-actions" style="background: var(--bg-card); padding: 25px; border-radius: 16px; margin-bottom: 30px; box-shadow: var(--shadow-md); border: 1px solid var(--zinc-200);">
+        <h2 style="margin-top: 0; margin-bottom: 20px; font-size: 1.4rem; color: var(--text-main);"><i class="fas fa-bolt"></i> Actions Rapides Caisse & Stock</h2>
+        <div class="dashboard-featured-grid" style="display: grid; grid-template-columns: <?= canManageStock() ? '1fr 1fr' : '1fr' ?>; gap: 20px;">
 
+            <?php if (canManageStock()): ?>
             <a href="approvisionnement.php" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border-radius: 16px; padding: 30px; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.3);" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
                 <i class="fas fa-box-open" style="font-size: 3rem; margin-bottom: 15px;"></i>
                 <h3 style="margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px;">Entrée Stock</h3>
-
             </a>
+            <?php endif; ?>
 
+            <?php if (canSell()): ?>
             <a href="invoice_add.php" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border-radius: 16px; padding: 30px; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
                 <i class="fas fa-cash-register" style="font-size: 3rem; margin-bottom: 15px;"></i>
                 <h3 style="margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px;">Vente Produit</h3>
-
             </a>
+            <?php endif; ?>
 
         </div>
     </div>
 
     <div class="quick-actions">
+        <?php if (canViewStock()): ?>
         <a href="products.php" class="action-btn">
             <div class="icon-box blue"><i class="fas fa-plus"></i></div>
             <span>Nouveau Produit</span>
         </a>
+        <?php endif; ?>
+        <?php if (canAccessB2B()): ?>
         <a href="reseau_b2b.php" class="action-btn">
             <div class="icon-box purple"><i class="fas fa-search"></i></div>
             <span>Chercher Fournisseur</span>
         </a>
+        <?php endif; ?>
+        <?php if (canDeliver()): ?>
         <a href="logistique.php" class="action-btn">
             <div class="icon-box orange"><i class="fas fa-truck"></i></div>
             <span>Logistique (<?= $expeditions_urgent ?>)</span>
         </a>
+        <?php endif; ?>
     </div>
 
 

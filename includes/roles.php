@@ -2,8 +2,8 @@
 /**
  * Système de rôles FactuPro
  *
- * admin   — Administrateur complet (app + entreprise)
- * proprio — Propriétaire de l'entreprise (accès complet à son entreprise)
+ * admin   — Administrateur de la plateforme (gestion de l'app, pas des entreprises)
+ * proprio — Propriétaire d'une entreprise (accès complet à son entreprise)
  * vendeur — Vendeur (ventes, clients, factures, produits en lecture)
  * livreur — Livreur (logistique uniquement)
  */
@@ -28,46 +28,52 @@ function requireRole(string ...$roles): void
     }
 }
 
-/** admin ou proprio — gestion complète de l'entreprise. */
+/** Administrateur de la plateforme (pas d'action sur les entreprises). */
+function isAppAdmin(): bool
+{
+    return hasRole(ROLE_ADMIN);
+}
+
+/** proprio uniquement — gestion complète de l'entreprise. */
 function isManager(): bool
 {
-    return hasRole(ROLE_ADMIN, ROLE_PROPRIO);
+    return hasRole(ROLE_PROPRIO);
 }
 
 /** Peut créer/modifier des ventes et factures. */
 function canSell(): bool
 {
-    return hasRole(ROLE_ADMIN, ROLE_PROPRIO, ROLE_VENDEUR);
+    return hasRole(ROLE_PROPRIO, ROLE_VENDEUR);
 }
 
 /** Peut voir la liste des produits (lecture). */
 function canViewStock(): bool
 {
-    return hasRole(ROLE_ADMIN, ROLE_PROPRIO, ROLE_VENDEUR);
+    return hasRole(ROLE_PROPRIO, ROLE_VENDEUR);
 }
 
 /** Peut modifier le stock (approvisionnement, ajout/suppression produits). */
 function canManageStock(): bool
 {
-    return hasRole(ROLE_ADMIN, ROLE_PROPRIO);
+    return hasRole(ROLE_PROPRIO);
 }
 
 /** Peut accéder aux fonctions logistiques. */
 function canDeliver(): bool
 {
-    return hasRole(ROLE_ADMIN, ROLE_PROPRIO, ROLE_LIVREUR);
+    return hasRole(ROLE_PROPRIO, ROLE_LIVREUR);
 }
 
 /** Peut accéder au réseau B2B et aux commandes inter-entreprises. */
 function canAccessB2B(): bool
 {
-    return hasRole(ROLE_ADMIN, ROLE_PROPRIO);
+    return hasRole(ROLE_PROPRIO);
 }
 
 /** Peut gérer l'équipe et les paramètres de l'entreprise. */
 function canManageTeam(): bool
 {
-    return hasRole(ROLE_ADMIN, ROLE_PROPRIO);
+    return hasRole(ROLE_PROPRIO);
 }
 
 /** Libellé lisible du rôle. */
