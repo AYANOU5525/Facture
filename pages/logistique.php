@@ -123,9 +123,19 @@ if ($recherche !== '' || $statut_filtre !== '') {
                             </td>
                             <td><?= $l['Date_Livraison_Prevue'] ? date('d/m/Y', strtotime($l['Date_Livraison_Prevue'])) : '-' ?></td>
                             <td>
-                                <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-primary" title="Suivi Logistique & Carte">
-                                    <i class="fas fa-map-marked-alt"></i> Carte
-                                </a>
+                                <?php if (hasRole(ROLE_LIVREUR) && $l['Statut_Livraison'] === 'expediee'): ?>
+                                    <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-success" title="Confirmer la livraison">
+                                        <i class="fas fa-check-circle"></i> J'ai livré
+                                    </a>
+                                <?php elseif (hasRole(ROLE_LIVREUR)): ?>
+                                    <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-primary" title="Traiter cette livraison">
+                                        <i class="fas fa-arrow-right"></i> Traiter
+                                    </a>
+                                <?php else: ?>
+                                    <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-primary" title="Suivi & Carte">
+                                        <i class="fas fa-map-marked-alt"></i> Carte
+                                    </a>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
