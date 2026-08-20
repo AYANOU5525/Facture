@@ -114,9 +114,9 @@ if (session_status() === PHP_SESSION_NONE) {
 
                         <div id="userMenu"
                             class="dropdown-content m-card"
-                            style="display: none; position: absolute; right: 0; top: 55px; width: 240px; 
-                                    z-index: 1001; padding: 12px; border-radius: 12px; 
-                                    box-shadow: var(--shadow-lg); background: #ffffff !important; 
+                            style="display: none; position: absolute; right: 0; top: 55px; width: 240px;
+                                    z-index: 1001; padding: 12px; border-radius: 12px;
+                                    box-shadow: var(--shadow-lg); background: var(--bg-card);
                                     border: 1px solid var(--zinc-200);">
                             <ul style="list-style: none; padding: 0; margin: 0;">
                                 <li class="mobile-nav-links">
