@@ -125,130 +125,200 @@ if (hasRole(ROLE_LIVREUR)):
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
 <style>
-    .delivery-card { background:var(--bg-card); border:1px solid var(--zinc-200); border-radius:14px; padding:28px; max-width:680px; margin:0 auto; }
-    .delivery-info-row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--zinc-100); }
-    .delivery-info-row:last-child { border-bottom:none; }
-    .delivery-info-label { color:var(--text-muted); font-size:0.9rem; }
-    .delivery-info-value { font-weight:600; text-align:right; }
-    .delivery-action-zone { margin-top:28px; padding-top:20px; border-top:2px solid var(--zinc-200); }
-    .btn-livreur { width:100%; padding:16px; font-size:1.1rem; font-weight:700; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:10px; }
+.lv-wrap { max-width:640px; margin:0 auto; display:flex; flex-direction:column; gap:16px; }
+
+/* Stepper */
+.lv-stepper { display:flex; align-items:center; background:var(--bg-card); border:1px solid var(--zinc-200); border-radius:14px; padding:18px 24px; gap:0; }
+.lv-step { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; }
+.lv-step-dot { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.85rem; font-weight:700; flex-shrink:0; border:2px solid transparent; transition:all .2s; }
+.lv-step-dot.done    { background:var(--success); color:#fff; border-color:var(--success); }
+.lv-step-dot.active  { background:var(--primary); color:#fff; border-color:var(--primary); box-shadow:0 0 0 4px rgba(0,70,255,.15); }
+.lv-step-dot.pending { background:var(--zinc-100); color:var(--text-muted); border-color:var(--zinc-200); }
+.lv-step-label { font-size:.72rem; font-weight:600; color:var(--text-muted); text-align:center; line-height:1.2; }
+.lv-step-label.active  { color:var(--primary); }
+.lv-step-label.done    { color:var(--success); }
+.lv-connector { flex:1; height:2px; background:var(--zinc-200); margin:0 4px; margin-bottom:20px; transition:background .2s; }
+.lv-connector.done { background:var(--success); }
+.lv-connector.active { background:var(--primary); }
+
+/* Main card */
+.lv-card { background:var(--bg-card); border:1px solid var(--zinc-200); border-radius:14px; overflow:hidden; }
+.lv-card-header { display:flex; align-items:center; gap:14px; padding:20px 24px; border-bottom:1px solid var(--zinc-100); }
+.lv-dest-icon { width:46px; height:46px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.2rem; flex-shrink:0; }
+.lv-dest-icon.b2b    { background:rgba(0,70,255,.1); color:var(--primary); }
+.lv-dest-icon.retail { background:rgba(10,143,91,.1); color:var(--success); }
+.lv-dest-name h2 { margin:0; font-size:1.1rem; }
+.lv-dest-name span { font-size:.8rem; color:var(--text-muted); font-family:monospace; }
+.lv-info-list { padding:0 24px; }
+.lv-info-row { display:flex; justify-content:space-between; align-items:center; padding:11px 0; border-bottom:1px solid var(--zinc-100); gap:12px; }
+.lv-info-row:last-child { border-bottom:none; }
+.lv-info-key { color:var(--text-muted); font-size:.85rem; display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.lv-info-key i { width:14px; text-align:center; }
+.lv-info-val { font-weight:600; font-size:.9rem; text-align:right; }
+
+/* Action zone */
+.lv-action { padding:20px 24px; border-top:1px solid var(--zinc-100); }
+.lv-action-hint { font-size:.88rem; color:var(--text-muted); margin-bottom:16px; display:flex; align-items:flex-start; gap:8px; }
+.lv-btn { width:100%; padding:15px; font-size:1.05rem; font-weight:700; border-radius:12px; display:flex; align-items:center; justify-content:center; gap:10px; border:none; cursor:pointer; transition:opacity .15s,transform .15s; }
+.lv-btn:hover { opacity:.9; transform:translateY(-1px); }
+.lv-done-state { text-align:center; padding:8px 0; }
+.lv-done-state i { font-size:2.8rem; color:var(--success); display:block; margin-bottom:12px; }
+.lv-done-state p { font-size:1rem; font-weight:600; color:var(--success); margin:0; }
+.lv-done-state small { color:var(--text-muted); font-size:.82rem; }
+.lv-fields-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+@media(max-width:480px) { .lv-fields-grid { grid-template-columns:1fr; } }
 </style>
+
+<?php
+    $lat_dst = !empty($log['Adresse_Livraison_Lat']) ? floatval($log['Adresse_Livraison_Lat']) : (!empty($log['Lat_Acheteur']) ? floatval($log['Lat_Acheteur']) : null);
+    $lng_dst = !empty($log['Adresse_Livraison_Lng']) ? floatval($log['Adresse_Livraison_Lng']) : (!empty($log['Lng_Acheteur']) ? floatval($log['Lng_Acheteur']) : null);
+    $step_prepare = in_array($statut_actuel, ['traitement','en_attente','expediee','livree']);
+    $step_expedie = in_array($statut_actuel, ['expediee','livree']);
+    $step_livre   = $statut_actuel === 'livree';
+?>
 
 <div class="container fade-in">
     <div class="page-header">
-        <h1><i class="fas fa-truck"></i> Ma livraison</h1>
+        <h1><i class="fas fa-truck" style="margin-right:8px;"></i> Ma livraison</h1>
         <a href="logistique.php" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Retour</a>
     </div>
 
-    <?php if ($success): ?><div class="alert alert-success"><?= $success ?></div><?php endif; ?>
-    <?php if ($error): ?><div class="alert alert-danger"><?= $error ?></div><?php endif; ?>
+    <?php if ($success): ?><div class="alert alert-success"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($success) ?></div><?php endif; ?>
+    <?php if ($error): ?><div class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($error) ?></div><?php endif; ?>
 
-    <div class="delivery-card">
-        <!-- En-tête destinataire -->
-        <div style="display:flex; align-items:center; gap:16px; margin-bottom:22px;">
-            <div style="width:52px;height:52px;border-radius:50%;background:var(--zinc-100);display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--primary);">
-                <i class="fas fa-<?= $log['Id_Commande_B2B'] ? 'building' : 'user' ?>"></i>
-            </div>
-            <div>
-                <h2 style="margin:0;font-size:1.25rem;"><?= htmlspecialchars($dest) ?></h2>
-                <div style="color:var(--text-muted);font-size:0.85rem;">Réf. <?= htmlspecialchars($ref) ?></div>
-            </div>
-            <span class="badge badge-<?= $sl['badge'] ?>" style="margin-left:auto;font-size:0.9rem;padding:6px 12px;"><?= $sl['label'] ?></span>
-        </div>
-
-        <!-- Infos livraison -->
-        <div class="delivery-info-row">
-            <span class="delivery-info-label"><i class="fas fa-map-marker-alt"></i> Adresse de livraison</span>
-            <span class="delivery-info-value" style="max-width:60%;text-align:right;font-size:0.9rem;"><?= htmlspecialchars($log['Adresse_Livraison'] ?? $log['Adresse_Acheteur'] ?? 'Non renseignée') ?></span>
-        </div>
-        <div class="delivery-info-row">
-            <span class="delivery-info-label"><i class="fas fa-shipping-fast"></i> Transporteur</span>
-            <span class="delivery-info-value"><?= htmlspecialchars($log['Transporteur'] ?? '—') ?></span>
-        </div>
-        <div class="delivery-info-row">
-            <span class="delivery-info-label"><i class="fas fa-barcode"></i> N° de suivi</span>
-            <span class="delivery-info-value"><code><?= htmlspecialchars($log['Numero_Suivi'] ?? '—') ?></code></span>
-        </div>
-        <div class="delivery-info-row">
-            <span class="delivery-info-label"><i class="fas fa-calendar"></i> Livraison prévue</span>
-            <span class="delivery-info-value"><?= $log['Date_Livraison_Prevue'] ? date('d/m/Y', strtotime($log['Date_Livraison_Prevue'])) : '—' ?></span>
-        </div>
-
-        <!-- Carte destination -->
-        <?php
-            $lat_dst = !empty($log['Adresse_Livraison_Lat']) ? floatval($log['Adresse_Livraison_Lat']) : (!empty($log['Lat_Acheteur']) ? floatval($log['Lat_Acheteur']) : null);
-            $lng_dst = !empty($log['Adresse_Livraison_Lng']) ? floatval($log['Adresse_Livraison_Lng']) : (!empty($log['Lng_Acheteur']) ? floatval($log['Lng_Acheteur']) : null);
-        ?>
-        <?php if ($lat_dst && $lng_dst): ?>
-        <div id="livreur-map" style="height:220px;border-radius:10px;border:1px solid var(--zinc-200);margin:20px 0;"></div>
-        <?php endif; ?>
-
-        <!-- Zone d'action selon statut -->
-        <div class="delivery-action-zone">
-            <?php if ($statut_actuel === 'livree'): ?>
-                <div style="text-align:center; color:var(--success); font-size:1.1rem; font-weight:600;">
-                    <i class="fas fa-check-circle" style="font-size:2.5rem; margin-bottom:10px; display:block;"></i>
-                    Livraison confirmée — en attente de réception par le client.
+    <div class="lv-wrap">
+        <!-- Stepper de progression -->
+        <div class="lv-stepper">
+            <div class="lv-step">
+                <div class="lv-step-dot <?= $step_prepare ? ($step_expedie ? 'done' : 'active') : 'pending' ?>">
+                    <i class="fas fa-<?= $step_expedie ? 'check' : 'box-open' ?>"></i>
                 </div>
+                <span class="lv-step-label <?= $step_prepare && !$step_expedie ? 'active' : ($step_expedie ? 'done' : '') ?>">En<br>préparation</span>
+            </div>
+            <div class="lv-connector <?= $step_expedie ? 'done' : ($step_prepare ? 'active' : '') ?>"></div>
+            <div class="lv-step">
+                <div class="lv-step-dot <?= $step_expedie ? ($step_livre ? 'done' : 'active') : 'pending' ?>">
+                    <i class="fas fa-<?= $step_livre ? 'check' : 'truck' ?>"></i>
+                </div>
+                <span class="lv-step-label <?= $step_expedie && !$step_livre ? 'active' : ($step_livre ? 'done' : '') ?>">En<br>route</span>
+            </div>
+            <div class="lv-connector <?= $step_livre ? 'done' : ($step_expedie ? 'active' : '') ?>"></div>
+            <div class="lv-step">
+                <div class="lv-step-dot <?= $step_livre ? 'done' : 'pending' ?>">
+                    <i class="fas fa-<?= $step_livre ? 'check' : 'check-circle' ?>"></i>
+                </div>
+                <span class="lv-step-label <?= $step_livre ? 'done' : '' ?>">Livrée</span>
+            </div>
+        </div>
 
-            <?php elseif ($statut_actuel === 'expediee'): ?>
-                <!-- Bouton principal : confirmer livraison -->
-                <p style="color:var(--text-muted); margin-bottom:16px; font-size:0.95rem;">
-                    <i class="fas fa-info-circle"></i> Confirmez que vous avez remis le colis au destinataire.
-                </p>
-                <form method="POST" onsubmit="return confirm('Confirmer que cette livraison a bien été effectuée ?')">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
-                    <input type="hidden" name="transporteur" value="<?= htmlspecialchars($log['Transporteur'] ?? '') ?>">
-                    <input type="hidden" name="numero_suivi" value="<?= htmlspecialchars($log['Numero_Suivi'] ?? '') ?>">
-                    <input type="hidden" name="statut" value="livree">
-                    <input type="hidden" name="date_livraison" value="<?= date('Y-m-d\TH:i') ?>">
-                    <input type="hidden" name="adresse_livraison" value="<?= htmlspecialchars($log['Adresse_Livraison'] ?? $log['Adresse_Acheteur'] ?? '') ?>">
-                    <input type="hidden" name="lat_livraison" value="<?= htmlspecialchars($log['Adresse_Livraison_Lat'] ?? $log['Lat_Acheteur'] ?? '') ?>">
-                    <input type="hidden" name="lng_livraison" value="<?= htmlspecialchars($log['Adresse_Livraison_Lng'] ?? $log['Lng_Acheteur'] ?? '') ?>">
-                    <div class="form-group" style="margin-bottom:14px;">
-                        <label style="font-size:0.9rem; color:var(--text-muted);">Note optionnelle</label>
-                        <input type="text" name="notes" class="form-control" placeholder="Ex: Remis à la réception, signature obtenue..." value="<?= htmlspecialchars($log['Notes_Logistique'] ?? '') ?>">
-                    </div>
-                    <button type="submit" name="creer_logistique" class="btn btn-success btn-livreur">
-                        <i class="fas fa-check-circle"></i> J'ai livré — Confirmer la livraison
-                    </button>
-                </form>
+        <!-- Fiche livraison -->
+        <div class="lv-card">
+            <div class="lv-card-header">
+                <div class="lv-dest-icon <?= $log['Id_Commande_B2B'] ? 'b2b' : 'retail' ?>">
+                    <i class="fas fa-<?= $log['Id_Commande_B2B'] ? 'building' : 'user' ?>"></i>
+                </div>
+                <div class="lv-dest-name">
+                    <h2><?= htmlspecialchars($dest) ?></h2>
+                    <span>Réf. <?= htmlspecialchars($ref) ?></span>
+                </div>
+                <span class="badge badge-<?= $sl['badge'] ?>" style="margin-left:auto; font-size:.82rem; padding:5px 12px;">
+                    <?= $sl['label'] ?>
+                </span>
+            </div>
 
-            <?php else: ?>
-                <!-- Statut traitement ou en_attente : marquer expédiée -->
-                <p style="color:var(--text-muted); margin-bottom:16px; font-size:0.95rem;">
-                    <i class="fas fa-info-circle"></i> Renseignez les informations d'expédition puis marquez la commande comme expédiée.
-                </p>
-                <form method="POST">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
-                    <input type="hidden" name="statut" value="expediee">
-                    <input type="hidden" name="date_expedition" value="<?= date('Y-m-d\TH:i') ?>">
-                    <input type="hidden" name="adresse_livraison" value="<?= htmlspecialchars($log['Adresse_Livraison'] ?? $log['Adresse_Acheteur'] ?? '') ?>">
-                    <input type="hidden" name="lat_livraison" value="<?= htmlspecialchars($log['Adresse_Livraison_Lat'] ?? $log['Lat_Acheteur'] ?? '') ?>">
-                    <input type="hidden" name="lng_livraison" value="<?= htmlspecialchars($log['Adresse_Livraison_Lng'] ?? $log['Lng_Acheteur'] ?? '') ?>">
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-                        <div class="form-group">
-                            <label>Transporteur <span style="color:var(--danger);">*</span></label>
-                            <input type="text" name="transporteur" class="form-control" required placeholder="Ex: DHL, FedEx..." value="<?= htmlspecialchars($log['Transporteur'] ?? '') ?>">
-                        </div>
-                        <div class="form-group">
-                            <label>N° de suivi <span style="color:var(--danger);">*</span></label>
-                            <input type="text" name="numero_suivi" class="form-control" required placeholder="Code de suivi" value="<?= htmlspecialchars($log['Numero_Suivi'] ?? '') ?>">
-                        </div>
-                    </div>
-                    <div class="form-group" style="margin-bottom:14px;">
-                        <label>Date de livraison prévue</label>
-                        <input type="date" name="date_prevue" class="form-control" value="<?= $log['Date_Livraison_Prevue'] ? date('Y-m-d', strtotime($log['Date_Livraison_Prevue'])) : '' ?>">
-                    </div>
-                    <div class="form-group" style="margin-bottom:14px;">
-                        <label style="font-size:0.9rem; color:var(--text-muted);">Note</label>
-                        <input type="text" name="notes" class="form-control" placeholder="Informations complémentaires..." value="<?= htmlspecialchars($log['Notes_Logistique'] ?? '') ?>">
-                    </div>
-                    <button type="submit" name="creer_logistique" class="btn btn-primary btn-livreur">
-                        <i class="fas fa-truck"></i> Marquer comme expédiée
-                    </button>
-                </form>
+            <div class="lv-info-list">
+                <div class="lv-info-row">
+                    <span class="lv-info-key"><i class="fas fa-map-marker-alt" style="color:var(--danger);"></i> Adresse</span>
+                    <span class="lv-info-val" style="font-size:.85rem;"><?= htmlspecialchars($log['Adresse_Livraison'] ?? $log['Adresse_Acheteur'] ?? 'Non renseignée') ?></span>
+                </div>
+                <div class="lv-info-row">
+                    <span class="lv-info-key"><i class="fas fa-shipping-fast"></i> Transporteur</span>
+                    <span class="lv-info-val"><?= htmlspecialchars($log['Transporteur'] ?? '—') ?></span>
+                </div>
+                <div class="lv-info-row">
+                    <span class="lv-info-key"><i class="fas fa-barcode"></i> N° de suivi</span>
+                    <span class="lv-info-val"><code style="font-size:.85rem;"><?= htmlspecialchars($log['Numero_Suivi'] ?? '—') ?></code></span>
+                </div>
+                <div class="lv-info-row">
+                    <span class="lv-info-key"><i class="fas fa-calendar-alt"></i> Livraison prévue</span>
+                    <span class="lv-info-val"><?= $log['Date_Livraison_Prevue'] ? date('d/m/Y', strtotime($log['Date_Livraison_Prevue'])) : '—' ?></span>
+                </div>
+            </div>
+
+            <?php if ($lat_dst && $lng_dst): ?>
+            <div style="padding:0 24px 20px;">
+                <div id="livreur-map" style="height:200px; border-radius:10px; border:1px solid var(--zinc-200);"></div>
+            </div>
             <?php endif; ?>
+
+            <!-- Zone d'action -->
+            <div class="lv-action">
+                <?php if ($statut_actuel === 'livree'): ?>
+                    <div class="lv-done-state">
+                        <i class="fas fa-check-circle"></i>
+                        <p>Livraison confirmée</p>
+                        <small>En attente de réception par le destinataire.</small>
+                    </div>
+
+                <?php elseif ($statut_actuel === 'expediee'): ?>
+                    <div class="lv-action-hint">
+                        <i class="fas fa-info-circle" style="margin-top:2px; color:var(--primary);"></i>
+                        Confirmez que vous avez remis le colis au destinataire.
+                    </div>
+                    <form method="POST" onsubmit="return confirm('Confirmer la livraison ?')">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                        <input type="hidden" name="transporteur" value="<?= htmlspecialchars($log['Transporteur'] ?? '') ?>">
+                        <input type="hidden" name="numero_suivi" value="<?= htmlspecialchars($log['Numero_Suivi'] ?? '') ?>">
+                        <input type="hidden" name="statut" value="livree">
+                        <input type="hidden" name="date_livraison" value="<?= date('Y-m-d\TH:i') ?>">
+                        <input type="hidden" name="adresse_livraison" value="<?= htmlspecialchars($log['Adresse_Livraison'] ?? $log['Adresse_Acheteur'] ?? '') ?>">
+                        <input type="hidden" name="lat_livraison" value="<?= htmlspecialchars($log['Adresse_Livraison_Lat'] ?? $log['Lat_Acheteur'] ?? '') ?>">
+                        <input type="hidden" name="lng_livraison" value="<?= htmlspecialchars($log['Adresse_Livraison_Lng'] ?? $log['Lng_Acheteur'] ?? '') ?>">
+                        <div class="form-group" style="margin-bottom:16px;">
+                            <label style="font-size:.85rem; color:var(--text-muted);">Note (optionnelle)</label>
+                            <input type="text" name="notes" class="form-control" placeholder="Ex: Remis à la réception, signature obtenue..." value="<?= htmlspecialchars($log['Notes_Logistique'] ?? '') ?>">
+                        </div>
+                        <button type="submit" name="creer_logistique" class="lv-btn btn btn-success">
+                            <i class="fas fa-check-circle"></i> J'ai livré — Confirmer la livraison
+                        </button>
+                    </form>
+
+                <?php else: ?>
+                    <div class="lv-action-hint">
+                        <i class="fas fa-info-circle" style="margin-top:2px; color:var(--primary);"></i>
+                        Renseignez les informations d'expédition puis confirmez le départ.
+                    </div>
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                        <input type="hidden" name="statut" value="expediee">
+                        <input type="hidden" name="date_expedition" value="<?= date('Y-m-d\TH:i') ?>">
+                        <input type="hidden" name="adresse_livraison" value="<?= htmlspecialchars($log['Adresse_Livraison'] ?? $log['Adresse_Acheteur'] ?? '') ?>">
+                        <input type="hidden" name="lat_livraison" value="<?= htmlspecialchars($log['Adresse_Livraison_Lat'] ?? $log['Lat_Acheteur'] ?? '') ?>">
+                        <input type="hidden" name="lng_livraison" value="<?= htmlspecialchars($log['Adresse_Livraison_Lng'] ?? $log['Lng_Acheteur'] ?? '') ?>">
+                        <div class="lv-fields-grid">
+                            <div class="form-group">
+                                <label>Transporteur <span style="color:var(--danger);">*</span></label>
+                                <input type="text" name="transporteur" class="form-control" required placeholder="DHL, FedEx..." value="<?= htmlspecialchars($log['Transporteur'] ?? '') ?>">
+                            </div>
+                            <div class="form-group">
+                                <label>N° de suivi <span style="color:var(--danger);">*</span></label>
+                                <input type="text" name="numero_suivi" class="form-control" required placeholder="Code de suivi" value="<?= htmlspecialchars($log['Numero_Suivi'] ?? '') ?>">
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-bottom:14px;">
+                            <label>Date de livraison prévue</label>
+                            <input type="date" name="date_prevue" class="form-control" value="<?= $log['Date_Livraison_Prevue'] ? date('Y-m-d', strtotime($log['Date_Livraison_Prevue'])) : '' ?>">
+                        </div>
+                        <div class="form-group" style="margin-bottom:16px;">
+                            <label style="font-size:.85rem; color:var(--text-muted);">Note</label>
+                            <input type="text" name="notes" class="form-control" placeholder="Informations complémentaires..." value="<?= htmlspecialchars($log['Notes_Logistique'] ?? '') ?>">
+                        </div>
+                        <button type="submit" name="creer_logistique" class="lv-btn btn btn-primary">
+                            <i class="fas fa-truck"></i> Confirmer le départ — Marquer expédiée
+                        </button>
+                    </form>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 </div>
