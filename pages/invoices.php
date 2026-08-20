@@ -129,9 +129,12 @@ $factures = $stmt->fetchAll();
                                         <span style="color: #27ae60; font-size: 0.85em;">✅ Période expirée</span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
-                                    <a href="invoice_view.php?ref=<?= htmlspecialchars($f['Numero_Vente']) ?>" target="_blank" class="btn btn-sm btn-secondary">
-                                        <i class="fas fa-print"></i>
+                                <td style="white-space:nowrap;">
+                                    <a href="invoice_view.php?ref=<?= htmlspecialchars($f['Numero_Vente']) ?>" target="_blank" class="btn btn-sm btn-secondary" title="Voir la facture">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="invoice_view.php?ref=<?= htmlspecialchars($f['Numero_Vente']) ?>&autoprint=1" target="_blank" class="btn btn-sm btn-secondary" title="Imprimer / Exporter PDF" style="margin-left:4px;">
+                                        <i class="fas fa-file-pdf" style="color:#e53e3e;"></i>
                                     </a>
                                     <form method="POST" style="display: inline-block; margin-left: 5px;">
                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">

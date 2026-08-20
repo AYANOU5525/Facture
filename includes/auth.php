@@ -8,6 +8,23 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . '/csrf.php';
+require_once __DIR__ . '/error_handler.php';
+
+// 2. En-têtes de sécurité HTTP
+header("X-Frame-Options: DENY");
+header("X-Content-Type-Options: nosniff");
+header("Referrer-Policy: strict-origin-when-cross-origin");
+header("Permissions-Policy: camera=(), microphone=(), geolocation=()");
+header(
+    "Content-Security-Policy: " .
+    "default-src 'self'; " .
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " .
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; " .
+    "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; " .
+    "img-src 'self' data:; " .
+    "connect-src 'self'; " .
+    "frame-ancestors 'none'"
+);
 
 // 2. Empêcher la mise en cache par le navigateur (Sécurité du bouton "Retour")
 header("Cache-Control: no-cache, no-store, must-revalidate");

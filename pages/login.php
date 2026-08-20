@@ -1,5 +1,11 @@
 <?php
 session_start();
+
+if (isset($_SESSION['user_id'])) {
+    header('Location: dashboard.php');
+    exit();
+}
+
 require_once '../includes/csrf.php';
 require_once '../config/db.php';
 
@@ -38,6 +44,7 @@ function clearLoginAttemptState(string $username): void
 }
 
 $error = '';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
     $username = trim($_POST['username'] ?? '');
@@ -55,8 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $state = ['attempts' => 0, 'locked_until' => 0];
             }
 
-            $stmt = $pdo->prepare("SELECT Id_Utilisateur, Nom_Utilisateur, Role_Utilisateur, Id_Entreprise, Mot_De_Passe_Utilisateur FROM Utilisateur WHERE Nom_Utilisateur = ?");
-            $stmt->execute([$username]);
+            $stmt = $pdo->prepare("SELECT Id_Utilisateur, Nom_Utilisateur, Role_Utilisateur, Id_Entreprise, Mot_De_Passe_Utilisateur FROM Utilisateur WHERE Nom_Utilisateur = ? OR Email_Utilisateur = ?");
+            $stmt->execute([$username, $username]);
             $user = $stmt->fetch();
 
             if ($user && password_verify($password, $user['Mot_De_Passe_Utilisateur'])) {
@@ -117,12 +124,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form method="POST">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
             <div class="form-group">
-                <label>Nom d'utilisateur</label>
-                <input type="text" 
-                       name="username" 
-                       class="form-control" 
-                       placeholder="Ex: admin_fourni" 
-                       required 
+                <label>Nom d'utilisateur ou Email</label>
+                <input type="text"
+                       name="username"
+                       class="form-control"
+                       placeholder="Ex: admin_fourni ou contact@email.com"
+                       required
                        autofocus>
             </div>
 
@@ -150,9 +157,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </button>
         </form>
 
-        <div style="text-align: center; margin-top: 20px; margin-bottom: 20px;">
+        <div style="text-align: center; margin-top: 15px;">
+            <a href="forgot_password.php" style="color: var(--text-muted); font-size: 0.9rem;">
+                <i class="fas fa-lock"></i> Mot de passe oublié ?
+            </a>
+        </div>
+
+        <div style="text-align: center; margin-top: 15px; margin-bottom: 20px;">
             <p style="color: var(--text-muted);">
-                Pas encore de compte ? 
+                Pas encore de compte ?
                 <a href="register.php" style="color: var(--primary); font-weight: 600;">S'inscrire gratuitement</a>
             </p>
         </div>

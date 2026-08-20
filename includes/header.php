@@ -84,7 +84,12 @@ if (session_status() === PHP_SESSION_NONE) {
                 </div>
 
                 <!-- RIGHT: BURGER MENU -->
-                <div class="nav-right" style="display:flex; align-items:center; gap:12px;">
+                <div class="nav-right" style="display:flex; align-items:center; gap:8px;">
+
+                    <!-- Bouton mode sombre -->
+                    <button id="dark-toggle" title="Mode sombre / clair" aria-label="Basculer le thème">
+                        <i class="fas fa-moon" id="dark-icon"></i>
+                    </button>
 
                     <!-- Notification Bell (B2B) -->
                     <a href="notifications_b2b.php" class="btn btn-secondary" style="position:relative; padding:0 12px; height:40px; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; text-decoration:none; color:var(--text-main);">
@@ -285,6 +290,27 @@ if (session_status() === PHP_SESSION_NONE) {
                 // Init & check every 30s
                 updateNotifBadge();
                 setInterval(updateNotifBadge, 30000);
+
+                // === Mode sombre ===
+                const root     = document.documentElement;
+                const toggle   = document.getElementById('dark-toggle');
+                const icon     = document.getElementById('dark-icon');
+
+                function applyTheme(dark) {
+                    root.setAttribute('data-theme', dark ? 'dark' : 'light');
+                    icon.className = dark ? 'fas fa-sun' : 'fas fa-moon';
+                }
+
+                const saved = localStorage.getItem('factupro_theme');
+                applyTheme(saved === 'dark');
+
+                if (toggle) {
+                    toggle.addEventListener('click', function () {
+                        const isDark = root.getAttribute('data-theme') === 'dark';
+                        applyTheme(!isDark);
+                        localStorage.setItem('factupro_theme', !isDark ? 'dark' : 'light');
+                    });
+                }
             });
         </script>
     <?php endif; ?>

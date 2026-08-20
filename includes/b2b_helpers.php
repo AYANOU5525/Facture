@@ -61,25 +61,64 @@ function creerNotificationB2b(PDO $pdo, int $id_entreprise, string $type, string
 }
 
 /**
- * Envoie un email via mail() natif PHP.
- * Pour une production robuste, remplacer par PHPMailer/SMTP.
+ * Envoie un email via PHPMailer (SMTP) si configuré, sinon mail() natif.
  *
- * @param string $to      Adresse email destinataire
- * @param string $subject Sujet de l'email
- * @param string $body    Corps du message (texte brut)
- * @return bool           Succès ou échec
+ * @param string $to       Adresse email destinataire
+ * @param string $subject  Sujet de l'email
+ * @param string $body     Corps HTML du message
+ * @param string $altBody  Version texte brut (fallback)
+ * @return bool            Succès ou échec
  */
-function envoyerEmailB2b(string $to, string $subject, string $body): bool
+function envoyerEmailB2b(string $to, string $subject, string $body, string $altBody = ''): bool
 {
-    $headers  = "From: noreply@factupro.app\r\n";
-    $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
-    $headers .= "X-Mailer: FactuPro B2B\r\n";
+    $host     = $_ENV['MAIL_HOST']       ?? '';
+    $username = $_ENV['MAIL_USERNAME']   ?? '';
+    $password = $_ENV['MAIL_PASSWORD']   ?? '';
+    $from     = $_ENV['MAIL_FROM']       ?? 'noreply@factupro.app';
+    $fromName = $_ENV['MAIL_FROM_NAME']  ?? 'FactuPro';
+    $port     = (int) ($_ENV['MAIL_PORT'] ?? 587);
+    $encrypt  = $_ENV['MAIL_ENCRYPTION'] ?? 'tls';
+
+    // Si SMTP configuré, utiliser PHPMailer
+    if (!empty($host) && !empty($username) && !empty($password)
+        && $username !== 'votre.email@gmail.com') {
+
+        try {
+            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+            $mail->isSMTP();
+            $mail->Host       = $host;
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $username;
+            $mail->Password   = $password;
+            $mail->SMTPSecure = $encrypt === 'ssl'
+                ? PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS
+                : PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port       = $port;
+            $mail->CharSet    = 'UTF-8';
+
+            $mail->setFrom($from, $fromName);
+            $mail->addAddress($to);
+            $mail->isHTML(true);
+            $mail->Subject = $subject;
+            $mail->Body    = $body;
+            $mail->AltBody = $altBody ?: strip_tags(str_replace(['<br>', '<br/>', '<br />'], "\n", $body));
+
+            return $mail->send();
+        } catch (Exception $e) {
+            error_log("[FactuPro] Échec SMTP vers $to : " . $e->getMessage());
+            return false;
+        }
+    }
+
+    // Fallback : mail() natif (fonctionne si sendmail est configuré sur le serveur)
+    $headers  = "From: $fromName <$from>\r\n";
+    $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+    $headers .= "X-Mailer: FactuPro\r\n";
 
     try {
         return mail($to, $subject, $body, $headers);
     } catch (Exception $e) {
-        // Ne pas bloquer le flux principal si l'email échoue
-        error_log("[FactuPro B2B] Échec email vers $to : " . $e->getMessage());
+        error_log("[FactuPro] Échec mail() vers $to : " . $e->getMessage());
         return false;
     }
 }

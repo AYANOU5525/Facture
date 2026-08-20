@@ -46,6 +46,15 @@ CREATE TABLE Utilisateur (
     FOREIGN KEY (Id_Entreprise) REFERENCES Entreprise(Id_Entreprise) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+CREATE TABLE IF NOT EXISTS Password_Reset (
+    Id_Reset       INT         AUTO_INCREMENT PRIMARY KEY,
+    Id_Utilisateur INT         NOT NULL,
+    Token          VARCHAR(64) NOT NULL UNIQUE,
+    Expire_At      DATETIME    NOT NULL,
+    Utilise        BOOLEAN     DEFAULT FALSE,
+    FOREIGN KEY (Id_Utilisateur) REFERENCES Utilisateur(Id_Utilisateur) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 
 CREATE TABLE Produit (
     Id_Produit INT AUTO_INCREMENT PRIMARY KEY,
