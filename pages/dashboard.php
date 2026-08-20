@@ -9,6 +9,12 @@ include '../includes/header.php';
 $entreprise_id = $_SESSION['entreprise_id'];
 
 
+// Livreur → redirection directe vers logistique
+if (hasRole(ROLE_LIVREUR)) {
+    header('Location: logistique.php');
+    exit();
+}
+
 // 1. Chiffre d'Affaires (Ventes + B2B Vendu)
 $stmt = $pdo->prepare("SELECT SUM(Montant_Total) FROM Vente WHERE Id_Entreprise = ?");
 $stmt->execute([$entreprise_id]);
@@ -29,10 +35,13 @@ $stmt = $pdo->prepare("SELECT COUNT(DISTINCT Nom_Client) FROM Vente WHERE Id_Ent
 $stmt->execute([$entreprise_id]);
 $total_clients = $stmt->fetchColumn();
 
-// 4. Dépenses B2B (Achats)
-$stmt = $pdo->prepare("SELECT SUM(Montant_Total) FROM Commande_B2B WHERE Id_Entreprise_Acheteuse = ? AND Statut != 'en_attente'");
-$stmt->execute([$entreprise_id]);
-$total_achats = $stmt->fetchColumn() ?? 0;
+// 4. Dépenses B2B (Achats) — managers uniquement
+$total_achats = 0;
+if (isManager()) {
+    $stmt = $pdo->prepare("SELECT SUM(Montant_Total) FROM Commande_B2B WHERE Id_Entreprise_Acheteuse = ? AND Statut != 'en_attente'");
+    $stmt->execute([$entreprise_id]);
+    $total_achats = $stmt->fetchColumn() ?? 0;
+}
 
 // 5. Logistique - Expéditions à traiter
 $stmt = $pdo->prepare("SELECT COUNT(*) FROM Logistique WHERE Id_Entreprise = ? AND Statut_Livraison = 'traitement'");
@@ -155,6 +164,7 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
             </div>
         </a>
 
+        <?php if (isManager()): ?>
         <!-- Dépenses -->
         <div class="stat-card gradient-orange">
             <div class="stat-icon"><i class="fas fa-shopping-bag"></i></div>
@@ -163,6 +173,7 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
                 <div class="stat-value"><?= number_format($total_achats, 0, ',', ' ') ?> <small>F</small></div>
             </div>
         </div>
+        <?php endif; ?>
 
         <a href="clients.php" class="stat-card bg-white" style="text-decoration: none; display: flex; color: inherit;">
             <div class="stat-icon text-purple"><i class="fas fa-users"></i></div>
@@ -238,7 +249,8 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
             <?php endif; ?>
         </div>
 
-        <!-- COMMANDES B2B EN ATTENTE -->
+        <!-- COMMANDES B2B EN ATTENTE — managers seulement -->
+        <?php if (isManager()): ?>
         <div class="card">
             <div class="card-header-flex">
                 <h3><i class="fas fa-bell text-warning"></i> Commandes à Valider</h3>
@@ -276,6 +288,7 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
                 </div>
             <?php endif; ?>
         </div>
+        <?php endif; // isManager ?>
 
     </div>
 </div>

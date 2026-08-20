@@ -9,6 +9,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/error_handler.php';
+require_once __DIR__ . '/roles.php';
 
 // 2. En-têtes de sécurité HTTP
 header("X-Frame-Options: DENY");

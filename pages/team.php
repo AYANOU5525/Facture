@@ -4,11 +4,8 @@ require_once '../includes/auth.php';
 require_once '../config/db.php';
 require_once '../includes/b2b_helpers.php';
 
-// Sécurité : Admin seulement
-if ($_SESSION['role'] !== 'admin') {
-    header('Location: dashboard.php');
-    exit();
-}
+// Propriétaire ou admin uniquement
+requireRole(ROLE_ADMIN, ROLE_PROPRIO);
 
 $page_title = "Gestion de l'équipe";
 include '../includes/header.php';
@@ -195,10 +192,15 @@ HTML;
                 if ($target_id == $_SESSION['user_id']) {
                     $error = "Vous ne pouvez pas modifier votre propre rôle ici.";
                 } else {
-                    $new_role = ($target_user_role === 'admin') ? 'utilisateur' : 'admin';
-                    $upd = $pdo->prepare("UPDATE Utilisateur SET Role_Utilisateur = ? WHERE Id_Utilisateur = ?");
-                    $upd->execute([$new_role, $target_id]);
-                    $success = "Rôle modifié avec succès (Maintenant : " . ucfirst($new_role) . ").";
+                    $new_role = $_POST['new_role'] ?? null;
+                    $allowed_roles = ['admin', 'proprio', 'vendeur', 'livreur'];
+                    if (!in_array($new_role, $allowed_roles, true)) {
+                        $error = "Rôle invalide.";
+                    } else {
+                        $upd = $pdo->prepare("UPDATE Utilisateur SET Role_Utilisateur = ? WHERE Id_Utilisateur = ?");
+                        $upd->execute([$new_role, $target_id]);
+                        $success = "Rôle modifié avec succès (Maintenant : " . roleName($new_role) . ").";
+                    }
                 }
             } else {
                 $error = "Utilisateur introuvable.";
@@ -248,8 +250,10 @@ $membres = $stmt->fetchAll();
                     <div class="form-group">
                         <label>Rôle</label>
                         <select name="role" class="form-control">
-                            <option value="utilisateur">Employé (Accès limité)</option>
-                            <option value="admin">Administrateur (Accès total)</option>
+                            <option value="vendeur">Vendeur — ventes, clients, factures, stocks (lecture)</option>
+                            <option value="livreur">Livreur — logistique uniquement</option>
+                            <option value="proprio">Propriétaire — accès complet à l'entreprise</option>
+                            <option value="admin">Administrateur — accès total + gestion avancée</option>
                         </select>
                     </div>
                     <button type="submit" class="btn btn-success" style="width:100%;">Ajouter</button>
@@ -281,10 +285,8 @@ $membres = $stmt->fetchAll();
                                 </td>
                                 <td><?= htmlspecialchars($u['Email_Utilisateur']) ?></td>
                                 <td>
-                                    <span class="badge badge-<?= $u['Role_Utilisateur'] === 'admin'
-                                        ? 'primary'
-                                        : 'secondary' ?>">
-                                        <?= ucfirst($u['Role_Utilisateur']) ?>
+                                    <span class="badge <?= roleBadgeClass($u['Role_Utilisateur']) ?>">
+                                        <?= roleName($u['Role_Utilisateur']) ?>
                                     </span>
                                 </td>
                                 <td>
@@ -307,12 +309,11 @@ $membres = $stmt->fetchAll();
     </div>
 </div>
 
-<!-- MODALE DE SÉCURITÉ -->
+<!-- MODALE DE CHANGEMENT DE RÔLE -->
 <div id="securityModal" class="modal-overlay" style="display: none;">
     <div class="modal-content">
-        <h3><i class="fas fa-lock"></i> Confirmation de sécurité</h3>
-        <p>Vous êtes sur le point de changer le rôle de <strong id="modalUserName"></strong>.</p>
-        <p>Veuillez confirmer votre mot de passe administrateur pour continuer :</p>
+        <h3><i class="fas fa-user-edit"></i> Changer le rôle</h3>
+        <p>Membre : <strong id="modalUserName"></strong></p>
 
         <form method="POST">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
@@ -320,17 +321,27 @@ $membres = $stmt->fetchAll();
             <input type="hidden" name="target_id" id="modalTargetId">
 
             <div class="form-group">
-                <input type="password" 
-                       name="admin_password" 
-                       class="form-control" 
-                       placeholder="Votre mot de passe actuel" 
-                       required 
-                       autofocus>
+                <label>Nouveau rôle</label>
+                <select name="new_role" class="form-control">
+                    <option value="vendeur">Vendeur — ventes, clients, factures, stocks (lecture)</option>
+                    <option value="livreur">Livreur — logistique uniquement</option>
+                    <option value="proprio">Propriétaire — accès complet à l'entreprise</option>
+                    <option value="admin">Administrateur — accès total + gestion avancée</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Votre mot de passe (confirmation)</label>
+                <input type="password"
+                       name="admin_password"
+                       class="form-control"
+                       placeholder="Mot de passe actuel"
+                       required>
             </div>
 
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
                 <button type="button" class="btn btn-secondary" onclick="closeModal()">Annuler</button>
-                <button type="submit" class="btn btn-danger">Confirmer</button>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer</button>
             </div>
         </form>
     </div>

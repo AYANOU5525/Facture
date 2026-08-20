@@ -3,10 +3,8 @@
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/b2b_helpers.php';
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
-    exit;
-}
+
+requireRole(ROLE_ADMIN, ROLE_PROPRIO);
 
 if (!isset($_SESSION['entreprise_id'])) {
     header('Location: ../dashboard.php');

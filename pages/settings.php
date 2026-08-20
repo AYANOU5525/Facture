@@ -2,10 +2,8 @@
 require_once '../includes/auth.php';
 require_once '../config/db.php';
 
-// Vérifier si l'utilisateur est admin
-if ($_SESSION['role'] !== 'admin') {
-    die("Accès refusé. Seuls les administrateurs peuvent modifier les paramètres.");
-}
+// Propriétaire ou admin uniquement
+requireRole(ROLE_ADMIN, ROLE_PROPRIO);
 
 $page_title = "Paramètres de l'entreprise";
 include '../includes/header.php';
