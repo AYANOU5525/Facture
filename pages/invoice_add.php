@@ -25,12 +25,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $client = trim($_POST['client'] ?? '');
     $items = $_POST['items'] ?? [];
 
+    $mode_remise = in_array($_POST['mode_remise'] ?? '', ['livraison', 'retrait']) ? $_POST['mode_remise'] : 'livraison';
+
     if (empty($items)) {
         $error = 'Veuillez ajouter au moins un produit.';
     } else {
         try {
             $numero = $invoiceService->createDirectSale($client, $nom_vendeur, $items, (int) $entreprise_id);
-            header('Location: vente_workflow.php?ref=' . urlencode($numero) . '&etape=1');
+            header('Location: vente_workflow.php?ref=' . urlencode($numero) . '&etape=1&mode=' . $mode_remise);
             exit;
         } catch (Throwable $e) {
             $error = $e->getMessage();
@@ -128,6 +130,32 @@ include '../includes/header.php';
         font-size: 0.75rem;
         padding: 1px 8px;
         font-weight: 600;
+    }
+    .mode-remise-option {
+        cursor: pointer;
+    }
+    .mode-remise-option input[type="radio"] {
+        display: none;
+    }
+    .mode-remise-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        padding: 12px 8px;
+        border: 2px solid var(--zinc-200);
+        border-radius: 10px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        background: var(--zinc-50);
+        transition: all 0.2s;
+    }
+    .mode-remise-card i { font-size: 1.3rem; }
+    .mode-remise-option input:checked + .mode-remise-card {
+        border-color: var(--primary);
+        background: var(--primary-light);
+        color: var(--primary);
     }
     @media (max-width: 768px) {
         .sale-form-grid { grid-template-columns: 1fr; }
@@ -227,7 +255,33 @@ include '../includes/header.php';
                     <span>Total</span>
                     <span class="sale-total-amount" id="grand-total">0 F</span>
                 </div>
-                <div style="margin-top:20px; display:flex; flex-direction:column; gap:8px;">
+                <!-- Mode de remise -->
+                <div style="margin-bottom:16px;">
+                    <div style="font-weight:600; font-size:0.85rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px;">
+                        Mode de remise
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                        <label class="mode-remise-option">
+                            <input type="radio" name="mode_remise" value="livraison" checked onchange="updateModeRemise()">
+                            <div class="mode-remise-card" id="card-livraison">
+                                <i class="fas fa-truck"></i>
+                                <span>Livraison</span>
+                            </div>
+                        </label>
+                        <label class="mode-remise-option">
+                            <input type="radio" name="mode_remise" value="retrait" onchange="updateModeRemise()">
+                            <div class="mode-remise-card" id="card-retrait">
+                                <i class="fas fa-store"></i>
+                                <span>Retrait</span>
+                            </div>
+                        </label>
+                    </div>
+                    <p id="mode-remise-hint" style="font-size:0.78rem; color:var(--text-muted); margin:8px 0 0;">
+                        <i class="fas fa-info-circle"></i> L'étape logistique sera incluse dans la finalisation.
+                    </p>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:8px;">
                     <button type="submit" class="btn btn-success" id="btn-submit" disabled>
                         <i class="fas fa-check-circle"></i> Valider la vente
                     </button>
@@ -356,6 +410,16 @@ include '../includes/header.php';
 
     function escHtml(str) {
         return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function updateModeRemise() {
+        const mode = document.querySelector('input[name="mode_remise"]:checked')?.value ?? 'livraison';
+        const hint = document.getElementById('mode-remise-hint');
+        if (hint) {
+            hint.innerHTML = mode === 'retrait'
+                ? '<i class="fas fa-info-circle"></i> Retrait sur place — l\'étape logistique sera ignorée.'
+                : '<i class="fas fa-info-circle"></i> L\'étape logistique sera incluse dans la finalisation.';
+        }
     }
 
     // Initialiser avec une ligne vide
