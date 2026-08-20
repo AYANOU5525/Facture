@@ -40,11 +40,10 @@ $etape = $_GET['etape'] ?? '1';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['valider_paiement'])) {
     requireCsrf();
     $salesWorkflow->markPaid((int) $vente['Id_Facture']);
-    $success = "Paiement validé avec succès !";
-    $etape = '2'; // Passer à l'étape logistique
-
-    // Recharger les données
     $vente['Statut_Paiement'] = 'payee';
+    $success = "Paiement validé avec succès !";
+    // Retrait sur place : pas de logistique, on passe directement à "Terminé"
+    $etape = $avec_livraison ? '2' : '3';
 }
 
 // === TRAITEMENT CRÉATION LOGISTIQUE ===
@@ -63,12 +62,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['creer_logistique'])) 
             $date_livraison
         );
         $success = "Logistique créée avec succès !";
-        $etape = '3'; // Terminé
+        $etape = '3';
         $logistique_existe = true;
     } catch (PDOException $e) {
         $error = "Erreur lors de la création : " . $e->getMessage();
     }
 }
+
+// Recalculer $avec_livraison après traitements POST (le mode vient du GET)
+$mode = in_array($_GET['mode'] ?? '', ['livraison', 'retrait']) ? $_GET['mode'] : 'livraison';
+$avec_livraison = ($mode === 'livraison');
 
 $page_title = 'Workflow Vente';
 include '../includes/header.php';
@@ -235,6 +238,7 @@ include '../includes/header.php';
             <div class="workflow-step-circle"><?= $etape > '1' ? '<i class="fas fa-check"></i>' : '2' ?></div>
             <div class="workflow-step-label">Paiement</div>
         </div>
+        <?php if ($avec_livraison): ?>
         <div class="workflow-step <?= $etape == '2' ? 'active' : ($etape > '2' ? 'completed' : '') ?>">
             <div class="workflow-step-circle"><?= $etape > '2' ? '<i class="fas fa-check"></i>' : '3' ?></div>
             <div class="workflow-step-label">Logistique</div>
@@ -243,6 +247,12 @@ include '../includes/header.php';
             <div class="workflow-step-circle"><?= $etape == '3' ? '<i class="fas fa-check"></i>' : '4' ?></div>
             <div class="workflow-step-label">Terminé</div>
         </div>
+        <?php else: ?>
+        <div class="workflow-step <?= $etape == '3' ? 'active' : '' ?>">
+            <div class="workflow-step-circle"><?= $etape == '3' ? '<i class="fas fa-check"></i>' : '3' ?></div>
+            <div class="workflow-step-label">Terminé</div>
+        </div>
+        <?php endif; ?>
     </div>
 
     <!-- CONTENU DE L'ÉTAPE -->
@@ -273,6 +283,18 @@ include '../includes/header.php';
                 </div>
             </div>
 
+            <?php if ($avec_livraison): ?>
+            <div class="workflow-info-row" style="margin-top:10px; border-top:1px solid var(--zinc-100); padding-top:10px;">
+                <span class="workflow-info-label"><i class="fas fa-truck"></i> Mode de remise</span>
+                <span class="badge badge-primary">Livraison</span>
+            </div>
+            <?php else: ?>
+            <div class="workflow-info-row" style="margin-top:10px; border-top:1px solid var(--zinc-100); padding-top:10px;">
+                <span class="workflow-info-label"><i class="fas fa-store"></i> Mode de remise</span>
+                <span class="badge badge-success">Retrait sur place</span>
+            </div>
+            <?php endif; ?>
+
             <div class="workflow-actions">
                 <?php if ($vente['Statut_Paiement'] !== 'payee'): ?>
                     <form method="POST">
@@ -282,9 +304,15 @@ include '../includes/header.php';
                         </button>
                     </form>
                 <?php else: ?>
-                    <a href="?ref=<?= urlencode($numero_vente) ?>&etape=2" class="btn btn-primary">
+                    <?php if ($avec_livraison): ?>
+                    <a href="?ref=<?= urlencode($numero_vente) ?>&etape=2&mode=livraison" class="btn btn-primary">
                         <i class="fas fa-arrow-right"></i> Passer à la logistique
                     </a>
+                    <?php else: ?>
+                    <a href="?ref=<?= urlencode($numero_vente) ?>&etape=3&mode=retrait" class="btn btn-primary">
+                        <i class="fas fa-check-circle"></i> Terminer la vente
+                    </a>
+                    <?php endif; ?>
                 <?php endif; ?>
                 <a href="invoice_view.php?ref=<?= urlencode($numero_vente) ?>" target="_blank" class="btn btn-secondary">
                     <i class="fas fa-print"></i> Voir la facture
@@ -306,7 +334,7 @@ include '../includes/header.php';
                     <i class="fas fa-info-circle"></i> Une entrée logistique existe déjà pour cette vente.
                 </div>
                 <div class="workflow-actions">
-                    <a href="?ref=<?= urlencode($numero_vente) ?>&etape=3" class="btn btn-primary">
+                    <a href="?ref=<?= urlencode($numero_vente) ?>&etape=3&mode=livraison" class="btn btn-primary">
                         <i class="fas fa-arrow-right"></i> Terminer
                     </a>
                     <a href="logistique.php" class="btn btn-secondary">
@@ -340,7 +368,7 @@ include '../includes/header.php';
                         <button type="submit" name="creer_logistique" class="btn btn-primary">
                             <i class="fas fa-save"></i> Enregistrer la logistique
                         </button>
-                        <a href="?ref=<?= urlencode($numero_vente) ?>&etape=3" class="btn btn-secondary">
+                        <a href="?ref=<?= urlencode($numero_vente) ?>&etape=3&mode=livraison" class="btn btn-secondary">
                             <i class="fas fa-forward"></i> Passer cette étape
                         </a>
                     </div>
