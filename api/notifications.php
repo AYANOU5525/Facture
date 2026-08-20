@@ -15,6 +15,13 @@ require_once '../includes/auth.php';
 require_once '../config/db.php';
 require_once '../vendor/autoload.php';
 
+// Retour silencieux pour les rôles sans accès B2B (evite de casser le polling du header)
+if (!canAccessB2B()) {
+    header('Content-Type: application/json');
+    echo json_encode(['success' => true, 'count' => 0, 'notifications' => []]);
+    exit();
+}
+
 use App\Application\B2B\NotificationService;
 use App\Infrastructure\Persistence\NotificationRepository;
 

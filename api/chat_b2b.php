@@ -16,6 +16,13 @@ require_once '../config/db.php';
 require_once '../includes/b2b_helpers.php';
 require_once '../vendor/autoload.php';
 
+if (!canAccessB2B()) {
+    header('Content-Type: application/json');
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'Accès refusé.']);
+    exit();
+}
+
 use App\Infrastructure\Persistence\ChatRepository;
 use App\Application\B2B\ChatService;
 

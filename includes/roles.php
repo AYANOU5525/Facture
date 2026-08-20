@@ -70,10 +70,82 @@ function canAccessB2B(): bool
     return hasRole(ROLE_PROPRIO);
 }
 
+/** Peut voir la liste des produits (lecture seule). */
+function canViewProducts(): bool
+{
+    return hasRole(ROLE_PROPRIO, ROLE_VENDEUR);
+}
+
+/** Peut modifier les produits et le stock (ajout, suppression, approvisionnement). */
+function canManageProducts(): bool
+{
+    return hasRole(ROLE_PROPRIO);
+}
+
+/** Peut créer une vente. */
+function canCreateSale(): bool
+{
+    return hasRole(ROLE_PROPRIO, ROLE_VENDEUR);
+}
+
+/** Peut consulter l'historique des ventes et factures. */
+function canViewSales(): bool
+{
+    return hasRole(ROLE_PROPRIO, ROLE_VENDEUR);
+}
+
+/** Peut consulter les factures. */
+function canViewInvoices(): bool
+{
+    return hasRole(ROLE_PROPRIO, ROLE_VENDEUR);
+}
+
+/** Peut consulter la liste des clients. */
+function canViewClients(): bool
+{
+    return hasRole(ROLE_PROPRIO, ROLE_VENDEUR);
+}
+
+/** Peut consulter les expéditions logistiques. */
+function canViewShipments(): bool
+{
+    return hasRole(ROLE_PROPRIO, ROLE_LIVREUR);
+}
+
+/** Peut créer/supprimer des entrées logistiques. */
+function canManageShipments(): bool
+{
+    return hasRole(ROLE_PROPRIO);
+}
+
+/** Peut mettre à jour le statut d'une expédition. */
+function canUpdateShipmentStatus(): bool
+{
+    return hasRole(ROLE_PROPRIO, ROLE_LIVREUR);
+}
+
+/** Peut accéder aux fonctionnalités B2B (commandes, réseau, chat). */
+function canManageB2B(): bool
+{
+    return hasRole(ROLE_PROPRIO);
+}
+
+/** Peut gérer les paramètres de l'entreprise. */
+function canManageCompanySettings(): bool
+{
+    return hasRole(ROLE_PROPRIO);
+}
+
 /** Peut gérer l'équipe et les paramètres de l'entreprise. */
 function canManageTeam(): bool
 {
     return hasRole(ROLE_PROPRIO);
+}
+
+/** Accès aux fonctionnalités de gestion de la plateforme (admin uniquement). */
+function canManagePlatform(): bool
+{
+    return hasRole(ROLE_ADMIN);
 }
 
 /** Libellé lisible du rôle. */

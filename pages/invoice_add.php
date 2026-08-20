@@ -3,7 +3,7 @@ require_once '../includes/auth.php';
 require_once '../config/db.php';
 require_once '../vendor/autoload.php';
 
-requireRole(ROLE_ADMIN, ROLE_PROPRIO, ROLE_VENDEUR);
+requireRole(ROLE_PROPRIO, ROLE_VENDEUR);
 
 use App\Application\Billing\InvoiceService;
 use App\Infrastructure\Persistence\InvoiceRepository;

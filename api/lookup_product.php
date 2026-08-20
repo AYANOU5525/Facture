@@ -4,6 +4,12 @@ require_once '../config/db.php';
 
 header('Content-Type: application/json');
 
+if (!canSell()) {
+    http_response_code(403);
+    echo json_encode(['error' => 'Accès refusé.']);
+    exit();
+}
+
 // Rate limiting : 60 requêtes par minute par IP
 (function () {
     $ip  = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';

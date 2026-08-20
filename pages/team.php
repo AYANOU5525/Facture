@@ -4,8 +4,7 @@ require_once '../includes/auth.php';
 require_once '../config/db.php';
 require_once '../includes/b2b_helpers.php';
 
-// Propriétaire ou admin uniquement
-requireRole(ROLE_ADMIN, ROLE_PROPRIO);
+requireRole(ROLE_PROPRIO);
 
 $page_title = "Gestion de l'équipe";
 include '../includes/header.php';

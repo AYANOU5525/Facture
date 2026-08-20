@@ -2,6 +2,8 @@
 require_once '../includes/auth.php';
 require_once '../config/db.php';
 
+requireRole(ROLE_PROPRIO, ROLE_VENDEUR);
+
 // Redirection si paramètres manquants
 if (!isset($_GET['type']) || (!isset($_GET['id']) && !isset($_GET['name']))) {
     header('Location: clients.php');
@@ -15,7 +17,20 @@ $history = [];
 
 if ($type === 'b2b' && isset($_GET['id'])) {
     $target_id = (int)$_GET['id'];
-    
+
+    // Vérification d'isolation : target_id doit être un partenaire B2B de l'entreprise connectée
+    $check = $pdo->prepare("
+        SELECT 1 FROM Commande_B2B
+        WHERE (Id_Entreprise_Vendeuse = ? AND Id_Entreprise_Acheteuse = ?)
+           OR (Id_Entreprise_Vendeuse = ? AND Id_Entreprise_Acheteuse = ?)
+        LIMIT 1
+    ");
+    $check->execute([$entreprise_id, $target_id, $target_id, $entreprise_id]);
+    if (!$check->fetchColumn()) {
+        header('Location: clients.php');
+        exit();
+    }
+
     // Récupérer le nom de l'entreprise cliente
     $stmt = $pdo->prepare("SELECT Nom_Entreprise FROM Entreprise WHERE Id_Entreprise = ?");
     $stmt->execute([$target_id]);

@@ -4,6 +4,8 @@ require_once '../includes/auth.php';
 require_once '../config/db.php';
 require_once '../includes/b2b_helpers.php';
 
+requireRole(ROLE_PROPRIO);
+
 $page_title = "Annonces B2B";
 include '../includes/header.php';
 
