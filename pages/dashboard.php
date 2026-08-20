@@ -8,9 +8,140 @@ include '../includes/header.php';
 // Récupération des données entreprise (déjà dans la session via auth.php)
 $entreprise_id = $_SESSION['entreprise_id'];
 
-// ── Livreur → redirection directe vers logistique ──
+// ── Livreur → tableau de bord livraisons ──
 if (hasRole(ROLE_LIVREUR)) {
-    header('Location: logistique.php');
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM Logistique WHERE Id_Entreprise = ? AND Statut_Livraison IN ('traitement','en_attente')");
+    $stmt->execute([$entreprise_id]);
+    $a_expedier = (int) $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM Logistique WHERE Id_Entreprise = ? AND Statut_Livraison = 'expediee'");
+    $stmt->execute([$entreprise_id]);
+    $en_route = (int) $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM Logistique WHERE Id_Entreprise = ? AND Statut_Livraison = 'livree' AND DATE(Date_Livraison_Effectuee) = CURDATE()");
+    $stmt->execute([$entreprise_id]);
+    $livrees_jour = (int) $stmt->fetchColumn();
+
+    $stmt = $pdo->prepare("
+        SELECT l.Id_Logistique, l.Statut_Livraison, l.Date_Livraison_Prevue,
+               l.Transporteur, l.Numero_Suivi, l.Adresse_Livraison,
+               v.Nom_Client, v.Numero_Vente,
+               e.Nom_Entreprise AS Nom_Acheteur, c.Numero_Commande
+        FROM Logistique l
+        LEFT JOIN Vente v ON l.Id_Vente = v.Id_Vente
+        LEFT JOIN Commande_B2B c ON l.Id_Commande_B2B = c.Id_Commande_B2B
+        LEFT JOIN Entreprise e ON c.Id_Entreprise_Acheteuse = e.Id_Entreprise
+        WHERE l.Id_Entreprise = ? AND l.Statut_Livraison NOT IN ('livree','annulee')
+        ORDER BY (l.Date_Livraison_Prevue IS NULL) ASC, l.Date_Livraison_Prevue ASC, l.Id_Logistique ASC
+        LIMIT 12
+    ");
+    $stmt->execute([$entreprise_id]);
+    $livraisons_actives = $stmt->fetchAll();
+
+    $heure = date('H');
+    $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
+    ?>
+    <div class="container fade-in">
+        <div class="dashboard-header">
+            <div>
+                <h1><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?> !</h1>
+                <p style="color:var(--text-muted);">Tableau de bord livraisons — <?= date('d/m/Y') ?></p>
+            </div>
+            <span class="badge badge-warning" style="font-size:0.9rem; padding:8px 14px;">
+                <i class="fas fa-truck"></i> Livreur
+            </span>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid" style="grid-template-columns: repeat(3,1fr); margin-bottom:25px;">
+            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+                <div class="stat-icon text-primary"><i class="fas fa-box"></i></div>
+                <div class="stat-info">
+                    <h3>À expédier</h3>
+                    <div class="stat-value text-dark"><?= $a_expedier ?></div>
+                </div>
+            </div>
+            <div class="stat-card gradient-blue">
+                <div class="stat-icon"><i class="fas fa-truck"></i></div>
+                <div class="stat-info">
+                    <h3>En route</h3>
+                    <div class="stat-value"><?= $en_route ?></div>
+                </div>
+            </div>
+            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+                <div class="stat-icon text-success"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-info">
+                    <h3>Livrées aujourd'hui</h3>
+                    <div class="stat-value text-dark"><?= $livrees_jour ?></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Livraisons actives -->
+        <div class="card">
+            <div class="card-header-flex">
+                <h3><i class="fas fa-route text-primary"></i> Mes livraisons en cours</h3>
+                <a href="logistique.php" class="btn btn-secondary btn-sm"><i class="fas fa-list"></i> Tout voir</a>
+            </div>
+            <?php if ($livraisons_actives): ?>
+            <div class="scrollable-list">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Destinataire</th>
+                            <th>Référence</th>
+                            <th>Statut</th>
+                            <th>Livraison prévue</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($livraisons_actives as $l):
+                            $dest = $l['Id_Commande_B2B'] ?? null;
+                            $nom  = $dest ? ($l['Nom_Acheteur'] ?? '-') : ($l['Nom_Client'] ?? '-');
+                            $ref  = $dest ? ($l['Numero_Commande'] ?? '-') : ($l['Numero_Vente'] ?? '-');
+                            $retard = $l['Date_Livraison_Prevue'] && strtotime($l['Date_Livraison_Prevue']) < time();
+                        ?>
+                        <tr>
+                            <td><strong><?= htmlspecialchars($nom) ?></strong></td>
+                            <td><code><?= htmlspecialchars($ref) ?></code></td>
+                            <td>
+                                <?php if ($l['Statut_Livraison'] === 'expediee'): ?>
+                                    <span class="badge badge-info">En route</span>
+                                <?php else: ?>
+                                    <span class="badge badge-secondary"><?= ucfirst(str_replace('_',' ',$l['Statut_Livraison'])) ?></span>
+                                <?php endif; ?>
+                            </td>
+                            <td style="<?= $retard ? 'color:var(--danger);font-weight:600;' : '' ?>">
+                                <?= $l['Date_Livraison_Prevue'] ? date('d/m/Y', strtotime($l['Date_Livraison_Prevue'])) : '—' ?>
+                                <?= $retard ? ' ⚠' : '' ?>
+                            </td>
+                            <td>
+                                <?php if ($l['Statut_Livraison'] === 'expediee'): ?>
+                                    <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-success">
+                                        <i class="fas fa-check"></i> Confirmer livraison
+                                    </a>
+                                <?php else: ?>
+                                    <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-arrow-right"></i> Traiter
+                                    </a>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class="fas fa-check-double" style="color:var(--success);"></i>
+                    <p>Aucune livraison en cours. Bien joué !</p>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    </body></html>
+    <?php
     exit();
 }
 

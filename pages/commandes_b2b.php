@@ -282,11 +282,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 UPDATE Commande_B2B SET Statut = 'livree' WHERE Id_Commande_B2B = ?
             ")->execute([$id_commande]);
 
+            // La logistique appartient au vendeur (Id_Entreprise = vendeur)
             $pdo->prepare("
                 UPDATE Logistique
                 SET Statut_Livraison = 'livree', Date_Livraison_Effectuee = NOW()
                 WHERE Id_Commande_B2B = ? AND Id_Entreprise = ?
-            ")->execute([$id_commande, $mon_entreprise_id]);
+            ")->execute([$id_commande, $cmd['Id_Entreprise_Vendeuse']]);
 
             // Historique
             enregistrerHistoriqueCommande($pdo, $id_commande, 'expediee', 'livree', 'Réception confirmée par l\'acheteur', $mon_entreprise_id);

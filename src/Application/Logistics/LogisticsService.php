@@ -49,12 +49,15 @@ final class LogisticsService
                         throw new InvalidArgumentException('Cette commande doit être expédiée avant sa livraison.');
                     }
 
-                    if ($data['status'] !== $oldStatus && in_array($data['status'], ['expediee', 'livree'], true)) {
-                        $this->repository->updateCommandStatus($commandId, $data['status']);
-                        if ($data['status'] === 'livree') {
-                            $this->repository->markDelivered($commandId, $enterpriseId);
-                            $this->repository->incrementSellerScore((int) $command['Id_Entreprise_Vendeuse']);
-                        }
+                    // Synchronise le statut B2B pour l'expédition uniquement.
+                    // La transition vers 'livree' (confirmation finale) appartient à l'acheteur
+                    // via commandes_b2b.php action=livree.
+                    if ($data['status'] === 'expediee' && $oldStatus !== 'expediee') {
+                        $this->repository->updateCommandStatus($commandId, 'expediee');
+                    }
+
+                    // Retourner l'event pour toutes les transitions notifiables
+                    if ($data['status'] !== $oldStatus || $data['status'] === 'livree') {
                         $event = ['command' => $command, 'old_status' => $oldStatus, 'new_status' => $data['status']];
                     }
                 }
