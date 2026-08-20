@@ -41,108 +41,137 @@ if (hasRole(ROLE_LIVREUR)) {
     $heure = date('H');
     $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
     ?>
-    <div class="container fade-in">
-        <div class="dashboard-header">
-            <div>
-                <h1><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?> !</h1>
-                <p style="color:var(--text-muted);">Tableau de bord livraisons — <?= date('d/m/Y') ?></p>
-            </div>
-            <span class="badge badge-warning" style="font-size:0.9rem; padding:8px 14px;">
-                <i class="fas fa-truck"></i> Livreur
-            </span>
-        </div>
+<style>
+.livreur-delivery-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px; }
+.livreur-card { background:var(--bg-card); border:1px solid var(--zinc-200); border-radius:14px; padding:18px 20px; display:flex; flex-direction:column; gap:10px; transition:box-shadow .2s,transform .2s; }
+.livreur-card:hover { box-shadow:var(--shadow-md); transform:translateY(-2px); }
+.livreur-card.card-urgent { border-left:4px solid var(--danger); }
+.livreur-card.card-route  { border-left:4px solid var(--info);   }
+.livreur-card.card-wait   { border-left:4px solid var(--zinc-200); }
+.lc-top { display:flex; align-items:center; gap:12px; }
+.lc-avatar { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; }
+.lc-avatar.b2b    { background:rgba(0,70,255,.1); color:var(--primary); }
+.lc-avatar.retail { background:rgba(10,143,91,.1); color:var(--success); }
+.lc-name { flex:1; min-width:0; }
+.lc-name strong { display:block; font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lc-name span   { font-size:.75rem; color:var(--text-muted); font-family:monospace; }
+.lc-row { display:flex; align-items:center; gap:8px; font-size:.82rem; color:var(--text-muted); }
+.lc-row i { width:13px; text-align:center; }
+.lc-row.overdue { color:var(--danger); font-weight:600; }
+.pulse-dot { display:inline-block; width:7px; height:7px; background:var(--info); border-radius:50%; margin-right:5px; animation:lc-pulse 1.5s ease-in-out infinite; }
+@keyframes lc-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.75)} }
+</style>
 
-        <!-- Stats -->
-        <div class="stats-grid" style="grid-template-columns: repeat(3,1fr); margin-bottom:25px;">
-            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
-                <div class="stat-icon text-primary"><i class="fas fa-box"></i></div>
-                <div class="stat-info">
-                    <h3>À expédier</h3>
-                    <div class="stat-value text-dark"><?= $a_expedier ?></div>
-                </div>
-            </div>
-            <div class="stat-card gradient-blue">
-                <div class="stat-icon"><i class="fas fa-truck"></i></div>
-                <div class="stat-info">
-                    <h3>En route</h3>
-                    <div class="stat-value"><?= $en_route ?></div>
-                </div>
-            </div>
-            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
-                <div class="stat-icon text-success"><i class="fas fa-check-circle"></i></div>
-                <div class="stat-info">
-                    <h3>Livrées aujourd'hui</h3>
-                    <div class="stat-value text-dark"><?= $livrees_jour ?></div>
-                </div>
+<div class="container fade-in">
+    <div class="dashboard-header">
+        <div>
+            <h1><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?> !</h1>
+            <p style="color:var(--text-muted);">Tableau de bord livraisons — <?= date('d/m/Y') ?></p>
+        </div>
+        <span class="badge badge-warning" style="font-size:.85rem; padding:7px 16px; border-radius:20px;">
+            <i class="fas fa-truck"></i> Livreur
+        </span>
+    </div>
+
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:28px;">
+        <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+            <div class="stat-icon" style="color:var(--warning);"><i class="fas fa-box-open"></i></div>
+            <div class="stat-info">
+                <h3>À prendre en charge</h3>
+                <div class="stat-value" style="color:var(--text-main);"><?= $a_expedier ?></div>
             </div>
         </div>
-
-        <!-- Livraisons actives -->
-        <div class="card">
-            <div class="card-header-flex">
-                <h3><i class="fas fa-route text-primary"></i> Mes livraisons en cours</h3>
-                <a href="logistique.php" class="btn btn-secondary btn-sm"><i class="fas fa-list"></i> Tout voir</a>
+        <div class="stat-card gradient-blue">
+            <div class="stat-icon"><i class="fas fa-truck"></i></div>
+            <div class="stat-info">
+                <h3>En route</h3>
+                <div class="stat-value"><?= $en_route ?></div>
             </div>
-            <?php if ($livraisons_actives): ?>
-            <div class="scrollable-list">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Destinataire</th>
-                            <th>Référence</th>
-                            <th>Statut</th>
-                            <th>Livraison prévue</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($livraisons_actives as $l):
-                            $dest = $l['Id_Commande_B2B'] ?? null;
-                            $nom  = $dest ? ($l['Nom_Acheteur'] ?? '-') : ($l['Nom_Client'] ?? '-');
-                            $ref  = $dest ? ($l['Numero_Commande'] ?? '-') : ($l['Numero_Vente'] ?? '-');
-                            $retard = $l['Date_Livraison_Prevue'] && strtotime($l['Date_Livraison_Prevue']) < time();
-                        ?>
-                        <tr>
-                            <td><strong><?= htmlspecialchars($nom) ?></strong></td>
-                            <td><code><?= htmlspecialchars($ref) ?></code></td>
-                            <td>
-                                <?php if ($l['Statut_Livraison'] === 'expediee'): ?>
-                                    <span class="badge badge-info">En route</span>
-                                <?php else: ?>
-                                    <span class="badge badge-secondary"><?= ucfirst(str_replace('_',' ',$l['Statut_Livraison'])) ?></span>
-                                <?php endif; ?>
-                            </td>
-                            <td style="<?= $retard ? 'color:var(--danger);font-weight:600;' : '' ?>">
-                                <?= $l['Date_Livraison_Prevue'] ? date('d/m/Y', strtotime($l['Date_Livraison_Prevue'])) : '—' ?>
-                                <?= $retard ? ' ⚠' : '' ?>
-                            </td>
-                            <td>
-                                <?php if ($l['Statut_Livraison'] === 'expediee'): ?>
-                                    <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-success">
-                                        <i class="fas fa-check"></i> Confirmer livraison
-                                    </a>
-                                <?php else: ?>
-                                    <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-primary">
-                                        <i class="fas fa-arrow-right"></i> Traiter
-                                    </a>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+        </div>
+        <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+            <div class="stat-icon" style="color:var(--success);"><i class="fas fa-check-circle"></i></div>
+            <div class="stat-info">
+                <h3>Livrées aujourd'hui</h3>
+                <div class="stat-value" style="color:var(--text-main);"><?= $livrees_jour ?></div>
             </div>
-            <?php else: ?>
-                <div class="empty-state">
-                    <i class="fas fa-check-double" style="color:var(--success);"></i>
-                    <p>Aucune livraison en cours. Bien joué !</p>
-                </div>
-            <?php endif; ?>
         </div>
     </div>
-    </body></html>
-    <?php
-    exit();
+
+    <div class="card">
+        <div class="card-header-flex">
+            <h3 style="margin:0;"><i class="fas fa-route" style="color:var(--primary);margin-right:8px;"></i> Mes livraisons en cours</h3>
+            <a href="logistique.php" class="btn btn-secondary btn-sm"><i class="fas fa-list"></i> Tout voir</a>
+        </div>
+
+        <?php if ($livraisons_actives): ?>
+        <div class="livreur-delivery-grid" style="padding:4px 0 8px;">
+            <?php foreach ($livraisons_actives as $l):
+                $is_b2b   = !empty($l['Id_Commande_B2B']);
+                $nom      = $is_b2b ? ($l['Nom_Acheteur'] ?? '-') : ($l['Nom_Client'] ?? '-');
+                $ref      = $is_b2b ? ($l['Numero_Commande'] ?? '-') : ($l['Numero_Vente'] ?? '-');
+                $is_route = $l['Statut_Livraison'] === 'expediee';
+                $retard   = $l['Date_Livraison_Prevue'] && strtotime($l['Date_Livraison_Prevue']) < time();
+                $cls      = $retard ? 'card-urgent' : ($is_route ? 'card-route' : 'card-wait');
+            ?>
+            <div class="livreur-card <?= $cls ?>">
+                <div class="lc-top">
+                    <div class="lc-avatar <?= $is_b2b ? 'b2b' : 'retail' ?>">
+                        <i class="fas fa-<?= $is_b2b ? 'building' : 'user' ?>"></i>
+                    </div>
+                    <div class="lc-name">
+                        <strong><?= htmlspecialchars($nom) ?></strong>
+                        <span><?= htmlspecialchars($ref) ?></span>
+                    </div>
+                    <?php if ($is_route): ?>
+                        <span class="badge badge-info" style="font-size:.72rem; white-space:nowrap; padding:4px 8px;">
+                            <span class="pulse-dot"></span>En route
+                        </span>
+                    <?php else: ?>
+                        <span class="badge badge-secondary" style="font-size:.72rem; padding:4px 8px;">
+                            <?= ucfirst(str_replace('_',' ',$l['Statut_Livraison'])) ?>
+                        </span>
+                    <?php endif; ?>
+                </div>
+
+                <?php if (!empty($l['Adresse_Livraison'])): ?>
+                <div class="lc-row">
+                    <i class="fas fa-map-marker-alt" style="color:var(--danger);"></i>
+                    <?= htmlspecialchars(mb_strimwidth($l['Adresse_Livraison'], 0, 52, '…')) ?>
+                </div>
+                <?php endif; ?>
+
+                <div class="lc-row <?= $retard ? 'overdue' : '' ?>">
+                    <i class="fas fa-<?= $retard ? 'exclamation-triangle' : 'calendar-alt' ?>"></i>
+                    <?php if ($l['Date_Livraison_Prevue']): ?>
+                        <?= $retard ? 'En retard — prévu le ' : 'Prévu le ' ?><?= date('d/m/Y', strtotime($l['Date_Livraison_Prevue'])) ?>
+                    <?php else: ?>
+                        Pas de date prévue
+                    <?php endif; ?>
+                </div>
+
+                <?php if ($is_route): ?>
+                    <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-success" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:2px;">
+                        <i class="fas fa-check-circle"></i> Confirmer la livraison
+                    </a>
+                <?php else: ?>
+                    <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-primary" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:2px;">
+                        <i class="fas fa-shipping-fast"></i> Traiter cette livraison
+                    </a>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php else: ?>
+            <div class="empty-state">
+                <i class="fas fa-check-double" style="font-size:3rem;color:var(--success);margin-bottom:14px;display:block;"></i>
+                <p style="color:var(--text-muted);">Aucune livraison en cours. Bien joué !</p>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+</body></html>
+<?php
+exit();
 }
 
 // ── Admin plateforme → tableau de bord plateforme uniquement ──
@@ -165,94 +194,93 @@ if (isAppAdmin()) {
     $heure = date('H');
     $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
     ?>
-    <div class="container fade-in">
-        <div class="dashboard-header">
-            <div>
-                <h1><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?> !</h1>
-                <p style="color:var(--text-muted);">Vue administrateur plateforme — accès en lecture seule sur les données globales.</p>
-            </div>
-            <span class="badge badge-danger" style="font-size:0.9rem; padding:8px 14px;">
-                <i class="fas fa-shield-alt"></i> Admin Plateforme
-            </span>
-        </div>
+<style>
+.company-row { display:flex; align-items:center; gap:14px; padding:13px 24px; border-bottom:1px solid var(--zinc-100); transition:background .15s; }
+.company-row:hover { background:var(--zinc-50); }
+.company-row:last-child { border-bottom:none; }
+.company-avatar { width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,var(--primary),#4f7bff); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.85rem; flex-shrink:0; letter-spacing:-.5px; }
+.company-meta-name { flex:1; min-width:0; }
+.company-meta-name strong { display:block; font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.company-meta-name small { color:var(--text-muted); font-size:.78rem; }
+.company-badge-members { display:flex; align-items:center; gap:5px; background:var(--zinc-100); border-radius:20px; padding:4px 10px; font-size:.8rem; font-weight:600; color:var(--text-muted); white-space:nowrap; }
+</style>
 
-        <!-- Stats globales -->
-        <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
-            <div class="stat-card gradient-blue">
-                <div class="stat-icon"><i class="fas fa-building"></i></div>
-                <div class="stat-info">
-                    <h3>Entreprises</h3>
-                    <div class="stat-value"><?= $nb_entreprises ?></div>
-                </div>
-            </div>
-            <div class="stat-card gradient-orange">
-                <div class="stat-icon"><i class="fas fa-users"></i></div>
-                <div class="stat-info">
-                    <h3>Utilisateurs</h3>
-                    <div class="stat-value"><?= $nb_utilisateurs ?></div>
-                </div>
-            </div>
-            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
-                <div class="stat-icon text-success"><i class="fas fa-receipt"></i></div>
-                <div class="stat-info">
-                    <h3>Ventes totales</h3>
-                    <div class="stat-value text-dark"><?= number_format($nb_ventes_total, 0, ',', ' ') ?></div>
-                </div>
-            </div>
-            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
-                <div class="stat-icon text-primary"><i class="fas fa-wallet"></i></div>
-                <div class="stat-info">
-                    <h3>CA Plateforme</h3>
-                    <div class="stat-value text-dark"><?= number_format($ca_total_plateforme, 0, ',', ' ') ?> <small>F</small></div>
-                </div>
+<div class="container fade-in">
+    <div class="dashboard-header" style="align-items:flex-start;">
+        <div>
+            <h1><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?> !</h1>
+            <p style="color:var(--text-muted); margin-top:4px; font-size:.9rem;">
+                <i class="fas fa-lock" style="margin-right:5px;opacity:.6;"></i>
+                Accès lecture seule — données agrégées de la plateforme.
+            </p>
+        </div>
+        <span class="badge badge-danger" style="font-size:.85rem; padding:7px 16px; border-radius:20px; white-space:nowrap;">
+            <i class="fas fa-shield-alt"></i> Admin Plateforme
+        </span>
+    </div>
+
+    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr); margin-bottom:28px;">
+        <div class="stat-card gradient-blue">
+            <div class="stat-icon"><i class="fas fa-building"></i></div>
+            <div class="stat-info">
+                <h3>Entreprises</h3>
+                <div class="stat-value"><?= $nb_entreprises ?></div>
             </div>
         </div>
-
-        <!-- Liste des entreprises -->
-        <div class="card">
-            <div class="card-header-flex">
-                <h3><i class="fas fa-building text-primary"></i> Entreprises enregistrées</h3>
-                <span style="color:var(--text-muted); font-size:0.85rem;"><?= $nb_entreprises ?> au total</span>
+        <div class="stat-card gradient-orange">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-info">
+                <h3>Utilisateurs</h3>
+                <div class="stat-value"><?= $nb_utilisateurs ?></div>
             </div>
-            <?php if ($entreprises_recentes): ?>
-                <div class="scrollable-list">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Entreprise</th>
-                                <th>Membres</th>
-                                <th>Inscription</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($entreprises_recentes as $e): ?>
-                                <tr>
-                                    <td><strong><?= htmlspecialchars($e['Nom_Entreprise']) ?></strong></td>
-                                    <td><?= (int)$e['nb_membres'] ?></td>
-                                    <td style="color:var(--text-muted); font-size:0.85rem;">
-                                        <?= $e['Date_Creation'] ? date('d/m/Y', strtotime($e['Date_Creation'])) : '—' ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php else: ?>
-                <div class="empty-state">
-                    <i class="fas fa-building"></i>
-                    <p>Aucune entreprise enregistrée.</p>
-                </div>
-            <?php endif; ?>
         </div>
-
-        <div class="alert alert-info" style="margin-top:20px;">
-            <i class="fas fa-info-circle"></i>
-            En tant qu'administrateur plateforme, vous n'avez pas accès aux données internes des entreprises (stocks, ventes, B2B, équipe).
+        <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+            <div class="stat-icon" style="color:var(--success);"><i class="fas fa-receipt"></i></div>
+            <div class="stat-info">
+                <h3>Ventes totales</h3>
+                <div class="stat-value" style="color:var(--text-main);"><?= number_format($nb_ventes_total, 0, ',', ' ') ?></div>
+            </div>
+        </div>
+        <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+            <div class="stat-icon" style="color:var(--primary);"><i class="fas fa-wallet"></i></div>
+            <div class="stat-info">
+                <h3>CA Plateforme</h3>
+                <div class="stat-value" style="color:var(--text-main);"><?= number_format($ca_total_plateforme, 0, ',', ' ') ?> <small style="font-size:.45em;font-weight:500;">FCFA</small></div>
+            </div>
         </div>
     </div>
-    </body></html>
-    <?php
-    exit();
+
+    <div class="card">
+        <div class="card-header-flex" style="padding-bottom:12px;">
+            <h3 style="margin:0;"><i class="fas fa-building" style="color:var(--primary);margin-right:8px;"></i> Entreprises enregistrées</h3>
+            <span style="font-size:.8rem; background:var(--zinc-100); color:var(--text-muted); padding:4px 12px; border-radius:20px;"><?= $nb_entreprises ?> au total</span>
+        </div>
+        <?php if ($entreprises_recentes): ?>
+            <?php foreach ($entreprises_recentes as $e):
+                $initials = mb_strtoupper(mb_substr($e['Nom_Entreprise'], 0, 2));
+            ?>
+            <div class="company-row">
+                <div class="company-avatar"><?= htmlspecialchars($initials) ?></div>
+                <div class="company-meta-name">
+                    <strong><?= htmlspecialchars($e['Nom_Entreprise']) ?></strong>
+                    <small>Inscrite le <?= $e['Date_Creation'] ? date('d/m/Y', strtotime($e['Date_Creation'])) : '—' ?></small>
+                </div>
+                <div class="company-badge-members">
+                    <i class="fas fa-user" style="font-size:.7rem;"></i> <?= (int)$e['nb_membres'] ?>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="empty-state">
+                <i class="fas fa-building" style="font-size:3rem;color:var(--text-muted);display:block;margin-bottom:14px;"></i>
+                <p style="color:var(--text-muted);">Aucune entreprise enregistrée.</p>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+</body></html>
+<?php
+exit();
 }
 
 // ── Vendeur → tableau de bord simplifié ──
@@ -280,99 +308,104 @@ if (hasRole(ROLE_VENDEUR)) {
     $heure = date('H');
     $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
     ?>
-    <div class="container fade-in">
-        <div class="dashboard-header">
-            <div>
-                <h1><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?> !</h1>
-                <p style="color:var(--text-muted);">Votre tableau de bord vendeur — <?= date('d/m/Y') ?></p>
-            </div>
-            <span class="badge badge-success" style="font-size:0.9rem; padding:8px 14px;">
-                <i class="fas fa-cash-register"></i> Vendeur
-            </span>
-        </div>
+<style>
+.vendeur-cta { display:flex; align-items:center; gap:18px; background:linear-gradient(135deg,#10b981,#059669); color:#fff; border-radius:16px; padding:22px 28px; text-decoration:none; margin-bottom:28px; box-shadow:0 8px 20px -4px rgba(16,185,129,.35); transition:transform .2s,box-shadow .2s; }
+.vendeur-cta:hover { transform:translateY(-3px); box-shadow:0 14px 28px -6px rgba(16,185,129,.45); color:#fff; }
+.vendeur-cta-icon { font-size:2rem; flex-shrink:0; }
+.vendeur-cta-label { font-size:1.15rem; font-weight:700; letter-spacing:.5px; }
+.vendeur-cta-sub { font-size:.82rem; opacity:.82; margin-top:2px; }
+</style>
 
-        <!-- Stats du jour -->
-        <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 25px;">
-            <div class="stat-card gradient-blue">
-                <div class="stat-icon"><i class="fas fa-receipt"></i></div>
-                <div class="stat-info">
-                    <h3>Ventes aujourd'hui</h3>
-                    <div class="stat-value"><?= $ventes_jour ?></div>
-                </div>
-            </div>
-            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
-                <div class="stat-icon text-success"><i class="fas fa-wallet"></i></div>
-                <div class="stat-info">
-                    <h3>CA du jour</h3>
-                    <div class="stat-value text-dark"><?= number_format($ca_jour, 0, ',', ' ') ?> <small style="font-size:0.6em;">F</small></div>
-                </div>
-            </div>
-            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
-                <div class="stat-icon text-purple"><i class="fas fa-users"></i></div>
-                <div class="stat-info">
-                    <h3>Clients servis</h3>
-                    <div class="stat-value text-dark"><?= $nb_clients ?></div>
-                </div>
+<div class="container fade-in">
+    <div class="dashboard-header">
+        <div>
+            <h1><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?> !</h1>
+            <p style="color:var(--text-muted);">Votre tableau de bord vendeur — <?= date('d/m/Y') ?></p>
+        </div>
+        <span class="badge badge-success" style="font-size:.85rem; padding:7px 16px; border-radius:20px;">
+            <i class="fas fa-cash-register"></i> Vendeur
+        </span>
+    </div>
+
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:24px;">
+        <div class="stat-card gradient-blue">
+            <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+            <div class="stat-info">
+                <h3>Ventes aujourd'hui</h3>
+                <div class="stat-value"><?= $ventes_jour ?></div>
             </div>
         </div>
-
-        <!-- Action principale -->
-        <div style="margin-bottom: 25px;">
-            <a href="invoice_add.php" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border-radius: 16px; padding: 28px 36px; text-decoration: none; display: inline-flex; align-items: center; gap: 16px; box-shadow: 0 10px 15px -3px rgba(16,185,129,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'">
-                <i class="fas fa-cash-register" style="font-size: 2rem;"></i>
-                <div>
-                    <div style="font-size: 1.2rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Nouvelle Vente</div>
-                    <div style="font-size: 0.85rem; opacity: 0.85; margin-top: 2px;">Créer une nouvelle facture</div>
-                </div>
-            </a>
-        </div>
-
-        <!-- Ventes récentes -->
-        <div class="card">
-            <div class="card-header-flex">
-                <h3><i class="fas fa-receipt text-primary"></i> Ventes récentes</h3>
-                <a href="sales.php" class="btn-link">Tout voir</a>
+        <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+            <div class="stat-icon" style="color:var(--success);"><i class="fas fa-wallet"></i></div>
+            <div class="stat-info">
+                <h3>CA du jour</h3>
+                <div class="stat-value" style="color:var(--text-main);"><?= number_format($ca_jour, 0, ',', ' ') ?> <small style="font-size:.5em;font-weight:500;">FCFA</small></div>
             </div>
-            <?php if ($ventes_recentes): ?>
-                <div class="scrollable-list">
-                    <table class="table table-hover">
-                        <thead>
+        </div>
+        <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+            <div class="stat-icon" style="color:#8b5cf6;"><i class="fas fa-users"></i></div>
+            <div class="stat-info">
+                <h3>Clients servis</h3>
+                <div class="stat-value" style="color:var(--text-main);"><?= $nb_clients ?></div>
+            </div>
+        </div>
+    </div>
+
+    <a href="invoice_add.php" class="vendeur-cta">
+        <i class="fas fa-cash-register vendeur-cta-icon"></i>
+        <div>
+            <div class="vendeur-cta-label">Nouvelle Vente</div>
+            <div class="vendeur-cta-sub">Créer une facture maintenant</div>
+        </div>
+        <i class="fas fa-arrow-right" style="margin-left:auto; opacity:.7; font-size:1.2rem;"></i>
+    </a>
+
+    <div class="card">
+        <div class="card-header-flex">
+            <h3 style="margin:0;"><i class="fas fa-receipt" style="color:var(--primary);margin-right:8px;"></i> Ventes récentes</h3>
+            <a href="sales.php" class="btn-link">Tout voir</a>
+        </div>
+        <?php if ($ventes_recentes): ?>
+            <div class="scrollable-list">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Référence</th>
+                            <th>Date</th>
+                            <th class="text-right">Montant</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($ventes_recentes as $v): ?>
                             <tr>
-                                <th>Client</th>
-                                <th>Référence</th>
-                                <th>Date</th>
-                                <th class="text-right">Montant</th>
-                                <th></th>
+                                <td><strong><?= htmlspecialchars($v['Nom_Client']) ?></strong></td>
+                                <td style="color:var(--text-muted); font-size:.83rem;"><?= htmlspecialchars($v['Numero_Vente']) ?></td>
+                                <td style="color:var(--text-muted); font-size:.83rem;"><?= date('d/m/Y H:i', strtotime($v['Date_Vente'])) ?></td>
+                                <td class="text-right font-weight-bold text-success"><?= number_format($v['Montant_Total'], 0, ',', ' ') ?> F</td>
+                                <td>
+                                    <a href="invoice_view.php?ref=<?= urlencode($v['Numero_Vente']) ?>" target="_blank" class="btn btn-sm btn-secondary" title="Voir facture">
+                                        <i class="fas fa-file-invoice"></i>
+                                    </a>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($ventes_recentes as $v): ?>
-                                <tr>
-                                    <td><strong><?= htmlspecialchars($v['Nom_Client']) ?></strong></td>
-                                    <td style="color:var(--text-muted); font-size:0.85rem;"><?= htmlspecialchars($v['Numero_Vente']) ?></td>
-                                    <td style="color:var(--text-muted); font-size:0.85rem;"><?= date('d/m/Y H:i', strtotime($v['Date_Vente'])) ?></td>
-                                    <td class="text-right font-weight-bold text-success"><?= number_format($v['Montant_Total'], 0, ',', ' ') ?> F</td>
-                                    <td>
-                                        <a href="invoice_view.php?ref=<?= urlencode($v['Numero_Vente']) ?>" target="_blank" class="btn btn-sm btn-secondary" title="Voir facture">
-                                            <i class="fas fa-file-invoice"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
+                        <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
-            <?php else: ?>
-                <div class="empty-state">
-                    <i class="fas fa-receipt"></i>
-                    <p>Aucune vente enregistrée.</p>
-                </div>
-            <?php endif; ?>
-        </div>
+        <?php else: ?>
+            <div class="empty-state">
+                <i class="fas fa-receipt" style="font-size:3rem;color:var(--text-muted);display:block;margin-bottom:14px;"></i>
+                <p style="color:var(--text-muted);">Aucune vente enregistrée.</p>
+                <a href="invoice_add.php" class="btn btn-primary btn-sm" style="margin-top:8px;"><i class="fas fa-plus"></i> Créer une vente</a>
+            </div>
+        <?php endif; ?>
     </div>
-    </body></html>
-    <?php
-    exit();
+</div>
+</body></html>
+<?php
+exit();
 }
 
 // 1. Chiffre d'Affaires (Ventes + B2B Vendu)

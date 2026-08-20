@@ -117,11 +117,34 @@ if ($recherche !== '' || $statut_filtre !== '') {
                             <td><?= htmlspecialchars($l['Transporteur'] ?? '-') ?></td>
                             <td><code><?= htmlspecialchars($l['Numero_Suivi'] ?? '-') ?></code></td>
                             <td>
-                                <span class="badge badge-<?= $l['Statut_Livraison'] === 'livree' ? 'success' : ($l['Statut_Livraison'] === 'expediee' ? 'info' : 'secondary') ?>">
-                                    <?= strtoupper(str_replace('_', ' ', $l['Statut_Livraison'])) ?>
-                                </span>
+                                <?php
+                                    $sbadge = match($l['Statut_Livraison']) {
+                                        'livree'     => 'success',
+                                        'expediee'   => 'info',
+                                        'en_attente' => 'warning',
+                                        'traitement' => 'warning',
+                                        'annulee'    => 'danger',
+                                        default      => 'secondary',
+                                    };
+                                    $slabel = match($l['Statut_Livraison']) {
+                                        'livree'     => 'Livrée',
+                                        'expediee'   => 'En route',
+                                        'en_attente' => 'En attente',
+                                        'traitement' => 'En préparation',
+                                        'annulee'    => 'Annulée',
+                                        default      => ucfirst($l['Statut_Livraison']),
+                                    };
+                                ?>
+                                <span class="badge badge-<?= $sbadge ?>"><?= $slabel ?></span>
                             </td>
-                            <td><?= $l['Date_Livraison_Prevue'] ? date('d/m/Y', strtotime($l['Date_Livraison_Prevue'])) : '-' ?></td>
+                            <?php
+                                $dp = $l['Date_Livraison_Prevue'];
+                                $retard = $dp && strtotime($dp) < time() && $l['Statut_Livraison'] !== 'livree';
+                            ?>
+                            <td style="<?= $retard ? 'color:var(--danger);font-weight:600;' : '' ?>">
+                                <?= $dp ? date('d/m/Y', strtotime($dp)) : '—' ?>
+                                <?= $retard ? ' <i class="fas fa-exclamation-triangle" title="En retard"></i>' : '' ?>
+                            </td>
                             <td>
                                 <?php if (hasRole(ROLE_LIVREUR) && $l['Statut_Livraison'] === 'expediee'): ?>
                                     <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-success" title="Confirmer la livraison">
