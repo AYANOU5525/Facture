@@ -20,28 +20,55 @@ $stmt->execute([$_SESSION['user_id']]);
 $entreprise_id = $stmt->fetchColumn();
 
 $success = '';
-$error = '';
+$error   = '';
+$success_pwd = '';
+$error_pwd   = '';
+
+// Récupérer le hash actuel pour vérification
+$stmt_hash = $pdo->prepare("SELECT Mot_De_Passe_Utilisateur FROM Utilisateur WHERE Id_Utilisateur = ?");
+$stmt_hash->execute([$_SESSION['user_id']]);
+$current_hash = $stmt_hash->fetchColumn();
 
 // === TRAITEMENT DU FORMULAIRE ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
-    $nom = $_POST['nom'];
-    $adresse = $_POST['adresse'];
-    $tel = $_POST['tel'];
-    $email = $_POST['email'];
-    $nif = $_POST['nif'];
-    $intro = $_POST['description'];
 
-    // Nouveaux champs GPS
-    $ville = $_POST['ville'] ?? null;
-    $region = $_POST['region'] ?? null;
-    $lat = !empty($_POST['latitude']) ? floatval($_POST['latitude']) : null;
-    $lon = !empty($_POST['longitude']) ? floatval($_POST['longitude']) : null;
+    if (isset($_POST['action']) && $_POST['action'] === 'change_password') {
+        // === CHANGEMENT DE MOT DE PASSE ===
+        $old_password     = $_POST['old_password'] ?? '';
+        $new_password     = $_POST['new_password'] ?? '';
+        $confirm_password = $_POST['confirm_password'] ?? '';
+
+        if (!password_verify($old_password, $current_hash)) {
+            $error_pwd = "Mot de passe actuel incorrect.";
+        } elseif (strlen($new_password) < 8) {
+            $error_pwd = "Le nouveau mot de passe doit contenir au moins 8 caractères.";
+        } elseif ($new_password !== $confirm_password) {
+            $error_pwd = "Les nouveaux mots de passe ne correspondent pas.";
+        } else {
+            $new_hash = password_hash($new_password, PASSWORD_DEFAULT);
+            $pdo->prepare("UPDATE Utilisateur SET Mot_De_Passe_Utilisateur = ? WHERE Id_Utilisateur = ?")
+                ->execute([$new_hash, $_SESSION['user_id']]);
+            $current_hash  = $new_hash;
+            $success_pwd   = "Mot de passe modifié avec succès !";
+        }
+    } else {
+        // === MISE À JOUR ENTREPRISE ===
+        $nom    = $_POST['nom']    ?? '';
+        $adresse = $_POST['adresse'] ?? '';
+        $tel    = $_POST['tel']    ?? '';
+        $email  = $_POST['email']  ?? '';
+        $nif    = $_POST['nif']    ?? '';
+        $intro  = $_POST['description'] ?? '';
+        $ville  = $_POST['ville']  ?? null;
+        $region = $_POST['region'] ?? null;
+        $lat    = !empty($_POST['latitude'])  ? floatval($_POST['latitude'])  : null;
+        $lon    = !empty($_POST['longitude']) ? floatval($_POST['longitude']) : null;
 
     try {
         $stmt = $pdo->prepare("
-            UPDATE Entreprise 
-            SET Nom_Entreprise = ?, Adresse_Entreprise = ?, Tel_Entreprise = ?, 
+            UPDATE Entreprise
+            SET Nom_Entreprise = ?, Adresse_Entreprise = ?, Tel_Entreprise = ?,
                 Email_Entreprise = ?, NIF_Entreprise = ?, Description_Entreprise = ?,
                 Ville = ?, Region = ?, Latitude = ?, Longitude = ?
             WHERE Id_Entreprise = ?
@@ -50,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $success = "Informations mises à jour avec succès !";
     } catch (PDOException $e) {
         $error = "Erreur : " . $e->getMessage();
+    }
     }
 }
 
@@ -66,10 +94,10 @@ $ent = $stmt->fetch();
     </div>
 
     <?php if ($success): ?>
-        <div class="alert alert-success"><i class="fas fa-check"></i> <?= $success ?></div>
+        <div class="alert alert-success"><i class="fas fa-check"></i> <?= htmlspecialchars($success) ?></div>
     <?php endif; ?>
     <?php if ($error): ?>
-        <div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> <?= $error ?></div>
+        <div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> <?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
 
     <div class="card" style="max-width: 800px; margin: 0 auto;">
@@ -159,7 +187,130 @@ $ent = $stmt->fetch();
             </button>
         </form>
     </div>
+
+    <!-- SECTION CHANGEMENT DE MOT DE PASSE -->
+    <div class="card" style="max-width:800px; margin:30px auto 0;">
+        <h3 style="margin-bottom:20px;"><i class="fas fa-shield-alt"></i> Sécurité — Changer mon mot de passe</h3>
+
+        <?php if ($success_pwd): ?>
+            <div class="alert alert-success"><i class="fas fa-check"></i> <?= htmlspecialchars($success_pwd) ?></div>
+        <?php endif; ?>
+        <?php if ($error_pwd): ?>
+            <div class="alert alert-danger"><i class="fas fa-exclamation-triangle"></i> <?= htmlspecialchars($error_pwd) ?></div>
+        <?php endif; ?>
+
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+            <input type="hidden" name="action" value="change_password">
+
+            <div class="form-group">
+                <label>Mot de passe actuel</label>
+                <div class="password-wrapper">
+                    <input type="password" id="old_password" name="old_password" class="form-control"
+                           placeholder="Votre mot de passe actuel" required>
+                    <button type="button" class="password-toggle" onclick="togglePwd('old_password', this)">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Nouveau mot de passe</label>
+                <div class="password-wrapper">
+                    <input type="password" id="new_password" name="new_password" class="form-control"
+                           placeholder="Minimum 8 caractères" required
+                           oninput="checkPwdStrength(this.value); checkPwdMatch()">
+                    <button type="button" class="password-toggle" onclick="togglePwd('new_password', this)">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <div style="margin-top:6px;">
+                    <div style="height:5px; border-radius:3px; background:#e9ecef;">
+                        <div id="pwd-strength-fill" style="height:100%; width:0%; border-radius:3px; transition:all .3s;"></div>
+                    </div>
+                    <small id="pwd-strength-label" style="color:#999;"></small>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Confirmer le nouveau mot de passe</label>
+                <div class="password-wrapper">
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-control"
+                           placeholder="Répétez le nouveau mot de passe" required
+                           oninput="checkPwdMatch()">
+                    <button type="button" class="password-toggle" onclick="togglePwd('confirm_password', this)">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <small id="pwd-match-label" style="display:block; margin-top:4px;"></small>
+            </div>
+
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-lock"></i> Changer le mot de passe
+            </button>
+        </form>
+    </div>
 </div>
+
+<style>
+.password-wrapper { position:relative; display:flex; align-items:center; }
+.password-wrapper .form-control { padding-right:46px; }
+.password-toggle {
+    position:absolute; right:12px; background:none; border:none;
+    cursor:pointer; color:var(--text-muted); font-size:1rem; padding:0; transition:color .2s;
+}
+.password-toggle:hover { color:var(--primary); }
+</style>
+
+<script>
+function togglePwd(id, btn) {
+    const input = document.getElementById(id);
+    const icon  = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+
+function checkPwdStrength(val) {
+    const fill  = document.getElementById('pwd-strength-fill');
+    const label = document.getElementById('pwd-strength-label');
+    let score = 0;
+    if (val.length >= 8)           score++;
+    if (/[A-Z]/.test(val))         score++;
+    if (/[0-9]/.test(val))         score++;
+    if (/[^A-Za-z0-9]/.test(val))  score++;
+    const levels = [
+        { pct:'0%',   color:'#e9ecef', text:'' },
+        { pct:'25%',  color:'#dc3545', text:'Très faible' },
+        { pct:'50%',  color:'#fd7e14', text:'Faible' },
+        { pct:'75%',  color:'#ffc107', text:'Moyen' },
+        { pct:'100%', color:'#28a745', text:'Fort' },
+    ];
+    const l = levels[score];
+    fill.style.width      = l.pct;
+    fill.style.background = l.color;
+    label.textContent     = l.text;
+    label.style.color     = l.color;
+}
+
+function checkPwdMatch() {
+    const p1    = document.getElementById('new_password').value;
+    const p2    = document.getElementById('confirm_password').value;
+    const label = document.getElementById('pwd-match-label');
+    if (!p2) { label.textContent = ''; return; }
+    if (p1 === p2) {
+        label.textContent = '✔ Les mots de passe correspondent';
+        label.style.color = '#28a745';
+    } else {
+        label.textContent = '✖ Les mots de passe ne correspondent pas';
+        label.style.color = '#dc3545';
+    }
+}
+</script>
 
 <script>
 let map, marker;

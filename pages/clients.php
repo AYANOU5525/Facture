@@ -5,24 +5,32 @@ require_once '../config/db.php';
 $page_title = 'Clients Uniques';
 include '../includes/header.php';
 
-$stmt = $pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");
-$stmt->execute([$_SESSION['user_id']]);
-$entreprise_id = $stmt->fetchColumn();
+$entreprise_id = $_SESSION['entreprise_id'];
+
+// Pagination des clients directs
+$per_page    = 20;
+$page_direct = max(1, (int) ($_GET['page'] ?? 1));
+$offset_d    = ($page_direct - 1) * $per_page;
+
+$stmt = $pdo->prepare("SELECT COUNT(DISTINCT Nom_Client) FROM Vente WHERE Id_Entreprise = ?");
+$stmt->execute([$entreprise_id]);
+$total_directs   = (int) $stmt->fetchColumn();
+$pages_directs   = (int) ceil($total_directs / $per_page);
 
 // 1. Récupérer les clients comptoirs (Vente)
-// Group by Nom_Client to get unique clients and their stats
 $stmt = $pdo->prepare("
-    SELECT 
-        Nom_Client, 
-        COUNT(*) as Nb_Commandes, 
-        SUM(Montant_Total) as Total_Depense, 
-        MAX(Date_Vente) as Derniere_Commande 
-    FROM Vente 
-    WHERE Id_Entreprise = ? 
-    GROUP BY Nom_Client 
+    SELECT
+        Nom_Client,
+        COUNT(*) as Nb_Commandes,
+        SUM(Montant_Total) as Total_Depense,
+        MAX(Date_Vente) as Derniere_Commande
+    FROM Vente
+    WHERE Id_Entreprise = ?
+    GROUP BY Nom_Client
     ORDER BY Total_Depense DESC
+    LIMIT ? OFFSET ?
 ");
-$stmt->execute([$entreprise_id]);
+$stmt->execute([$entreprise_id, $per_page, $offset_d]);
 $clients_directs = $stmt->fetchAll();
 
 // 2. Récupérer les clients B2B (Entreprises acheteuses)
@@ -86,7 +94,7 @@ $clients_b2b = $stmt->fetchAll();
                                     <?= number_format($c['Total_Depense'], 0, ',', ' ') ?> F
                                 </td>
                                 <td class="text-right text-muted">
-                                    <?= date('d/m/Y', strtotime($c['Derniere_Commande'])) ?>
+                                    <?= !empty($c['Derniere_Commande']) ? date('d/m/Y', strtotime($c['Derniere_Commande'])) : '-' ?>
                                 </td>
                                 <td class="text-center">
                                     <a href="client_history.php?type=b2b&id=<?= $c['Id_Entreprise'] ?? 0 ?>" 
@@ -139,7 +147,7 @@ $clients_b2b = $stmt->fetchAll();
                                     <?= number_format($c['Total_Depense'], 0, ',', ' ') ?> F
                                 </td>
                                 <td class="text-right text-muted">
-                                    <?= date('d/m/Y', strtotime($c['Derniere_Commande'])) ?>
+                                    <?= !empty($c['Derniere_Commande']) ? date('d/m/Y', strtotime($c['Derniere_Commande'])) : '-' ?>
                                 </td>
                                 <td class="text-center">
                                     <a href="client_history.php?type=direct&name=<?= urlencode($c['Nom_Client'] ?? '') ?>" 
@@ -155,6 +163,31 @@ $clients_b2b = $stmt->fetchAll();
             </div>
         <?php else: ?>
             <p class="text-muted">Aucun client direct enregistré.</p>
+        <?php endif; ?>
+
+        <?php if ($pages_directs > 1): ?>
+        <nav class="pagination">
+            <?php if ($page_direct > 1): ?>
+                <a href="?page=<?= $page_direct - 1 ?>"><i class="fas fa-chevron-left"></i></a>
+            <?php else: ?>
+                <span class="disabled"><i class="fas fa-chevron-left"></i></span>
+            <?php endif; ?>
+            <?php for ($p = 1; $p <= $pages_directs; $p++): ?>
+                <?php if ($p === $page_direct): ?>
+                    <span class="active"><?= $p ?></span>
+                <?php else: ?>
+                    <a href="?page=<?= $p ?>"><?= $p ?></a>
+                <?php endif; ?>
+            <?php endfor; ?>
+            <?php if ($page_direct < $pages_directs): ?>
+                <a href="?page=<?= $page_direct + 1 ?>"><i class="fas fa-chevron-right"></i></a>
+            <?php else: ?>
+                <span class="disabled"><i class="fas fa-chevron-right"></i></span>
+            <?php endif; ?>
+        </nav>
+        <p style="text-align:center; color:var(--text-muted); font-size:0.875rem; margin-top:8px;">
+            <?= $total_directs ?> clients directs au total
+        </p>
         <?php endif; ?>
     </div>
 </div>

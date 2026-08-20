@@ -37,7 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $pdo->commit();
 
-            $success = 'Compte créé avec succès ! Vous pouvez vous connecter.';
+            $success = 'Compte créé avec succès ! Redirection vers la connexion...';
+            header('Refresh: 2; url=login.php');
         } catch (PDOException $e) {
             $pdo->rollBack();
             if ($e->getCode() == 23000) {
@@ -102,39 +103,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="form-group">
                 <label><i class="fas fa-lock" style="margin-right: 8px; color: var(--primary);"></i>Mot de passe</label>
                 <div class="password-wrapper">
-                    <input type="password" 
-                           id="reg-password" 
-                           name="password" 
-                           class="form-control" 
-                           placeholder="Minimum 6 caractères" 
-                           required>
-                    <button type="button" 
-                            class="password-toggle" 
-                            onclick="togglePassword('reg-password', this)" 
-                            title="Afficher / masquer" 
+                    <input type="password"
+                           id="reg-password"
+                           name="password"
+                           class="form-control"
+                           placeholder="Minimum 6 caractères"
+                           required
+                           oninput="checkRegStrength(this.value); checkRegMatch()">
+                    <button type="button"
+                            class="password-toggle"
+                            onclick="togglePassword('reg-password', this)"
+                            title="Afficher / masquer"
                             aria-label="Afficher le mot de passe">
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
+                <!-- Barre de force -->
+                <div style="margin-top:6px;">
+                    <div style="height:5px; border-radius:3px; background:#e9ecef;">
+                        <div id="reg-strength-fill" style="height:100%; width:0%; border-radius:3px; transition:all .3s;"></div>
+                    </div>
+                    <small id="reg-strength-label" style="color:#999;"></small>
+                </div>
+                <!-- Critères -->
+                <ul id="reg-criteria" style="list-style:none; padding:0; margin:8px 0 0; font-size:0.8rem; color:#999;">
+                    <li id="c-len"><i class="fas fa-circle" style="font-size:.5rem;"></i> Au moins 6 caractères</li>
+                    <li id="c-upp"><i class="fas fa-circle" style="font-size:.5rem;"></i> Une lettre majuscule</li>
+                    <li id="c-num"><i class="fas fa-circle" style="font-size:.5rem;"></i> Un chiffre</li>
+                </ul>
             </div>
 
             <div class="form-group">
                 <label><i class="fas fa-lock" style="margin-right: 8px; color: var(--primary);"></i>Confirmer le mot de passe</label>
                 <div class="password-wrapper">
-                    <input type="password" 
-                           id="reg-confirm-password" 
-                           name="confirm_password" 
-                           class="form-control" 
-                           placeholder="Confirmez votre mot de passe" 
-                           required>
-                    <button type="button" 
-                            class="password-toggle" 
-                            onclick="togglePassword('reg-confirm-password', this)" 
-                            title="Afficher / masquer" 
+                    <input type="password"
+                           id="reg-confirm-password"
+                           name="confirm_password"
+                           class="form-control"
+                           placeholder="Confirmez votre mot de passe"
+                           required
+                           oninput="checkRegMatch()">
+                    <button type="button"
+                            class="password-toggle"
+                            onclick="togglePassword('reg-confirm-password', this)"
+                            title="Afficher / masquer"
                             aria-label="Afficher le mot de passe">
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
+                <small id="reg-match-label" style="display:block; margin-top:4px;"></small>
             </div>
 
             <button type="submit" class="btn btn-primary" style="width: 100%; padding: 14px; font-size: 1rem;">
@@ -179,7 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <script>
 function togglePassword(inputId, btn) {
     var input = document.getElementById(inputId);
-    var icon = btn.querySelector('i');
+    var icon  = btn.querySelector('i');
     if (input.type === 'password') {
         input.type = 'text';
         icon.classList.replace('fa-eye', 'fa-eye-slash');
@@ -188,6 +205,54 @@ function togglePassword(inputId, btn) {
         input.type = 'password';
         icon.classList.replace('fa-eye-slash', 'fa-eye');
         btn.setAttribute('aria-label', 'Afficher le mot de passe');
+    }
+}
+
+function checkRegStrength(val) {
+    const fill  = document.getElementById('reg-strength-fill');
+    const label = document.getElementById('reg-strength-label');
+    let score = 0;
+    if (val.length >= 6)           score++;
+    if (/[A-Z]/.test(val))         score++;
+    if (/[0-9]/.test(val))         score++;
+    if (/[^A-Za-z0-9]/.test(val))  score++;
+
+    const levels = [
+        { pct:'0%',   color:'#e9ecef', text:'' },
+        { pct:'25%',  color:'#dc3545', text:'Très faible' },
+        { pct:'50%',  color:'#fd7e14', text:'Faible' },
+        { pct:'75%',  color:'#ffc107', text:'Moyen' },
+        { pct:'100%', color:'#28a745', text:'Fort' },
+    ];
+    const l = levels[Math.min(score, 4)];
+    fill.style.width      = l.pct;
+    fill.style.background = l.color;
+    label.textContent     = l.text;
+    label.style.color     = l.color;
+
+    // Critères visuels
+    const setOk = (id, ok) => {
+        const el = document.getElementById(id);
+        el.style.color = ok ? '#28a745' : '#999';
+        el.querySelector('i').className = ok ? 'fas fa-check-circle' : 'fas fa-circle';
+        el.querySelector('i').style.fontSize = ok ? '0.7rem' : '0.5rem';
+    };
+    setOk('c-len', val.length >= 6);
+    setOk('c-upp', /[A-Z]/.test(val));
+    setOk('c-num', /[0-9]/.test(val));
+}
+
+function checkRegMatch() {
+    const p1    = document.getElementById('reg-password').value;
+    const p2    = document.getElementById('reg-confirm-password').value;
+    const label = document.getElementById('reg-match-label');
+    if (!p2) { label.textContent = ''; return; }
+    if (p1 === p2) {
+        label.textContent = '✔ Les mots de passe correspondent';
+        label.style.color = '#28a745';
+    } else {
+        label.textContent = '✖ Les mots de passe ne correspondent pas';
+        label.style.color = '#dc3545';
     }
 }
 </script>

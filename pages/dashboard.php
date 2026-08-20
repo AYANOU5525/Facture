@@ -5,10 +5,8 @@ require_once '../config/db.php';
 $page_title = 'Tableau de bord';
 include '../includes/header.php';
 
-// Récupération des données entreprise
-$stmt = $pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");
-$stmt->execute([$_SESSION['user_id']]);
-$entreprise_id = $stmt->fetchColumn();
+// Récupération des données entreprise (déjà dans la session via auth.php)
+$entreprise_id = $_SESSION['entreprise_id'];
 
 
 // 1. Chiffre d'Affaires (Ventes + B2B Vendu)
@@ -41,8 +39,41 @@ $stmt = $pdo->prepare("SELECT COUNT(*) FROM Logistique WHERE Id_Entreprise = ? A
 $stmt->execute([$entreprise_id]);
 $expeditions_urgent = $stmt->fetchColumn();
 
-// Message d'accueil selon l'heure
+// 6. CA par mois sur les 6 derniers mois
+$stmt = $pdo->prepare("
+    SELECT DATE_FORMAT(Date_Vente, '%Y-%m') AS mois, SUM(Montant_Total) AS ca
+    FROM Vente
+    WHERE Id_Entreprise = ?
+      AND Date_Vente >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+    GROUP BY mois
+    ORDER BY mois ASC
+");
+$stmt->execute([$entreprise_id]);
+$ca_mensuel_raw = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
+// Construire un tableau des 6 derniers mois (même si aucune vente ce mois-là)
+$mois_labels = [];
+$ca_data     = [];
+for ($i = 5; $i >= 0; $i--) {
+    $key = date('Y-m', strtotime("-$i month"));
+    $mois_labels[] = strftime('%b %Y', strtotime($key . '-01')) ?: date('M Y', strtotime($key . '-01'));
+    $ca_data[]     = (float) ($ca_mensuel_raw[$key] ?? 0);
+}
+
+// 7. Produits en alerte stock (stock <= seuil)
+$stmt = $pdo->prepare("
+    SELECT Nom_Produit, Quantite_En_Stock,
+           COALESCE(Seuil_Alerte_Stock, 5) AS Seuil_Alerte_Stock
+    FROM Produit
+    WHERE Id_Entreprise = ?
+      AND Quantite_En_Stock <= COALESCE(Seuil_Alerte_Stock, 5)
+    ORDER BY Quantite_En_Stock ASC
+    LIMIT 8
+");
+$stmt->execute([$entreprise_id]);
+$produits_alerte = $stmt->fetchAll();
+
+// Message d'accueil selon l'heure
 $heure = date('H');
 $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
 ?>
@@ -59,6 +90,20 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
             <i class="far fa-calendar-alt"></i> <?= date('d/m/Y') ?>
         </div>
     </div>
+
+    <?php if (!empty($produits_alerte)): ?>
+    <div class="stock-alert-banner">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div>
+            <strong><?= count($produits_alerte) ?> produit(s) en alerte de stock</strong>
+            <ul class="alert-list">
+                <?php foreach ($produits_alerte as $pa): ?>
+                    <li class="alert-chip"><?= htmlspecialchars($pa['Nom_Produit']) ?> — <?= $pa['Quantite_En_Stock'] ?> restant(s)</li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- QUICK ACTION CARDS -->
     <div class="dashboard-featured-actions" style="background: white; padding: 25px; border-radius: 16px; margin-bottom: 30px; box-shadow: var(--shadow-md); border: 2px solid #e2e8f0;">
@@ -134,6 +179,14 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
                 <div class="stat-value text-dark"><?= $total_produits ?></div>
             </div>
         </div>
+    </div>
+
+    <!-- GRAPHIQUE CA MENSUEL -->
+    <div class="card" style="margin-bottom:25px;">
+        <div class="card-header-flex">
+            <h3><i class="fas fa-chart-bar text-primary"></i> Évolution du CA — 6 derniers mois</h3>
+        </div>
+        <canvas id="caChart" height="80"></canvas>
     </div>
 
     <div class="dashboard-grid">
@@ -226,6 +279,59 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
 
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    const labels = <?= json_encode($mois_labels) ?>;
+    const data   = <?= json_encode($ca_data) ?>;
+
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const gridColor  = dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+    const textColor  = dark ? '#8a8f9a' : '#6b7076';
+
+    const ctx = document.getElementById('caChart');
+    if (!ctx) return;
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Chiffre d\'Affaires (F)',
+                data,
+                backgroundColor: 'rgba(0, 70, 255, 0.15)',
+                borderColor:     '#0046ff',
+                borderWidth:     2,
+                borderRadius:    6,
+                fill: true,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => new Intl.NumberFormat('fr-FR').format(ctx.parsed.y) + ' F'
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { color: gridColor }, ticks: { color: textColor } },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: gridColor },
+                    ticks: {
+                        color: textColor,
+                        callback: v => new Intl.NumberFormat('fr-FR', { notation: 'compact' }).format(v)
+                    }
+                }
+            }
+        }
+    });
+})();
+</script>
 
 <style>
     /* Header */

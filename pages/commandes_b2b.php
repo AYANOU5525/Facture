@@ -30,7 +30,8 @@ $b2bOrderService = new B2BOrderService($pdo, new OrderRepository($pdo));
 $shipmentService = new ShipmentService($pdo, new OrderRepository($pdo));
 
 $page_title = "Commandes B2B";
-include_once '../includes/header.php';
+// ⚠️ include_once '../includes/header.php' RETIRÉ D'ICI — déplacé plus bas,
+// après le traitement POST, pour éviter "headers already sent".
 
 // Récupérer l'entreprise de l'utilisateur connecté
 $stmt = $pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");
@@ -39,18 +40,10 @@ $mon_entreprise_id = (int) $stmt->fetchColumn();
 
 $success = '';
 $error   = '';
-$warnings = []; // Alertes non bloquantes (ex: stock faible)
-
-// ============================================================
-// TRAITEMENT DES FORMULAIRES POST
-// ============================================================
+$warnings = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireCsrf();
     $action = $_POST['action'] ?? '';
-
-    // ──────────────────────────────────────────────
-    // 1. SÉLECTION DU VENDEUR (via SESSION)
-    // ──────────────────────────────────────────────
     if ($action === 'choisir_vendeur') {
         $v = filter_input(INPUT_POST, 'vendeur_id', FILTER_VALIDATE_INT);
         if ($v && $v !== $mon_entreprise_id) {
@@ -66,9 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // ──────────────────────────────────────────────
     // 2. CRÉATION D'UNE COMMANDE B2B (Point 1, 2, 5)
-    // ──────────────────────────────────────────────
     if ($action === 'creer_commande') {
         try {
             $id_vendeur = (int) ($_POST['id_vendeur'] ?? 0);
@@ -107,9 +98,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // ──────────────────────────────────────────────
     // 3. VALIDATION par le vendeur
-    // ──────────────────────────────────────────────
+
     elseif ($action === 'valider') {
         try {
             $id_commande = intval($_POST['id_commande'] ?? 0);
@@ -433,6 +423,10 @@ function getNomEntrepriseLocal(PDO $pdo, int $id): string
     }
     return $cache[$id];
 }
+
+// ✅ Le header (et donc tout le HTML) n'est inclus qu'à partir d'ici,
+// une fois que le traitement POST et le chargement des données sont terminés.
+include_once '../includes/header.php';
 ?>
 
 <!-- ============================================================
@@ -524,8 +518,8 @@ function getNomEntrepriseLocal(PDO $pdo, int $id): string
                                     <thead>
                                         <tr>
                                             <th>Produit</th>
-                                            <th class="text-center">Stock</th>
-                                            <th style="width:70px">Qté</th>
+                                            <th style="width:70px">Qté minimale</th>
+                                            <th>Total</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -535,11 +529,6 @@ function getNomEntrepriseLocal(PDO $pdo, int $id): string
                                                     <span class="product-name"><?= htmlspecialchars($p['Nom_Produit']) ?></span>
                                                     <span class="product-price"><?= number_format((float)$p['Prix_B2B'], 0, ',', ' ') ?> F</span>
                                                 </td>
-                                                <td class="text-center">
-                                                    <span class="stock-badge <?= $p['Quantite_En_Stock'] < 10 ? 'stock-low' : 'stock-ok' ?>">
-                                                        <?= $p['Quantite_En_Stock'] ?>
-                                                    </span>
-                                                </td>
                                                 <td>
                                                     <input type="number"
                                                         name="items[<?= $p['Id_Produit'] ?>]"
@@ -547,10 +536,14 @@ function getNomEntrepriseLocal(PDO $pdo, int $id): string
                                                         aria-label="Quantité pour <?= htmlspecialchars($p['Nom_Produit']) ?>"
                                                         min="0"
                                                         max="<?= $p['Quantite_En_Stock'] ?>"
-                                                        value="0"
+                                                        value="<?= $p['Quantite_Min_B2B'] ?>"
                                                         class="form-control form-control-sm qty-field"
                                                         data-prix="<?= $p['Prix_B2B'] ?>"
                                                         oninput="calculerTotal()">
+                                                </td>
+                                                <td>
+                                                    <span class="line-total" id="line-total-<?= $p['Id_Produit'] ?>"> </span>
+
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>

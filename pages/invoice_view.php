@@ -246,7 +246,30 @@ $label_conservation = $date_conservation->format('d/m/Y');
                 durée minimale : <strong>10 ans</strong> — jusqu'au <strong><?= $label_conservation ?></strong>.
             </p>
         </div>
+
+        <div class="no-print" style="text-align:center; margin-top:30px;">
+            <button onclick="window.print()" style="background:#0046ff; color:white; border:none; padding:12px 28px; border-radius:8px; font-size:1rem; cursor:pointer; font-family:inherit;">
+                🖨 Imprimer / Exporter PDF
+            </button>
+            <button onclick="window.close()" style="background:#f1f5f9; color:#1a1c1f; border:1px solid #dfe3e8; padding:12px 24px; border-radius:8px; font-size:1rem; cursor:pointer; margin-left:10px; font-family:inherit;">
+                Fermer
+            </button>
+        </div>
     </div>
+
+<?php if (!empty($_GET['autoprint'])): ?>
+<script>
+    window.addEventListener('load', function () {
+        setTimeout(function () { window.print(); }, 500);
+    });
+</script>
+<?php endif; ?>
+
+<style>
+@media print {
+    .no-print { display: none !important; }
+}
+</style>
 
 </body>
 
