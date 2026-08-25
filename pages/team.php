@@ -4,7 +4,7 @@ require_once '../includes/auth.php';
 require_once '../config/db.php';
 require_once '../includes/b2b_helpers.php';
 
-requireRole(ROLE_PROPRIO);
+exigerPermission(peutGererEquipe());
 
 $page_title = "Gestion de l'équipe";
 include '../includes/header.php';
@@ -20,17 +20,20 @@ $error = '';
 
 // === TRAITEMENT DU FORMULAIRE (AJOUT) ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
-    requireCsrf();
+    exigerCsrf();
 
     // 1. AJOUT
     if ($_POST['action'] === 'add') {
         $username = trim($_POST['username']);
         $password = $_POST['password'];
-        $role = $_POST['role'];
+        $role = $_POST['role'] ?? '';
         $email = trim($_POST['email']);
+        $assignable_roles = ['proprio', 'vendeur', 'livreur'];
 
         if (empty($username) || empty($password) || empty($email)) {
             $error = "Tous les champs sont requis.";
+        } elseif (!in_array($role, $assignable_roles, true)) {
+            $error = "Rôle invalide.";
         } else {
             $stmt = $pdo->prepare(
                 "SELECT COUNT(*) FROM Utilisateur WHERE Nom_Utilisateur = ? OR Email_Utilisateur = ?"
@@ -192,13 +195,13 @@ HTML;
                     $error = "Vous ne pouvez pas modifier votre propre rôle ici.";
                 } else {
                     $new_role = $_POST['new_role'] ?? null;
-                    $allowed_roles = ['admin', 'proprio', 'vendeur', 'livreur'];
+                    $allowed_roles = ['proprio', 'vendeur', 'livreur'];
                     if (!in_array($new_role, $allowed_roles, true)) {
                         $error = "Rôle invalide.";
                     } else {
                         $upd = $pdo->prepare("UPDATE Utilisateur SET Role_Utilisateur = ? WHERE Id_Utilisateur = ?");
                         $upd->execute([$new_role, $target_id]);
-                        $success = "Rôle modifié avec succès (Maintenant : " . roleName($new_role) . ").";
+                        $success = "Rôle modifié avec succès (Maintenant : " . nomRole($new_role) . ").";
                     }
                 }
             } else {
@@ -232,7 +235,7 @@ $membres = $stmt->fetchAll();
             <div class="card">
                 <h3><i class="fas fa-user-plus"></i> Nouveau Membre</h3>
                 <form method="POST">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                     <input type="hidden" name="action" value="add">
                     <div class="form-group">
                         <label>Nom d'utilisateur</label>
@@ -252,7 +255,6 @@ $membres = $stmt->fetchAll();
                             <option value="vendeur">Vendeur — ventes, clients, factures, stocks (lecture)</option>
                             <option value="livreur">Livreur — logistique uniquement</option>
                             <option value="proprio">Propriétaire — accès complet à l'entreprise</option>
-                            <option value="admin">Administrateur — accès total + gestion avancée</option>
                         </select>
                     </div>
                     <button type="submit" class="btn btn-success" style="width:100%;">Ajouter</button>
@@ -284,8 +286,8 @@ $membres = $stmt->fetchAll();
                                 </td>
                                 <td><?= htmlspecialchars($u['Email_Utilisateur']) ?></td>
                                 <td>
-                                    <span class="badge <?= roleBadgeClass($u['Role_Utilisateur']) ?>">
-                                        <?= roleName($u['Role_Utilisateur']) ?>
+                                    <span class="badge <?= classeBadgeRole($u['Role_Utilisateur']) ?>">
+                                        <?= nomRole($u['Role_Utilisateur']) ?>
                                     </span>
                                 </td>
                                 <td>
@@ -315,7 +317,7 @@ $membres = $stmt->fetchAll();
         <p>Membre : <strong id="modalUserName"></strong></p>
 
         <form method="POST">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
             <input type="hidden" name="action" value="switch">
             <input type="hidden" name="target_id" id="modalTargetId">
 
@@ -325,7 +327,6 @@ $membres = $stmt->fetchAll();
                     <option value="vendeur">Vendeur — ventes, clients, factures, stocks (lecture)</option>
                     <option value="livreur">Livreur — logistique uniquement</option>
                     <option value="proprio">Propriétaire — accès complet à l'entreprise</option>
-                    <option value="admin">Administrateur — accès total + gestion avancée</option>
                 </select>
             </div>
 
@@ -362,7 +363,7 @@ $membres = $stmt->fetchAll();
     }
 
     .modal-content {
-        background: white;
+        background: var(--bg-card);
         padding: 30px;
         border-radius: 12px;
         width: 100%;
