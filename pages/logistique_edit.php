@@ -3,7 +3,7 @@ require_once '../includes/auth.php';
 require_once '../config/db.php';
 require_once '../vendor/autoload.php';
 
-requireRole(ROLE_PROPRIO, ROLE_LIVREUR);
+exigerPermission(peutModifierStatutExpedition());
 
 use App\Application\Logistics\LogisticsService;
 use App\Infrastructure\Persistence\LogisticsRepository;
@@ -16,7 +16,7 @@ if (!isset($_GET['id'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireCsrf();
+    exigerCsrf();
 }
 
 $id_logistique = (int)$_GET['id'];
@@ -108,7 +108,7 @@ include '../includes/header.php';
 
 <?php
 // ── VUE SIMPLIFIÉE POUR LE LIVREUR ─────────────────────────────────────────
-if (hasRole(ROLE_LIVREUR)):
+if (aRole(ROLE_LIVREUR)):
     $dest = $log['Id_Commande_B2B'] ? ($log['Nom_Acheteur'] ?? '-') : ($log['Nom_Client'] ?? '-');
     $ref  = $log['Id_Commande_B2B'] ? ($log['Numero_Commande'] ?? '-') : ($log['Numero_Vente'] ?? '-');
     $statut_actuel = $log['Statut_Livraison'];
@@ -266,7 +266,7 @@ if (hasRole(ROLE_LIVREUR)):
                         Confirmez que vous avez remis le colis au destinataire.
                     </div>
                     <form method="POST" onsubmit="return confirm('Confirmer la livraison ?')">
-                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="transporteur" value="<?= htmlspecialchars($log['Transporteur'] ?? '') ?>">
                         <input type="hidden" name="numero_suivi" value="<?= htmlspecialchars($log['Numero_Suivi'] ?? '') ?>">
                         <input type="hidden" name="statut" value="livree">
@@ -289,7 +289,7 @@ if (hasRole(ROLE_LIVREUR)):
                         Renseignez les informations d'expédition puis confirmez le départ.
                     </div>
                     <form method="POST">
-                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="statut" value="expediee">
                         <input type="hidden" name="date_expedition" value="<?= date('Y-m-d\TH:i') ?>">
                         <input type="hidden" name="adresse_livraison" value="<?= htmlspecialchars($log['Adresse_Livraison'] ?? $log['Adresse_Acheteur'] ?? '') ?>">
@@ -366,7 +366,7 @@ endif; // fin vue livreur
         </h2>
 
         <form method="POST">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div class="form-group">
                     <label>Transporteur</label>

@@ -2,7 +2,7 @@
 require_once '../includes/auth.php';
 require_once '../config/db.php';
 
-requireRole(ROLE_PROPRIO);
+exigerPermission(peutGererParametres());
 
 $page_title = "Paramètres de l'entreprise";
 include '../includes/header.php';
@@ -28,7 +28,7 @@ $current_hash = $stmt_hash->fetchColumn();
 
 // === TRAITEMENT DU FORMULAIRE ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireCsrf();
+    exigerCsrf();
 
     if (isset($_POST['action']) && $_POST['action'] === 'change_password') {
         // === CHANGEMENT DE MOT DE PASSE ===
@@ -99,7 +99,7 @@ $ent = $stmt->fetch();
 
     <div class="card" style="max-width: 800px; margin: 0 auto;">
         <form method="POST">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
             <div class="form-group">
                 <label>Nom de l'entreprise *</label>
                 <input type="text" 
@@ -161,7 +161,7 @@ $ent = $stmt->fetch();
                     <button type="button" class="btn btn-primary" onclick="searchAddress()"><i class="fas fa-search"></i> Rechercher</button>
                     <button type="button" class="btn btn-secondary" onclick="geolocaliser()"><i class="fas fa-location-arrow"></i> Me localiser</button>
                 </div>
-                <div id="search-results" style="display:none; margin-bottom:10px; max-height:150px; overflow-y:auto; border:1px solid var(--zinc-300); border-radius:6px; background:#fff; box-shadow:var(--shadow-md);"></div>
+                <div id="search-results" style="display:none; margin-bottom:10px; max-height:150px; overflow-y:auto; border:1px solid var(--zinc-300); border-radius:6px; background:var(--bg-card); box-shadow:var(--shadow-md);"></div>
             </div>
 
             <div style="margin-bottom: 15px; border-radius:12px; overflow:hidden; border:1px solid var(--zinc-300);">
@@ -197,7 +197,7 @@ $ent = $stmt->fetch();
         <?php endif; ?>
 
         <form method="POST">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
             <input type="hidden" name="action" value="change_password">
 
             <div class="form-group">
