@@ -15,15 +15,15 @@ require_once __DIR__ . '/roles.php';
 header("X-Frame-Options: DENY");
 header("X-Content-Type-Options: nosniff");
 header("Referrer-Policy: strict-origin-when-cross-origin");
-header("Permissions-Policy: camera=(), microphone=(), geolocation=()");
+header("Permissions-Policy: camera=(self), microphone=(), geolocation=()");
 header(
     "Content-Security-Policy: " .
     "default-src 'self'; " .
-    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " .
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; " .
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; " .
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://unpkg.com; " .
     "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; " .
-    "img-src 'self' data:; " .
-    "connect-src 'self'; " .
+    "img-src 'self' data: https://*.tile.openstreetmap.org https://raw.githubusercontent.com https://cdnjs.cloudflare.com; " .
+    "connect-src 'self' https://router.project-osrm.org https://nominatim.openstreetmap.org; " .
     "frame-ancestors 'none'"
 );
 
@@ -63,7 +63,7 @@ $username = $_SESSION['username'] ?? '';
 $role = $_SESSION['role'] ?? '';
 
 // 5. Garantir la présence de entreprise_id dans la session
-if (!isset($_SESSION['entreprise_id'])) {
+if (!array_key_exists('entreprise_id', $_SESSION)) {
     $stmt = $pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");
     $stmt->execute([$user_id]);
     $user_data = $stmt->fetch();
