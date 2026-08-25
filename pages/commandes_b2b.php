@@ -18,7 +18,7 @@
 require_once '../includes/auth.php';
 require_once '../config/db.php';
 
-requireRole(ROLE_PROPRIO);
+exigerPermission(peutGererB2B());
 require_once '../includes/b2b_helpers.php';
 require_once '../vendor/autoload.php';
 
@@ -44,7 +44,7 @@ $success = '';
 $error   = '';
 $warnings = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireCsrf();
+    exigerCsrf();
     $action = $_POST['action'] ?? '';
     if ($action === 'choisir_vendeur') {
         $v = filter_input(INPUT_POST, 'vendeur_id', FILTER_VALIDATE_INT);
@@ -79,7 +79,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $delai_minutes = $commande['deadline_minutes'];
             $total_commande = $commande['total'];
 
-            // Notifications au vendeur
             $mon_nom = getNomEntrepriseLocal($pdo, $mon_entreprise_id);
             $type_notif = $est_urgente ? 'commande_urgente' : 'nouvelle_commande';
             $titre_notif = $est_urgente
@@ -132,22 +131,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
             }
 
-            // Décrémenter le stock
             decrementerStockCommande($pdo, $id_commande);
 
-            // Mettre à jour la commande
             $pdo->prepare("
                 UPDATE Commande_B2B
                 SET Statut = 'validee', Message_Validation = ?, Date_Validation = NOW()
                 WHERE Id_Commande_B2B = ?
             ")->execute([$msg_vendeur, $id_commande]);
 
-            // Historique
             enregistrerHistoriqueCommande($pdo, $id_commande, 'en_attente', 'validee', $msg_vendeur, $mon_entreprise_id);
 
             $pdo->commit();
 
-            // Notifier l'acheteur
             $num = $cmd['Numero_Commande'];
             $nom_vendeur = getNomEntrepriseLocal($pdo, $mon_entreprise_id);
             creerNotificationB2b(
@@ -238,7 +233,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $cmd = $shipment['order'];
             $ref_facture = $shipment['number'];
 
-            // Notifier l'acheteur
             $nom_vendeur = getNomEntrepriseLocal($pdo, $mon_entreprise_id);
             creerNotificationB2b(
                 $pdo,
@@ -289,7 +283,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 WHERE Id_Commande_B2B = ? AND Id_Entreprise = ?
             ")->execute([$id_commande, $cmd['Id_Entreprise_Vendeuse']]);
 
-            // Historique
             enregistrerHistoriqueCommande($pdo, $id_commande, 'expediee', 'livree', 'Réception confirmée par l\'acheteur', $mon_entreprise_id);
 
             // Score fiabilité vendeur +1
@@ -302,7 +295,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $pdo->commit();
 
-            // Notifier le vendeur que la livraison est confirmée
             $nom_acheteur = getNomEntrepriseLocal($pdo, $mon_entreprise_id);
             creerNotificationB2b(
                 $pdo,
@@ -313,7 +305,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id_commande
             );
 
-            // Notifier aussi l'acheteur (confirmation)
             creerNotificationB2b(
                 $pdo,
                 $mon_entreprise_id,
@@ -482,7 +473,7 @@ include_once '../includes/header.php';
 
                     <!-- Sélecteur fournisseur -->
                     <form method="POST" action="commandes_b2b.php" class="vendeur-selector">
-                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="action" value="choisir_vendeur">
                         <div class="form-group" style="margin:0;">
                             <label for="vendeur_id">Fournisseur</label>
@@ -499,7 +490,7 @@ include_once '../includes/header.php';
                                 <button type="submit" class="btn btn-primary btn-sm">OK</button>
                                 <?php if ($selected_vendeur): ?>
                                     <form method="POST" action="commandes_b2b.php" style="margin:0;">
-                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                                         <input type="hidden" name="action" value="reset_vendeur">
                                         <button type="submit" class="btn btn-secondary btn-sm" title="Réinitialiser">✕</button>
                                     </form>
@@ -511,7 +502,7 @@ include_once '../includes/header.php';
                     <!-- Formulaire commande (si fournisseur sélectionné) -->
                     <?php if ($selected_vendeur && !empty($produits_b2b)): ?>
                         <form method="POST" action="commandes_b2b.php?onglet=passees" class="order-form" id="newOrderForm">
-                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                             <input type="hidden" name="action" value="creer_commande">
                             <input type="hidden" name="id_vendeur" value="<?= $selected_vendeur ?>">
 
@@ -772,7 +763,7 @@ include_once '../includes/header.php';
                                 <?php if ($c['Statut'] === 'en_attente'): ?>
                                     <!-- Valider -->
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Valider cette commande ? Le stock sera automatiquement déduit.')">
-                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                                         <input type="hidden" name="action" value="valider">
                                         <input type="hidden" name="id_commande" value="<?= $c['Id_Commande_B2B'] ?>">
                                         <button type="submit" class="btn btn-success btn-sm">
@@ -787,7 +778,7 @@ include_once '../includes/header.php';
                                 <?php elseif ($c['Statut'] === 'validee'): ?>
                                     <!-- Mettre en préparation -->
                                     <form method="POST" style="display:inline;">
-                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                                         <input type="hidden" name="action" value="en_preparation">
                                         <input type="hidden" name="id_commande" value="<?= $c['Id_Commande_B2B'] ?>">
                                         <button type="submit" class="btn btn-purple btn-sm">
@@ -797,7 +788,7 @@ include_once '../includes/header.php';
                                 <?php elseif ($c['Statut'] === 'en_preparation'): ?>
                                     <!-- Marquer prête -->
                                     <form method="POST" style="display:inline;">
-                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                                         <input type="hidden" name="action" value="marquer_prete">
                                         <input type="hidden" name="id_commande" value="<?= $c['Id_Commande_B2B'] ?>">
                                         <button type="submit" class="btn btn-teal btn-sm">
@@ -807,7 +798,7 @@ include_once '../includes/header.php';
                                 <?php elseif ($c['Statut'] === 'prete'): ?>
                                     <!-- Expédier -->
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Expédier cette commande ? Une facture et une expédition logistique seront créées.')">
-                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                                         <input type="hidden" name="action" value="expedier">
                                         <input type="hidden" name="id_commande" value="<?= $c['Id_Commande_B2B'] ?>">
                                         <button type="submit" class="btn btn-primary btn-sm">
@@ -820,7 +811,7 @@ include_once '../includes/header.php';
                             <?php else: ?>
                                 <?php if ($c['Statut'] === 'expediee'): ?>
                                     <form method="POST" style="display:inline;" onsubmit="return confirm('Confirmer la réception correcte de cette commande ?')">
-                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                                         <input type="hidden" name="action" value="livree">
                                         <input type="hidden" name="id_commande" value="<?= $c['Id_Commande_B2B'] ?>">
                                         <button type="submit" class="btn btn-success btn-sm">
@@ -854,7 +845,7 @@ include_once '../includes/header.php';
             <button onclick="fermerModalRefus()" class="modal-close">✕</button>
         </div>
         <form method="POST" id="form-refus">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
             <input type="hidden" name="action" value="refuser">
             <input type="hidden" name="id_commande" id="refus-id-commande">
             <div class="b2b-modal-body">
@@ -1139,7 +1130,7 @@ include_once '../includes/header.php';
         }
 
         const formData = new FormData();
-        formData.append('csrf_token', '<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>');
+        formData.append('csrf_token', '<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>');
         formData.append('action', 'send');
         formData.append('commande_id', chatCommandeId);
         formData.append('message', texte);

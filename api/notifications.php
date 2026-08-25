@@ -16,7 +16,7 @@ require_once '../config/db.php';
 require_once '../vendor/autoload.php';
 
 // Retour silencieux pour les rôles sans accès B2B (evite de casser le polling du header)
-if (!canAccessB2B()) {
+if (!peutAccederB2B()) {
     header('Content-Type: application/json');
     echo json_encode(['success' => true, 'count' => 0, 'notifications' => []]);
     exit();
@@ -98,7 +98,7 @@ if ($action === 'list' && $_SERVER['REQUEST_METHOD'] === 'GET') {
 // ACTION : Marquer une notification comme lue
 // ============================================================
 if ($action === 'mark_read' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireCsrf();
+    exigerCsrf();
     $id_notif = intval($_POST['id'] ?? 0);
     
     if (!$id_notif) {
@@ -115,7 +115,7 @@ if ($action === 'mark_read' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 // ACTION : Tout marquer comme lu
 // ============================================================
 if ($action === 'mark_all_read' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireCsrf();
+    exigerCsrf();
     $nb = $notificationService->markAllRead($mon_entreprise_id);
     echo json_encode(['success' => true, 'marked' => $nb]);
     exit;

@@ -7,7 +7,7 @@ $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireCsrf();
+    exigerCsrf();
     $company_name = trim($_POST['company_name'] ?? '');
     $username = trim($_POST['username'] ?? '');
     $email = trim($_POST['email'] ?? '');
@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form method="POST">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
             <div class="form-group">
                 <label><i class="fas fa-building" style="margin-right: 8px; color: var(--primary);"></i>Nom de l'entreprise</label>
                 <input type="text" name="company_name" class="form-control" placeholder="Ma Super Entreprise" required>

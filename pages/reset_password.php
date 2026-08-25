@@ -38,7 +38,7 @@ if (!empty($token)) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $token_valid) {
-    requireCsrf();
+    exigerCsrf();
     $new_password     = $_POST['new_password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
 
@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $token_valid) {
 
         <?php if ($token_valid): ?>
             <form method="POST" id="resetForm">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
 
                 <div class="form-group">
                     <label>Nouveau mot de passe</label>

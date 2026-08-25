@@ -1,31 +1,10 @@
 <?php
 
-/**
- * b2b_helpers.php — Fonctions utilitaires partagées pour le module B2B
- *
- * Inclus par toutes les pages et APIs B2B.
- * Centralise la logique métier pour éviter la duplication de code.
- *
- * @package FactuPro B2B v3 — Workflow complet + Historique + Carte
- */
+// Fonctions utilitaires partagées par les pages et APIs du module B2B.
 
 const LABEL_VALIDEE = 'Validée';
 
-// ============================================================
-// NOTIFICATIONS
-// ============================================================
-
-/**
- * Crée une notification interne B2B et déclenche les canaux externes configurés.
- *
- * @param PDO    $pdo           Instance PDO
- * @param int    $id_entreprise ID de l'entreprise destinataire
- * @param string $type          Type (voir ENUM Notification_B2B.Type_Notif)
- * @param string $titre         Titre court de la notification
- * @param string $message       Corps du message
- * @param int|null $id_commande ID de la commande liée (optionnel)
- * @return int                  ID de la notification créée
- */
+/** Crée une notification interne B2B et déclenche les canaux externes configurés (email, etc.). */
 function creerNotificationB2b(PDO $pdo, int $id_entreprise, string $type, string $titre, string $message, ?int $id_commande = null): int
 {
     $stmt = $pdo->prepare("
@@ -36,9 +15,6 @@ function creerNotificationB2b(PDO $pdo, int $id_entreprise, string $type, string
     $stmt->execute([$id_entreprise, $type, $titre, $message, $id_commande]);
     $id_notif = (int) $pdo->lastInsertId();
 
-    // --- Déclencher les canaux externes ---
-
-    // Récupérer l'email de l'entreprise destinataire
     $stmt_email = $pdo->prepare("SELECT Email_Entreprise, Nom_Entreprise FROM Entreprise WHERE Id_Entreprise = ?");
     $stmt_email->execute([$id_entreprise]);
     $entreprise = $stmt_email->fetch();
@@ -60,15 +36,7 @@ function creerNotificationB2b(PDO $pdo, int $id_entreprise, string $type, string
     return $id_notif;
 }
 
-/**
- * Envoie un email via PHPMailer (SMTP) si configuré, sinon mail() natif.
- *
- * @param string $to       Adresse email destinataire
- * @param string $subject  Sujet de l'email
- * @param string $body     Corps HTML du message
- * @param string $altBody  Version texte brut (fallback)
- * @return bool            Succès ou échec
- */
+/** Envoie un email via PHPMailer (SMTP) si configuré, sinon mail() natif. */
 function envoyerEmailB2b(string $to, string $subject, string $body, string $altBody = ''): bool
 {
     $host     = $_ENV['MAIL_HOST']       ?? '';
@@ -124,23 +92,14 @@ function envoyerEmailB2b(string $to, string $subject, string $body, string $altB
 }
 
 /**
- * Stub SMS — Architecture prête pour Twilio / Africa's Talking.
- *
- * Pour activer :
- * 1. Installer le SDK Twilio : composer require twilio/sdk
- * 2. Ajouter dans .env : TWILIO_SID, TWILIO_TOKEN, TWILIO_FROM
+ * Stub SMS — prêt pour Twilio / Africa's Talking. Pour activer :
+ * 1. composer require twilio/sdk
+ * 2. .env : TWILIO_SID, TWILIO_TOKEN, TWILIO_FROM
  * 3. Décommenter et compléter la logique ci-dessous.
- *
- * @param int    $id_entreprise ID entreprise destinataire
- * @param string $message       Message court (max 160 caractères)
  */
 function envoyerSmsB2b(int $id_entreprise, string $message): void
 {
     error_log("envoyerSmsB2b stub: $id_entreprise - $message");
-    // Action requise : Récupérer le numéro de l'entreprise
-    // Action requise : Initialiser le client Twilio avec les variables .env
-    // Action requise : Envoyer le SMS
-    //
     // Exemple avec Twilio :
     // $client = new Twilio\Rest\Client($_ENV['TWILIO_SID'], $_ENV['TWILIO_TOKEN']);
     // $client->messages->create($tel, [
@@ -150,22 +109,14 @@ function envoyerSmsB2b(int $id_entreprise, string $message): void
 }
 
 /**
- * Stub WhatsApp — Architecture prête pour WhatsApp Business API.
- *
- * Pour activer :
- * 1. Obtenir accès à l'API WhatsApp Business (Meta)
- * 2. Ajouter dans .env : WHATSAPP_TOKEN, WHATSAPP_PHONE_ID
+ * Stub WhatsApp — prêt pour WhatsApp Business API. Pour activer :
+ * 1. Accès API WhatsApp Business (Meta)
+ * 2. .env : WHATSAPP_TOKEN, WHATSAPP_PHONE_ID
  * 3. Décommenter et compléter la logique ci-dessous.
- *
- * @param int    $id_entreprise ID entreprise destinataire
- * @param string $message       Message à envoyer
  */
 function envoyerWhatsappB2b(int $id_entreprise, string $message): void
 {
     error_log("envoyerWhatsappB2b stub: $id_entreprise - $message");
-    // Action requise : Récupérer le numéro WhatsApp de l'entreprise
-    // Action requise : Appeler l'API WhatsApp Business via cURL
-    //
     // Exemple :
     // $url = "https://graph.facebook.com/v18.0/{$_ENV['WHATSAPP_PHONE_ID']}/messages";
     // $data = json_encode([
@@ -182,20 +133,7 @@ function envoyerWhatsappB2b(int $id_entreprise, string $message): void
     // curl_close($ch);
 }
 
-// ============================================================
-// GÉOLOCALISATION — Formule de Haversine
-// ============================================================
-
-/**
- * Calcule la distance en kilomètres entre deux points GPS.
- * Utilise la formule de Haversine (sphère, pas d'ellipsoïde).
- *
- * @param float $lat1 Latitude point 1 (degrés décimaux)
- * @param float $lon1 Longitude point 1
- * @param float $lat2 Latitude point 2
- * @param float $lon2 Longitude point 2
- * @return float Distance en km (arrondie à 1 décimale)
- */
+/** Distance en km entre deux points GPS (formule de Haversine, sphère). */
 function calculDistanceHaversine(float $lat1, float $lon1, float $lat2, float $lon2): float
 {
     $rayon_terre = 6371.0; // km
@@ -211,12 +149,7 @@ function calculDistanceHaversine(float $lat1, float $lon1, float $lat2, float $l
     return round($rayon_terre * $c, 1);
 }
 
-/**
- * Formate une distance en km en texte lisible.
- *
- * @param float $km Distance en kilomètres
- * @return string   "à 500 m" | "à 5,3 km" | "à 1 250 km"
- */
+/** Formate une distance en texte lisible : "à 500 m" | "à 5,3 km" | "à 1 250 km". */
 function formaterDistance(float $km): string
 {
     if ($km < 1) {
@@ -228,17 +161,9 @@ function formaterDistance(float $km): string
     }
 }
 
-// ============================================================
-// RÉACTIVITÉ VENDEURS (Point 3)
-// ============================================================
-
 /**
- * Calcule et formate le temps moyen de réponse d'un vendeur.
- * Basé sur l'historique réel des commandes (Date_Commande → Date_Validation).
- *
- * @param PDO $pdo          Instance PDO
- * @param int $id_entreprise ID de l'entreprise vendeuse
- * @return array            ['label' => string, 'minutes' => float, 'classe' => string]
+ * Temps moyen de réponse d'un vendeur, basé sur l'historique réel des commandes.
+ * @return array ['label' => string, 'minutes' => float, 'classe' => string]
  */
 function getTempsReponseMoyen(PDO $pdo, int $id_entreprise): array
 {
@@ -285,21 +210,9 @@ function getTempsReponseMoyen(PDO $pdo, int $id_entreprise): array
     return $result;
 }
 
-// ============================================================
-// LIGNES DE COMMANDE NORMALISÉES (Point 5)
-// ============================================================
-
-/**
- * Récupère les lignes d'une commande B2B (depuis Ligne_Commande_B2B si disponible,
- * sinon fallback sur Articles_JSON pour la rétrocompatibilité).
- *
- * @param PDO $pdo          Instance PDO
- * @param int $id_commande  ID de la commande
- * @return array            Tableau de lignes [nom, quantite, prix_unitaire, sous_total, id_produit]
- */
+/** Lignes d'une commande B2B (table normalisée, avec fallback Articles_JSON pour les commandes antérieures à la migration). */
 function getLignesCommande(PDO $pdo, int $id_commande): array
 {
-    // Essayer d'abord la table normalisée
     $stmt = $pdo->prepare("
         SELECT
             l.Id_Ligne,
@@ -318,7 +231,6 @@ function getLignesCommande(PDO $pdo, int $id_commande): array
     if (!empty($lignes)) {
         $result = $lignes;
     } else {
-        // Fallback sur Articles_JSON (commandes antérieures à la migration)
         $stmt2 = $pdo->prepare("SELECT Articles_JSON FROM Commande_B2B WHERE Id_Commande_B2B = ?");
         $stmt2->execute([$id_commande]);
         $json = $stmt2->fetchColumn();
@@ -346,18 +258,10 @@ function getLignesCommande(PDO $pdo, int $id_commande): array
     return $result;
 }
 
-// ============================================================
-// CONTRÔLE DU STOCK (Point 6)
-// ============================================================
-
 /**
  * Vérifie que le stock est suffisant pour toutes les lignes d'une commande.
- * Utilise FOR UPDATE pour éviter les race conditions (à appeler dans une transaction).
- *
- * @param PDO $pdo         Instance PDO (doit être dans une transaction active)
- * @param int $id_commande ID de la commande à valider
- * @return array           Tableau d'erreurs. Vide = tout est OK.
- *                         Format : [['nom' => string, 'requis' => int, 'disponible' => int], ...]
+ * Utilise FOR UPDATE pour éviter les race conditions — à appeler dans une transaction active.
+ * @return array Erreurs [['nom','requis','disponible','message'], ...] — vide = tout est OK.
  */
 function verifierStockAvantValidation(PDO $pdo, int $id_commande): array
 {
@@ -369,7 +273,6 @@ function verifierStockAvantValidation(PDO $pdo, int $id_commande): array
             continue;
         }
 
-        // Verrouillage pessimiste pour éviter les lectures fantômes
         $stmt = $pdo->prepare("
             SELECT Nom_Produit, Quantite_En_Stock
             FROM Produit
@@ -403,13 +306,7 @@ function verifierStockAvantValidation(PDO $pdo, int $id_commande): array
     return $erreurs;
 }
 
-/**
- * Décrémente le stock pour toutes les lignes d'une commande.
- * À appeler APRÈS verifierStockAvantValidation() dans la même transaction.
- *
- * @param PDO $pdo         Instance PDO (dans une transaction active)
- * @param int $id_commande ID de la commande
- */
+/** Décrémente le stock des lignes d'une commande — à appeler après verifierStockAvantValidation(), dans la même transaction. */
 function decrementerStockCommande(PDO $pdo, int $id_commande): void
 {
     $lignes = getLignesCommande($pdo, $id_commande);
@@ -425,17 +322,7 @@ function decrementerStockCommande(PDO $pdo, int $id_commande): void
     }
 }
 
-// ============================================================
-// UTILITAIRES GÉNÉRAUX
-// ============================================================
-
-/**
- * Retourne un badge HTML coloré selon le statut d'une commande B2B.
- *
- * @param string $statut   Statut de la commande
- * @param bool   $urgente  La commande est-elle urgente ?
- * @return string          HTML du badge
- */
+/** Badge HTML coloré selon le statut d'une commande B2B. */
 function badgeStatutCommande(string $statut, bool $urgente = false): string
 {
     $map = [
@@ -489,21 +376,7 @@ function getSecondesRestantes(?string $date_limite): int
     return strtotime($date_limite) - time();
 }
 
-// ============================================================
-// HISTORIQUE DES STATUTS (v3)
-// ============================================================
-
-/**
- * Enregistre un changement de statut dans Historique_Commande_B2B.
- * À appeler APRÈS chaque UPDATE de Commande_B2B.
- *
- * @param PDO    $pdo              Instance PDO
- * @param int    $id_commande      ID de la commande
- * @param string $ancien_statut    Statut précédent
- * @param string $nouveau_statut   Nouveau statut
- * @param string $note             Note optionnelle (motif de refus, message vendeur…)
- * @param int    $id_entreprise    Entreprise qui effectue l'action
- */
+/** Enregistre un changement de statut — à appeler après chaque UPDATE de Commande_B2B. */
 function enregistrerHistoriqueCommande(
     PDO $pdo,
     int $id_commande,
@@ -526,18 +399,12 @@ function enregistrerHistoriqueCommande(
             $id_entreprise ?: null
         ]);
     } catch (PDOException $e) {
-        // Ne pas bloquer si la table n'existe pas encore (migration en attente)
+        // Ne bloque pas si la table n'existe pas encore (migration en attente)
         error_log("[FactuPro] Historique non enregistré : " . $e->getMessage());
     }
 }
 
-/**
- * Récupère l'historique complet d'une commande.
- *
- * @param PDO $pdo          Instance PDO
- * @param int $id_commande  ID de la commande
- * @return array            Tableau d'entrées d'historique (Date_Changement DESC)
- */
+/** Historique complet d'une commande, du plus ancien au plus récent. */
 function getHistoriqueCommande(PDO $pdo, int $id_commande): array
 {
     try {
@@ -561,13 +428,7 @@ function getHistoriqueCommande(PDO $pdo, int $id_commande): array
     }
 }
 
-/**
- * Génère la configuration de la timeline pour une commande.
- * Chaque étape a un état : 'done', 'active', 'pending'.
- *
- * @param string $statut_actuel  Statut actuel de la commande
- * @return array                 Tableau d'étapes ordonnées
- */
+/** Étapes de la timeline d'une commande, chacune avec un état 'done'/'active'/'pending'. */
 function getTimelineSteps(string $statut_actuel): array
 {
     $ordre = [
@@ -613,26 +474,15 @@ function getTimelineSteps(string $statut_actuel): array
     return $etapes;
 }
 
-/**
- * Retourne le nom d'une entreprise par son ID.
- *
- * @param PDO $pdo          Instance PDO
- * @param int $id_entreprise ID de l'entreprise
- * @return string           Nom de l'entreprise ou 'Entreprise inconnue'
- */
+/** Nom d'une entreprise par son ID, ou 'Entreprise inconnue'. */
 function getNomEntrepriseLocale(PDO $pdo, int $id_entreprise): string
 {
     $stmt = $pdo->prepare("SELECT Nom_Entreprise FROM Entreprise WHERE Id_Entreprise = ?");
     $stmt->execute([$id_entreprise]);
     return $stmt->fetchColumn() ?: 'Entreprise inconnue';
 }
-/**
- * Exception dédiée aux erreurs du module B2B.
- *
- * Permet de différencier les erreurs métier B2B des autres exceptions
- * et de les capturer de façon granulaire dans le code appelant.
- */
+
+/** Erreurs métier du module B2B, à capturer séparément des autres exceptions. */
 class B2BException extends Exception
 {
-    // Vous pouvez ajouter des propriétés ou méthodes spécifiques si besoin.
 }

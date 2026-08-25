@@ -3,7 +3,7 @@ require_once '../includes/auth.php';
 require_once '../config/db.php';
 require_once '../vendor/autoload.php';
 
-requireRole(ROLE_PROPRIO, ROLE_VENDEUR);
+exigerPermission(peutCreerVente());
 
 use App\Application\Billing\SalesWorkflowService;
 use App\Infrastructure\Persistence\SalesWorkflowRepository;
@@ -38,7 +38,7 @@ $etape = $_GET['etape'] ?? '1';
 
 // === TRAITEMENT VALIDATION PAIEMENT ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['valider_paiement'])) {
-    requireCsrf();
+    exigerCsrf();
     $salesWorkflow->markPaid((int) $vente['Id_Facture']);
     $vente['Statut_Paiement'] = 'payee';
     $success = "Paiement validé avec succès !";
@@ -48,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['valider_paiement'])) 
 
 // === TRAITEMENT CRÉATION LOGISTIQUE ===
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['creer_logistique'])) {
-    requireCsrf();
+    exigerCsrf();
     $transporteur = trim($_POST['transporteur'] ?? '');
     $numero_suivi = trim($_POST['numero_suivi'] ?? '');
     $date_livraison = $_POST['date_livraison'] ?? null;
@@ -298,7 +298,7 @@ include '../includes/header.php';
             <div class="workflow-actions">
                 <?php if ($vente['Statut_Paiement'] !== 'payee'): ?>
                     <form method="POST">
-                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                         <button type="submit" name="valider_paiement" class="btn btn-success">
                             <i class="fas fa-check-circle"></i> Confirmer le paiement
                         </button>
@@ -343,7 +343,7 @@ include '../includes/header.php';
                 </div>
             <?php else: ?>
                 <form method="POST">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">

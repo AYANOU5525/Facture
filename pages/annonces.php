@@ -4,7 +4,7 @@ require_once '../includes/auth.php';
 require_once '../config/db.php';
 require_once '../includes/b2b_helpers.php';
 
-requireRole(ROLE_PROPRIO);
+exigerPermission(peutGererB2B());
 
 $page_title = "Annonces B2B";
 include '../includes/header.php';
@@ -21,7 +21,7 @@ $success = '';
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'ajouter') {
-    requireCsrf();
+    exigerCsrf();
     try {
         $type = $_POST['type_annonce'];
         $titre = $_POST['titre'];
@@ -109,7 +109,7 @@ $annonces = $stmt->fetchAll();
         <div class="form-section">
             <h2><i class="fas fa-plus-circle"></i> Publier une annonce</h2>
             <form method="POST" class="annonce-form">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="action" value="ajouter">
 
                 <div class="form-group">
@@ -232,7 +232,7 @@ $annonces = $stmt->fetchAll();
     }
 
     .form-section {
-        background: white;
+        background: var(--bg-card);
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
@@ -240,7 +240,7 @@ $annonces = $stmt->fetchAll();
     }
 
     .annonces-section {
-        background: white;
+        background: var(--bg-card);
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);

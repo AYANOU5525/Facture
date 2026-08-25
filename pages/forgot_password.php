@@ -14,7 +14,7 @@ $message = '';
 $message_type = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireCsrf();
+    exigerCsrf();
     $email = trim($_POST['email'] ?? '');
 
     if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?php if ($message_type !== 'success'): ?>
             <form method="POST">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
 
                 <div class="form-group">
                     <label>Adresse email de votre compte</label>

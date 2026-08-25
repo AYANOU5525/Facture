@@ -2,7 +2,7 @@
 require_once '../includes/auth.php';
 require_once '../config/db.php';
 
-requireRole(ROLE_PROPRIO);
+exigerPermission(peutGererB2B());
 
 $page_title = "Notifications B2B";
 $stmt = $pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");
@@ -10,7 +10,7 @@ $stmt->execute([$_SESSION['user_id']]);
 $mon_entreprise_id = (int) $stmt->fetchColumn();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'mark_all') {
-    requireCsrf();
+    exigerCsrf();
     $pdo->prepare("UPDATE Notification_B2B SET Est_Lue = TRUE WHERE Id_Entreprise_Destinataire = ?")
         ->execute([$mon_entreprise_id]);
     header('Location: notifications_b2b.php');
@@ -72,7 +72,7 @@ $icones = [
         </div>
         <?php if ($nb_non_lues > 0): ?>
             <form method="POST">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="action" value="mark_all">
                 <button type="submit" class="btn btn-secondary btn-sm">
                     <i class="fas fa-check-double"></i> Tout marquer comme lu
@@ -159,7 +159,7 @@ $icones = [
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 },
-                body: `action=mark_read&id=${id}&csrf_token=${encodeURIComponent('<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>')}`
+                body: `action=mark_read&id=${id}&csrf_token=${encodeURIComponent('<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>')}`
             });
         }
     }
@@ -177,7 +177,7 @@ $icones = [
         align-items: flex-start;
         gap: 14px;
         padding: 14px 18px;
-        background: white;
+        background: var(--bg-card);
         border-radius: 12px;
         border: 1px solid var(--zinc-200);
         transition: background 0.2s, box-shadow 0.2s;
