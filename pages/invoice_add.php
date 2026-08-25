@@ -3,7 +3,7 @@ require_once '../includes/auth.php';
 require_once '../config/db.php';
 require_once '../vendor/autoload.php';
 
-requireRole(ROLE_PROPRIO, ROLE_VENDEUR);
+exigerPermission(peutCreerVente());
 
 use App\Application\Billing\InvoiceService;
 use App\Infrastructure\Persistence\InvoiceRepository;
@@ -21,7 +21,7 @@ $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireCsrf();
+    exigerCsrf();
     $client = trim($_POST['client'] ?? '');
     $items = $_POST['items'] ?? [];
 
@@ -67,7 +67,7 @@ include '../includes/header.php';
     }
     .item-row {
         display: grid;
-        grid-template-columns: 1fr 80px 110px 36px;
+        grid-template-columns: 1fr 80px 80px 130px 36px;
         gap: 8px;
         align-items: center;
         margin-bottom: 8px;
@@ -160,8 +160,8 @@ include '../includes/header.php';
     @media (max-width: 768px) {
         .sale-form-grid { grid-template-columns: 1fr; }
         .sale-summary-card { position: static; }
-        .item-row { grid-template-columns: 1fr 70px 36px; }
-        .item-prix-display { display: none; }
+        .item-row { grid-template-columns: 1fr 70px 70px 36px; }
+        .item-subtotal-inline { display: none; }
     }
 </style>
 
@@ -181,7 +181,7 @@ include '../includes/header.php';
     <?php endif; ?>
 
     <form method="POST" id="invoiceForm">
-        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
 
         <div class="sale-form-grid">
             <!-- Colonne gauche : client + articles -->
@@ -229,8 +229,19 @@ include '../includes/header.php';
                             </button>
                         </div>
                         <span id="barcode_feedback" style="font-size:0.85em; color:var(--text-muted); display:block; margin-top:6px;"></span>
+                        <p style="font-size:0.78rem; color:var(--text-muted); margin:6px 0 0;">
+                            <i class="fas fa-circle-info"></i>
+                            1) Cliquez sur <i class="fas fa-camera"></i> — 2) Autorisez la caméra si le navigateur le demande — 3) Pointez vers le code-barre, il s'ajoute automatiquement au panier.
+                        </p>
                     </div>
 
+                    <div class="item-row" style="background:none; border:none; padding:0 12px; margin-bottom:4px; font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">
+                        <span>Produit</span>
+                        <span>Cartons</span>
+                        <span>Unités</span>
+                        <span></span>
+                        <span></span>
+                    </div>
                     <div id="items-container"></div>
 
                     <div id="empty-items" style="text-align:center; padding:30px 0; color:var(--text-muted);">
@@ -312,7 +323,7 @@ include '../includes/header.php';
         return opts;
     }
 
-    function addItem(selectedId = null, qty = 1) {
+    function addItem(selectedId = null, qteCarton = 0, qteUnite = 1) {
         const container = document.getElementById('items-container');
         const empty     = document.getElementById('empty-items');
         if (empty) empty.style.display = 'none';
@@ -326,20 +337,37 @@ include '../includes/header.php';
                     onchange="onProductChange(this)">
                 ${renderOptions(selectedId)}
             </select>
-            <input type="hidden" name="items[${itemCount}][facteur_conversion]" class="facteur-input" value="1">
-            <input type="number" name="items[${itemCount}][quantite]" class="form-control qty-input item-prix-display"
-                   placeholder="Qté" min="1" value="${qty}" required
-                   oninput="recalculate()">
-            <span class="item-subtotal-inline" style="font-size:0.82rem; color:var(--text-muted); white-space:nowrap; text-align:right;"></span>
+            <input type="number" name="items[${itemCount}][qte_carton]" class="form-control qte-carton-input"
+                   min="0" value="${qteCarton}" placeholder="Cartons" title="Nombre de cartons" oninput="recalculate()">
+            <input type="number" name="items[${itemCount}][qte_unite]" class="form-control qte-unite-input"
+                   min="0" value="${qteUnite}" placeholder="Unités" title="Nombre d'unités" oninput="recalculate()">
+            <span class="item-subtotal-inline" style="font-size:0.78rem; color:var(--text-muted); white-space:nowrap; text-align:right; line-height:1.3;"></span>
             <button type="button" onclick="removeItem(this)" class="btn btn-danger btn-sm" title="Supprimer">
                 <i class="fas fa-trash"></i>
             </button>
         `;
         container.appendChild(div);
         itemCount++;
+        if (selectedId) updateCartonAvailability(div);
         updateOptions();
         recalculate();
         return div;
+    }
+
+    // Active/désactive le champ "Cartons" selon que le produit sélectionné a un conditionnement carton.
+    // Le coefficient réel (Quantite_Par_Carton) n'est utilisé ici que pour l'affichage — le serveur
+    // recalcule tout indépendamment à partir du produit en base au moment de la validation.
+    function updateCartonAvailability(row) {
+        const select = row.querySelector('.product-select');
+        const cartonInput = row.querySelector('.qte-carton-input');
+        const product = productMap[select.value];
+        const canCarton = product && parseInt(product.Quantite_Par_Carton) > 1;
+
+        cartonInput.disabled = !canCarton;
+        cartonInput.title = canCarton
+            ? `Nombre de cartons (1 carton = ${product.Quantite_Par_Carton} unités)`
+            : `Ce produit n'a pas de conditionnement carton`;
+        if (!canCarton) cartonInput.value = 0;
     }
 
     function removeItem(btn) {
@@ -354,6 +382,7 @@ include '../includes/header.php';
     }
 
     function onProductChange(select) {
+        updateCartonAvailability(select.closest('.item-row'));
         updateOptions();
         recalculate();
     }
@@ -383,21 +412,30 @@ include '../includes/header.php';
 
         rows.forEach(row => {
             const select = row.querySelector('.product-select');
-            const qtyInput = row.querySelector('.qty-input');
+            const cartonInput = row.querySelector('.qte-carton-input');
+            const uniteInput = row.querySelector('.qte-unite-input');
             const subtotalEl = row.querySelector('.item-subtotal-inline');
             const selectedOpt = select.options[select.selectedIndex];
             const prix = parseFloat(selectedOpt?.dataset?.prix ?? 0);
-            const qty = parseInt(qtyInput?.value ?? 1) || 1;
-            const sub = prix * qty;
+            const product = productMap[select.value];
+
+            const perCarton = product ? (parseInt(product.Quantite_Par_Carton) || 1) : 1;
+            const qteCarton = parseInt(cartonInput?.value) || 0;
+            const qteUnite = parseInt(uniteInput?.value) || 0;
+            const realQty = (qteCarton * perCarton) + qteUnite;
+            const sub = prix * realQty;
             total += sub;
 
             if (subtotalEl) {
-                subtotalEl.textContent = sub > 0 ? `= ${sub.toLocaleString('fr-FR')} F` : '';
+                subtotalEl.textContent = realQty > 0 ? `${realQty} u. = ${sub.toLocaleString('fr-FR')} F` : '';
             }
 
-            if (select.value && prix > 0) {
+            if (select.value && prix > 0 && realQty > 0) {
+                const parts = [];
+                if (qteCarton > 0) parts.push(`${qteCarton} carton(s)`);
+                if (qteUnite > 0) parts.push(`${qteUnite} u.`);
                 summaryHtml += `<div class="sale-summary-row">
-                    <span>${escHtml(selectedOpt.text.split('—')[0].trim())} ×${qty}</span>
+                    <span>${escHtml(selectedOpt.text.split('—')[0].trim())} (${parts.join(' + ')})</span>
                     <span>${sub.toLocaleString('fr-FR')} F</span>
                 </div>`;
             }
@@ -444,7 +482,7 @@ include '../includes/header.php';
         qrScanner = new Html5Qrcode('camera-reader');
         qrScanner.start(
             { facingMode: 'environment' },
-            { fps: 12, qrbox: { width: 260, height: 120 } },
+            { fps: 12, qrbox: { width: 260, height: 120 }, aspectRatio: 1.333334 },
             (decodedText) => {
                 document.getElementById('barcode_input').value = decodedText;
                 document.getElementById('cam-status').textContent = '✔ Code détecté : ' + decodedText;
@@ -462,13 +500,23 @@ include '../includes/header.php';
     }
 
     function closeCamera() {
-        if (qrScanner) {
-            qrScanner.stop().catch(() => {}).finally(() => {
-                qrScanner.clear();
-                qrScanner = null;
-            });
+        // Si la caméra n'a jamais réussi à démarrer (ex: NotFoundError), .stop() peut lever
+        // une exception SYNCHRONE plutôt qu'une promesse rejetée — Promise.resolve().then(...)
+        // capture les deux cas, et le try/finally garantit que la modale se ferme dans tous les cas.
+        try {
+            const scanner = qrScanner;
+            qrScanner = null;
+            if (scanner) {
+                Promise.resolve()
+                    .then(() => scanner.stop())
+                    .catch(() => {})
+                    .finally(() => {
+                        try { scanner.clear(); } catch (e) {}
+                    });
+            }
+        } finally {
+            document.getElementById('cameraModal').style.display = 'none';
         }
-        document.getElementById('cameraModal').style.display = 'none';
     }
 
     function lookupBarcode() {
@@ -490,23 +538,26 @@ include '../includes/header.php';
                     return;
                 }
 
+                const isCarton = data.type_conditionnement === 'carton';
+
                 // Chercher si le produit est déjà dans la liste
                 const selects = document.querySelectorAll('.product-select');
                 let existingRow = null;
                 selects.forEach(sel => {
-                    if (sel.value == data.id) existingRow = sel.closest('.item-row');
+                    if (sel.value == data.id_produit) existingRow = sel.closest('.item-row');
                 });
 
-                const qty = data.is_carton ? data.quantite_par_carton : 1;
-
                 if (existingRow) {
-                    const qtyInput = existingRow.querySelector('.qty-input');
-                    qtyInput.value = parseInt(qtyInput.value || 1) + qty;
+                    // Un scan de plus = +1 dans le conditionnement scanné (carton ou unité)
+                    const targetInput = existingRow.querySelector(isCarton ? '.qte-carton-input' : '.qte-unite-input');
+                    targetInput.value = (parseInt(targetInput.value) || 0) + 1;
                     recalculate();
-                    feedback.textContent = '✔ Quantité mise à jour : ' + data.nom;
+                    feedback.textContent = '✔ Quantité mise à jour : ' + data.nom_produit;
                 } else {
-                    addItem(data.id, qty);
-                    feedback.textContent = '✔ Ajouté : ' + data.nom + (data.is_carton ? ' (carton ×' + qty + ')' : '');
+                    addItem(data.id_produit, isCarton ? 1 : 0, isCarton ? 0 : 1);
+                    feedback.textContent = '✔ Ajouté : ' + data.nom_produit + (isCarton
+                        ? ` — conditionnement Carton (1 = ${data.coefficient} unités, ${Math.round(data.prix_conditionnement).toLocaleString('fr-FR')} F)`
+                        : ' — conditionnement Unité');
                 }
 
                 feedback.style.color = 'var(--success)';
@@ -522,12 +573,12 @@ include '../includes/header.php';
 
 <!-- MODAL CAMÉRA -->
 <div id="cameraModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.85);
-     z-index:9000; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
+     z-index:9000; flex-direction:column; align-items:center; justify-content:center; padding:20px; overflow-y:auto;">
 
-    <div style="background:#1a1a2e; border-radius:16px; width:100%; max-width:420px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,.6);">
+    <div style="background:#1a1a2e; border-radius:16px; width:100%; max-width:420px; max-height:90vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,.6); margin:auto;">
 
         <!-- Titre -->
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #2d2d44;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #2d2d44; position:sticky; top:0; background:#1a1a2e; z-index:1;">
             <span style="color:#fff; font-weight:600; font-size:1rem;">
                 <i class="fas fa-camera" style="color:#17a2b8; margin-right:8px;"></i>Scanner un code barre
             </span>
@@ -537,7 +588,7 @@ include '../includes/header.php';
         </div>
 
         <!-- Viseur caméra -->
-        <div style="position:relative; background:#000;">
+        <div style="position:relative; background:#000; max-height:280px; overflow:hidden;">
             <div id="camera-reader" style="width:100%;"></div>
             <div style="position:absolute; left:10%; width:80%; height:2px; top:50%;
                  background:linear-gradient(90deg,transparent,#17a2b8,transparent);

@@ -2,7 +2,7 @@
 require_once '../includes/auth.php';
 require_once '../config/db.php';
 
-requireRole(ROLE_PROPRIO, ROLE_VENDEUR);
+exigerPermission(peutVoirFactures());
 
 if (!isset($_GET['ref'])) {
     die("Référence Facture manquante.");
@@ -224,12 +224,29 @@ $label_conservation = $date_conservation->format('d/m/Y');
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($articles as $art): ?>
+                <?php foreach ($articles as $art):
+                    // Articles_JSON a eu plusieurs formats historiques (seed, ancien facteur_conversion,
+                    // nouveau format carton+unité) — on reste tolérant aux trois pour l'affichage.
+                    $qte_carton = (int) ($art['quantite_carton'] ?? 0);
+                    $qte_unite  = $art['quantite_unite'] ?? null;
+                    $qte_totale = $art['quantite_unites'] ?? $art['quantite'] ?? 1;
+                    $prix_u     = $art['prix_unitaire'] ?? $art['prix'] ?? 0;
+                    $total_l    = $art['total'] ?? $art['sous_total'] ?? ($qte_totale * $prix_u);
+
+                    $qte_label = $qte_totale . ($qte_totale > 1 ? ' unités' : ' unité');
+                    if ($qte_carton > 0) {
+                        $detail = [$qte_carton . ' carton(s)'];
+                        if (!empty($qte_unite)) {
+                            $detail[] = $qte_unite . ' unité(s)';
+                        }
+                        $qte_label = implode(' + ', $detail) . ' = ' . $qte_totale . ' u.';
+                    }
+                ?>
                     <tr>
                         <td><?= htmlspecialchars($art['nom']) ?></td>
-                        <td style="text-align: center;"><?= $art['quantite'] ?></td>
-                        <td style="text-align: right;"><?= number_format($art['prix'], 0, ',', ' ') ?></td>
-                        <td style="text-align: right;"><?= number_format($art['total'] ?? ($art['quantite'] * $art['prix']), 0, ',', ' ') ?></td>
+                        <td style="text-align: center;"><?= htmlspecialchars((string) $qte_label) ?></td>
+                        <td style="text-align: right;"><?= number_format((float) $prix_u, 0, ',', ' ') ?></td>
+                        <td style="text-align: right;"><?= number_format((float) $total_l, 0, ',', ' ') ?></td>
                     </tr>
                 <?php endforeach; ?>
 

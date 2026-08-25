@@ -15,7 +15,7 @@ final class StockRepository
     public function findProductForUpdate(int $productId, int $enterpriseId): ?array
     {
         $statement = $this->pdo->prepare(
-            'SELECT Id_Produit, Nom_Produit, Quantite_En_Stock
+            'SELECT Id_Produit, Nom_Produit, Quantite_En_Stock, Quantite_Par_Carton
              FROM Produit
              WHERE Id_Produit = ? AND Id_Entreprise = ?
              FOR UPDATE'
@@ -41,13 +41,17 @@ final class StockRepository
         $statement = $this->pdo->prepare(
             'INSERT INTO Produit
                 (Nom_Produit, Description_Produit, Prix_Unitaire_Produit, Quantite_En_Stock,
-                 En_Destockage_B2B, Prix_B2B, Quantite_Min_B2B, Id_Entreprise)
-             VALUES (?, ?, ?, 0, 0, NULL, 1, ?)'
+                 En_Destockage_B2B, Prix_B2B, Quantite_Min_B2B,
+                 Code_Barre_Unite, Code_Barre_Carton, Quantite_Par_Carton, Id_Entreprise)
+             VALUES (?, ?, ?, 0, 0, NULL, 1, ?, ?, ?, ?)'
         );
         $statement->execute([
             $product['Nom_Produit'],
             $product['Description_Produit'] ?? null,
             $product['Prix_B2B'] ?? $product['Prix_Unitaire_Produit'] ?? 0,
+            $product['Code_Barre_Unite'] ?? null,
+            $product['Code_Barre_Carton'] ?? null,
+            max(1, (int) ($product['Quantite_Par_Carton'] ?? 1)),
             $enterpriseId,
         ]);
 
@@ -63,6 +67,31 @@ final class StockRepository
              FOR UPDATE'
         );
         $statement->execute([$enterpriseId, $name]);
+        $productId = $statement->fetchColumn();
+
+        return $productId === false ? null : (int) $productId;
+    }
+
+    /** Retrouve un produit du même code-barre déjà présent chez l'acheteur (même article, catalogue différent). */
+    public function findByBarcodeForUpdate(string $barcodeUnite, ?string $barcodeCarton, int $enterpriseId): ?int
+    {
+        if ($barcodeUnite === '' && ($barcodeCarton === null || $barcodeCarton === '')) {
+            return null;
+        }
+
+        $statement = $this->pdo->prepare(
+            'SELECT Id_Produit FROM Produit
+             WHERE Id_Entreprise = ?
+               AND ((Code_Barre_Unite IS NOT NULL AND Code_Barre_Unite IN (?, ?))
+                 OR (Code_Barre_Carton IS NOT NULL AND Code_Barre_Carton IN (?, ?)))
+             ORDER BY Id_Produit ASC LIMIT 1
+             FOR UPDATE'
+        );
+        $statement->execute([
+            $enterpriseId,
+            $barcodeUnite, $barcodeCarton,
+            $barcodeUnite, $barcodeCarton,
+        ]);
         $productId = $statement->fetchColumn();
 
         return $productId === false ? null : (int) $productId;
