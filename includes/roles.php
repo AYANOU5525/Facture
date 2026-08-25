@@ -14,142 +14,156 @@ const ROLE_VENDEUR = 'vendeur';
 const ROLE_LIVREUR = 'livreur';
 
 /** Vérifie si le rôle de la session est parmi ceux passés. */
-function hasRole(string ...$roles): bool
+function aRole(string ...$roles): bool
 {
     return in_array($_SESSION['role'] ?? '', $roles, true);
 }
 
 /** Redirige vers le dashboard si le rôle n'est pas autorisé. */
-function requireRole(string ...$roles): void
+function exigerRole(string ...$roles): void
 {
-    if (!hasRole(...$roles)) {
+    if (!aRole(...$roles)) {
+        header('Location: dashboard.php?error=access_denied');
+        exit();
+    }
+}
+
+/**
+ * Redirige vers le dashboard si la permission n'est pas accordée.
+ * À utiliser avec les fonctions can*()/is*() ci-dessous, ex : exigerPermission(peutVoirProduits()).
+ * Centralise l'autorisation sur l'objectif métier plutôt que sur une liste de rôles
+ * recopiée dans chaque page — ajouter un rôle ou une permission ne se fait qu'ici.
+ */
+function exigerPermission(bool $allowed): void
+{
+    if (!$allowed) {
         header('Location: dashboard.php?error=access_denied');
         exit();
     }
 }
 
 /** Administrateur de la plateforme (pas d'action sur les entreprises). */
-function isAppAdmin(): bool
+function estAdminPlateforme(): bool
 {
-    return hasRole(ROLE_ADMIN);
+    return aRole(ROLE_ADMIN);
 }
 
 /** proprio uniquement — gestion complète de l'entreprise. */
-function isManager(): bool
+function estProprietaire(): bool
 {
-    return hasRole(ROLE_PROPRIO);
+    return aRole(ROLE_PROPRIO);
 }
 
 /** Peut créer/modifier des ventes et factures. */
-function canSell(): bool
+function peutVendre(): bool
 {
-    return hasRole(ROLE_PROPRIO, ROLE_VENDEUR);
+    return aRole(ROLE_PROPRIO, ROLE_VENDEUR);
 }
 
 /** Peut voir la liste des produits (lecture). */
-function canViewStock(): bool
+function peutVoirStock(): bool
 {
-    return hasRole(ROLE_PROPRIO, ROLE_VENDEUR);
+    return aRole(ROLE_PROPRIO, ROLE_VENDEUR);
 }
 
 /** Peut modifier le stock (approvisionnement, ajout/suppression produits). */
-function canManageStock(): bool
+function peutGererStock(): bool
 {
-    return hasRole(ROLE_PROPRIO);
+    return aRole(ROLE_PROPRIO);
 }
 
 /** Peut accéder aux fonctions logistiques. */
-function canDeliver(): bool
+function peutLivrer(): bool
 {
-    return hasRole(ROLE_PROPRIO, ROLE_LIVREUR);
+    return aRole(ROLE_PROPRIO, ROLE_LIVREUR);
 }
 
 /** Peut accéder au réseau B2B et aux commandes inter-entreprises. */
-function canAccessB2B(): bool
+function peutAccederB2B(): bool
 {
-    return hasRole(ROLE_PROPRIO);
+    return aRole(ROLE_PROPRIO);
 }
 
 /** Peut voir la liste des produits (lecture seule). */
-function canViewProducts(): bool
+function peutVoirProduits(): bool
 {
-    return hasRole(ROLE_PROPRIO, ROLE_VENDEUR);
+    return aRole(ROLE_PROPRIO, ROLE_VENDEUR);
 }
 
 /** Peut modifier les produits et le stock (ajout, suppression, approvisionnement). */
-function canManageProducts(): bool
+function peutGererProduits(): bool
 {
-    return hasRole(ROLE_PROPRIO);
+    return aRole(ROLE_PROPRIO);
 }
 
 /** Peut créer une vente. */
-function canCreateSale(): bool
+function peutCreerVente(): bool
 {
-    return hasRole(ROLE_PROPRIO, ROLE_VENDEUR);
+    return aRole(ROLE_PROPRIO, ROLE_VENDEUR);
 }
 
 /** Peut consulter l'historique des ventes et factures. */
-function canViewSales(): bool
+function peutVoirVentes(): bool
 {
-    return hasRole(ROLE_PROPRIO, ROLE_VENDEUR);
+    return aRole(ROLE_PROPRIO, ROLE_VENDEUR);
 }
 
 /** Peut consulter les factures. */
-function canViewInvoices(): bool
+function peutVoirFactures(): bool
 {
-    return hasRole(ROLE_PROPRIO, ROLE_VENDEUR);
+    return aRole(ROLE_PROPRIO, ROLE_VENDEUR);
 }
 
 /** Peut consulter la liste des clients. */
-function canViewClients(): bool
+function peutVoirClients(): bool
 {
-    return hasRole(ROLE_PROPRIO, ROLE_VENDEUR);
+    return aRole(ROLE_PROPRIO, ROLE_VENDEUR);
 }
 
 /** Peut consulter les expéditions logistiques. */
-function canViewShipments(): bool
+function peutVoirExpeditions(): bool
 {
-    return hasRole(ROLE_PROPRIO, ROLE_LIVREUR);
+    return aRole(ROLE_PROPRIO, ROLE_LIVREUR);
 }
 
 /** Peut créer/supprimer des entrées logistiques. */
-function canManageShipments(): bool
+function peutGererExpeditions(): bool
 {
-    return hasRole(ROLE_PROPRIO);
+    return aRole(ROLE_PROPRIO);
 }
 
 /** Peut mettre à jour le statut d'une expédition. */
-function canUpdateShipmentStatus(): bool
+function peutModifierStatutExpedition(): bool
 {
-    return hasRole(ROLE_PROPRIO, ROLE_LIVREUR);
+    return aRole(ROLE_PROPRIO, ROLE_LIVREUR);
 }
 
 /** Peut accéder aux fonctionnalités B2B (commandes, réseau, chat). */
-function canManageB2B(): bool
+function peutGererB2B(): bool
 {
-    return hasRole(ROLE_PROPRIO);
+    return aRole(ROLE_PROPRIO);
 }
 
 /** Peut gérer les paramètres de l'entreprise. */
-function canManageCompanySettings(): bool
+function peutGererParametres(): bool
 {
-    return hasRole(ROLE_PROPRIO);
+    return aRole(ROLE_PROPRIO);
 }
 
 /** Peut gérer l'équipe et les paramètres de l'entreprise. */
-function canManageTeam(): bool
+function peutGererEquipe(): bool
 {
-    return hasRole(ROLE_PROPRIO);
+    return aRole(ROLE_PROPRIO);
 }
 
 /** Accès aux fonctionnalités de gestion de la plateforme (admin uniquement). */
-function canManagePlatform(): bool
+function peutGererPlateforme(): bool
 {
-    return hasRole(ROLE_ADMIN);
+    return aRole(ROLE_ADMIN);
 }
 
 /** Libellé lisible du rôle. */
-function roleName(string $role = ''): string
+function nomRole(string $role = ''): string
 {
     return match($role ?: ($_SESSION['role'] ?? '')) {
         ROLE_ADMIN   => 'Administrateur',
@@ -161,7 +175,7 @@ function roleName(string $role = ''): string
 }
 
 /** Couleur badge selon le rôle. */
-function roleBadgeClass(string $role): string
+function classeBadgeRole(string $role): string
 {
     return match($role) {
         ROLE_ADMIN   => 'badge-danger',

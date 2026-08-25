@@ -1,10 +1,13 @@
 <?php
 require_once '../includes/auth.php';
 require_once '../config/db.php';
+require_once '../vendor/autoload.php';
+
+use App\Application\Inventory\PackagingConverter;
 
 header('Content-Type: application/json');
 
-if (!canSell()) {
+if (!peutVendre()) {
     http_response_code(403);
     echo json_encode(['error' => 'Accès refusé.']);
     exit();
@@ -40,7 +43,7 @@ if (empty($barcode)) {
 }
 
 $stmt = $pdo->prepare("
-    SELECT Id_Produit, Nom_Produit, Prix_Unitaire_Produit, Quantite_En_Stock,
+    SELECT Id_Produit, Nom_Produit, Description_Produit, Prix_Unitaire_Produit, Prix_B2B, Quantite_En_Stock,
            Code_Barre_Unite, Code_Barre_Carton, Quantite_Par_Carton
     FROM Produit
     WHERE Id_Entreprise = ?
@@ -55,14 +58,28 @@ if (!$produit) {
     exit;
 }
 
-$is_carton = ($produit['Code_Barre_Carton'] === $barcode);
+// Le backend seul décide du conditionnement détecté et du coefficient — jamais le client.
+$conditionnement = PackagingConverter::detect($produit, $barcode);
+if ($conditionnement === null) {
+    // Ne devrait pas arriver (la requête n'a matché que sur ces deux colonnes), gardé par sécurité.
+    echo json_encode(['found' => false, 'message' => 'Code-barre non reconnu pour ce produit']);
+    exit;
+}
+
+$prixUnitaire = (float) $produit['Prix_Unitaire_Produit'];
 
 echo json_encode([
-    'found'              => true,
-    'id'                 => $produit['Id_Produit'],
-    'nom'                => $produit['Nom_Produit'],
-    'prix'               => $produit['Prix_Unitaire_Produit'],
-    'stock'              => $produit['Quantite_En_Stock'],
-    'is_carton'          => $is_carton,
-    'quantite_par_carton'=> (int) ($produit['Quantite_Par_Carton'] ?? 1),
+    'found'                => true,
+    'id_produit'           => (int) $produit['Id_Produit'],
+    'nom_produit'          => $produit['Nom_Produit'],
+    'description'          => $produit['Description_Produit'],
+    'prix_unitaire'        => $prixUnitaire,
+    'prix_b2b'             => $produit['Prix_B2B'] !== null ? (float) $produit['Prix_B2B'] : null,
+    'stock_disponible'     => (int) $produit['Quantite_En_Stock'],
+    'code_barre_unite'     => $produit['Code_Barre_Unite'],
+    'code_barre_carton'    => $produit['Code_Barre_Carton'],
+    'quantite_par_carton'  => PackagingConverter::coefficientCarton($produit),
+    'type_conditionnement' => $conditionnement['type'],
+    'coefficient'          => $conditionnement['coefficient'],
+    'prix_conditionnement' => $prixUnitaire * $conditionnement['coefficient'],
 ]);

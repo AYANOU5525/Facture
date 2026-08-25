@@ -29,16 +29,22 @@ final class StockService
         try {
             foreach ($items as $item) {
                 $productId = (int) ($item['produit'] ?? 0);
-                $quantity = (int) ($item['quantite_ajouter'] ?? 0);
-                $factor = max(1, (int) ($item['facteur_conversion'] ?? 1));
-                $realQuantity = $quantity * $factor;
+                $qteUnite = max(0, (int) ($item['qte_unite'] ?? 0));
+                $qteCarton = max(0, (int) ($item['qte_carton'] ?? 0));
 
-                if ($productId <= 0 || $realQuantity <= 0) {
+                if ($productId <= 0 || ($qteUnite <= 0 && $qteCarton <= 0)) {
                     continue;
                 }
 
-                if (!$this->repository->findProductForUpdate($productId, $enterpriseId)) {
+                $product = $this->repository->findProductForUpdate($productId, $enterpriseId);
+                if (!$product) {
                     throw new RuntimeException('Produit introuvable ou accès non autorisé.');
+                }
+
+                // Coefficient carton lu uniquement depuis le produit verrouillé en base — jamais depuis le client.
+                $realQuantity = PackagingConverter::combinedUnits($product, $qteCarton, $qteUnite);
+                if ($realQuantity <= 0) {
+                    continue;
                 }
 
                 $this->repository->increase($productId, $enterpriseId, $realQuantity);
@@ -63,7 +69,18 @@ final class StockService
             throw new InvalidArgumentException('La quantité réceptionnée dépasse la quantité restante.');
         }
 
-        $productId = $this->repository->findByNameForUpdate((string) $line['Nom_Produit'], $enterpriseId);
+        // Le code-barre du vendeur est plus fiable qu'un nom pour reconnaître le même article
+        // dans le catalogue de l'acheteur (noms parfois formulés différemment d'une entreprise à l'autre).
+        $productId = $this->repository->findByBarcodeForUpdate(
+            (string) ($line['Code_Barre_Unite'] ?? ''),
+            $line['Code_Barre_Carton'] ?? null,
+            $enterpriseId
+        );
+
+        if ($productId === null) {
+            $productId = $this->repository->findByNameForUpdate((string) $line['Nom_Produit'], $enterpriseId);
+        }
+
         if ($productId === null) {
             $productId = $this->repository->createReceivedProduct($line, $enterpriseId);
         }

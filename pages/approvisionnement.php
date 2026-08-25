@@ -3,7 +3,7 @@ require_once '../includes/auth.php';
 require_once '../config/db.php';
 require_once '../vendor/autoload.php';
 
-requireRole(ROLE_PROPRIO);
+exigerPermission(peutGererStock());
 
 use App\Application\Inventory\StockService;
 use App\Infrastructure\Persistence\StockRepository;
@@ -18,7 +18,7 @@ $stmt->execute([$_SESSION['user_id']]);
 $entreprise_id = $stmt->fetchColumn();
 
 // Fetch all products for the JS array
-$stmt = $pdo->prepare("SELECT Id_Produit, Nom_Produit, Prix_Unitaire_Produit, Quantite_En_Stock FROM Produit WHERE Id_Entreprise = ? ORDER BY Nom_Produit");
+$stmt = $pdo->prepare("SELECT Id_Produit, Nom_Produit, Prix_Unitaire_Produit, Quantite_En_Stock, Quantite_Par_Carton FROM Produit WHERE Id_Entreprise = ? ORDER BY Nom_Produit");
 $stmt->execute([$entreprise_id]);
 $produits = $stmt->fetchAll();
 
@@ -31,7 +31,7 @@ $receptions_b2b = $stmt->fetchAll();
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireCsrf();
+    exigerCsrf();
     $action = $_POST['action'] ?? 'approvisionnement';
 
     if ($action === 'recevoir_b2b') {
@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     continue;
                 }
 
-                $stmt = $pdo->prepare("\n                    SELECT l.Id_Ligne, l.Id_Produit, l.Nom_Produit, l.Quantite, l.Quantite_Receptionnee,\n                           p.Description_Produit, p.Prix_Unitaire_Produit, p.Prix_B2B\n                    FROM Ligne_Commande_B2B l\n                    JOIN Commande_B2B c ON c.Id_Commande_B2B = l.Id_Commande_B2B\n                    JOIN Produit p ON p.Id_Produit = l.Id_Produit\n                    WHERE l.Id_Ligne = ?\n                      AND c.Id_Entreprise_Acheteuse = ?\n                      AND c.Statut = 'livree'\n                    FOR UPDATE\n                ");
+                $stmt = $pdo->prepare("\n                    SELECT l.Id_Ligne, l.Id_Produit, l.Nom_Produit, l.Quantite, l.Quantite_Receptionnee,\n                           p.Description_Produit, p.Prix_Unitaire_Produit, p.Prix_B2B,\n                           p.Code_Barre_Unite, p.Code_Barre_Carton, p.Quantite_Par_Carton\n                    FROM Ligne_Commande_B2B l\n                    JOIN Commande_B2B c ON c.Id_Commande_B2B = l.Id_Commande_B2B\n                    JOIN Produit p ON p.Id_Produit = l.Id_Produit\n                    WHERE l.Id_Ligne = ?\n                      AND c.Id_Entreprise_Acheteuse = ?\n                      AND c.Statut = 'livree'\n                    FOR UPDATE\n                ");
                 $stmt->execute([(int) $id_ligne, $entreprise_id]);
                 $ligne = $stmt->fetch();
 
@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $success = $received > 0
                     ? 'Approvisionnement enregistré avec succès. Les stocks ont été mis à jour.'
                     : 'Aucune quantité valide à ajouter.';
-                $stmt = $pdo->prepare("SELECT Id_Produit, Nom_Produit, Prix_Unitaire_Produit, Quantite_En_Stock FROM Produit WHERE Id_Entreprise = ? ORDER BY Nom_Produit");
+                $stmt = $pdo->prepare("SELECT Id_Produit, Nom_Produit, Prix_Unitaire_Produit, Quantite_En_Stock, Quantite_Par_Carton FROM Produit WHERE Id_Entreprise = ? ORDER BY Nom_Produit");
                 $stmt->execute([$entreprise_id]);
                 $produits = $stmt->fetchAll();
             } catch (Throwable $e) {
@@ -96,6 +96,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
+
+<style>
+    .stock-scanner-box {
+        background: var(--success-bg);
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--success);
+        border-radius: var(--radius);
+        padding: 14px 16px;
+        margin-bottom: 20px;
+    }
+    .stock-scanner-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .stock-scanner-icon { font-size: 1.3rem; color: var(--success); flex-shrink: 0; }
+    .stock-scanner-hint {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        margin: 4px 0 0;
+        width: 100%;
+    }
+    .stock-items-legend {
+        display: grid;
+        grid-template-columns: 2fr 100px 100px 150px 40px;
+        gap: 10px;
+        padding: 0 14px;
+        margin-bottom: 6px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+    .stock-item-row {
+        display: grid;
+        grid-template-columns: 2fr 100px 100px 150px 40px;
+        gap: 10px;
+        align-items: center;
+        background: var(--bg-card);
+        border: 1px solid var(--zinc-200);
+        border-radius: var(--radius);
+        padding: 10px 14px;
+        margin-bottom: 10px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .stock-item-row:hover {
+        border-color: var(--primary);
+        box-shadow: var(--shadow-xs);
+    }
+    .stock-item-conversion {
+        font-size: 0.78rem;
+        color: var(--success);
+        font-weight: 600;
+    }
+    .stock-item-remove-btn {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .stock-draft-footer {
+        border-top: 1px solid var(--border);
+        padding-top: 20px;
+        display: flex;
+        gap: 10px;
+    }
+    @media (max-width: 700px) {
+        .stock-items-legend { display: none; }
+        .stock-item-row { grid-template-columns: 1fr 70px 70px 36px; }
+        .stock-item-conversion { display: none; }
+    }
+</style>
 
 <div class="container fade-in">
     <div class="page-header">
@@ -115,7 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
             <form method="POST">
-                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="action" value="recevoir_b2b">
                 <div class="table-responsive">
                     <table class="table">
@@ -149,14 +225,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php endif; ?>
 
     <form method="POST" id="approForm" class="card">
-        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
 
         <h3>Brouillon d'Entrée en Stock</h3>
 
         <!-- SCANNER CODE BARRE (ENTRÉE) -->
-        <div style="background:#f0fff4; padding:12px; border-radius:8px; border-left:4px solid #28a745; margin-bottom:15px;">
-            <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                <i class="fas fa-barcode" style="font-size:1.4rem; color:#28a745;"></i>
+        <div class="stock-scanner-box">
+            <div class="stock-scanner-row">
+                <i class="fas fa-barcode stock-scanner-icon"></i>
                 <input type="text"
                        id="barcode_input"
                        class="form-control"
@@ -169,10 +245,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <button type="button" class="btn btn-dark btn-sm" onclick="openCamera()" id="btn-camera">
                     <i class="fas fa-camera"></i> Caméra
                 </button>
-                <span id="barcode_feedback" style="font-size:0.9em; color:#666; width:100%;"></span>
+                <span id="barcode_feedback" style="font-size:0.9em; color:var(--text-muted); width:100%;"></span>
+                <p class="stock-scanner-hint">
+                    <i class="fas fa-circle-info"></i>
+                    1) Cliquez sur <i class="fas fa-camera"></i> — 2) Autorisez la caméra si le navigateur le demande — 3) Pointez vers le code-barre, il s'ajoute automatiquement au brouillon.
+                </p>
             </div>
         </div>
 
+        <div class="stock-items-legend">
+            <span>Produit</span>
+            <span>Cartons</span>
+            <span>Unités</span>
+            <span></span>
+            <span></span>
+        </div>
         <div id="items-container">
             <!-- Items will be added here dynamically -->
         </div>
@@ -181,7 +268,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <i class="fas fa-plus"></i> Ajouter un article manuellement
         </button>
 
-        <div style="border-top: 1px solid #eee; padding-top: 20px; display:flex; gap:10px;">
+        <div class="stock-draft-footer">
             <button type="submit" class="btn btn-success" id="btn-submit" disabled><i class="fas fa-check-double"></i> Valider l'entrée en stock</button>
             <a href="products.php" class="btn btn-secondary">Retour aux Stocks</a>
         </div>
@@ -203,35 +290,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         return opts;
     }
 
-    function addItem(selectedId = null) {
+    function addItem(selectedId = null, qteCarton = 0, qteUnite = 1) {
         const container = document.getElementById('items-container');
         const div = document.createElement('div');
-        div.className = 'item-row';
+        div.className = 'item-row stock-item-row';
         div.setAttribute('data-id', itemCount);
-        div.style.cssText = 'display: flex; gap: 10px; margin-bottom: 10px; align-items: center; background: #f8f9fa; padding: 10px; border-radius: 5px; border-left: 4px solid #17a2b8;';
 
         div.innerHTML = `
-            <div style="flex: 2;">
-                <label style="font-size: 0.8em; color: #666; margin-bottom: 2px;">Produit</label>
-                <select name="items[${itemCount}][produit]" class="form-control product-select" required onchange="updateOptions()">
-                    ${renderOptions(selectedId)}
-                </select>
-                <input type="hidden" name="items[${itemCount}][facteur_conversion]" class="facteur-input" value="1">
-            </div>
-
-            <div style="flex: 1;">
-                <label style="font-size: 0.8em; color: #666; margin-bottom: 2px;">Quantité à ENTRER</label>
-                <input type="number" name="items[${itemCount}][quantite_ajouter]" class="form-control qty-input" placeholder="Qté" min="1" value="1" required>
-            </div>
-            <div style="margin-top: 20px;">
-                <button type="button" onclick="removeItem(this)" class="btn btn-danger btn-sm"><i class="fas fa-times"></i></button>
-            </div>
+            <select name="items[${itemCount}][produit]" class="form-control product-select" required onchange="onItemProductChange(this)">
+                ${renderOptions(selectedId)}
+            </select>
+            <input type="number" name="items[${itemCount}][qte_carton]" class="form-control qte-carton-input"
+                   min="0" value="${qteCarton}" placeholder="0" oninput="updateRowConversion(this.closest('.item-row'))">
+            <input type="number" name="items[${itemCount}][qte_unite]" class="form-control qte-unite-input"
+                   min="0" value="${qteUnite}" placeholder="0" oninput="updateRowConversion(this.closest('.item-row'))">
+            <small class="conversion-display stock-item-conversion"></small>
+            <button type="button" onclick="removeItem(this)" class="btn btn-danger btn-sm stock-item-remove-btn" title="Supprimer">
+                <i class="fas fa-times"></i>
+            </button>
         `;
         container.appendChild(div);
         itemCount++;
+        if (selectedId) updateCartonAvailability(div);
+        updateRowConversion(div);
         updateOptions();
         checkSubmitButton();
         return div;
+    }
+
+    // Active/désactive le champ "Cartons" selon que le produit a un conditionnement carton.
+    // Le coefficient affiché ici est purement informatif — le serveur recalcule tout à partir
+    // du produit en base au moment de la validation, jamais depuis ce que le client envoie.
+    function updateCartonAvailability(row) {
+        const select = row.querySelector('.product-select');
+        const cartonInput = row.querySelector('.qte-carton-input');
+        const product = products.find(p => p.Id_Produit == select.value);
+        const canCarton = product && parseInt(product.Quantite_Par_Carton) > 1;
+
+        cartonInput.disabled = !canCarton;
+        cartonInput.title = canCarton
+            ? `1 carton = ${product.Quantite_Par_Carton} unités`
+            : `Ce produit n'a pas de conditionnement carton`;
+        if (!canCarton) cartonInput.value = 0;
+        updateRowConversion(row);
+    }
+
+    function onItemProductChange(select) {
+        updateCartonAvailability(select.closest('.item-row'));
+        updateOptions();
+    }
+
+    function updateRowConversion(row) {
+        const select = row.querySelector('.product-select');
+        const cartonInput = row.querySelector('.qte-carton-input');
+        const uniteInput = row.querySelector('.qte-unite-input');
+        const display = row.querySelector('.conversion-display');
+        const product = products.find(p => p.Id_Produit == select.value);
+
+        const perCarton = product ? (parseInt(product.Quantite_Par_Carton) || 1) : 1;
+        const qteCarton = parseInt(cartonInput.value) || 0;
+        const qteUnite = parseInt(uniteInput.value) || 0;
+        const total = (qteCarton * perCarton) + qteUnite;
+
+        display.textContent = total > 0 ? `= ${total} unité(s) au total` : '';
+        checkSubmitButton();
     }
 
     function removeItem(btn) {
@@ -293,7 +415,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         qrScanner = new Html5Qrcode('camera-reader');
         qrScanner.start(
             { facingMode: 'environment' },
-            { fps: 12, qrbox: { width: 260, height: 120 } },
+            { fps: 12, qrbox: { width: 260, height: 120 }, aspectRatio: 1.333334 },
             (decodedText) => {
                 document.getElementById('barcode_input').value = decodedText;
                 document.getElementById('cam-status').textContent = '✔ Code détecté : ' + decodedText;
@@ -311,13 +433,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     function closeCamera() {
-        if (qrScanner) {
-            qrScanner.stop().catch(() => {}).finally(() => {
-                qrScanner.clear();
-                qrScanner = null;
-            });
+        // Si la caméra n'a jamais réussi à démarrer (ex: NotFoundError), .stop() peut lever
+        // une exception SYNCHRONE plutôt qu'une promesse rejetée — Promise.resolve().then(...)
+        // capture les deux cas, et le try/finally garantit que la modale se ferme dans tous les cas.
+        try {
+            const scanner = qrScanner;
+            qrScanner = null;
+            if (scanner) {
+                Promise.resolve()
+                    .then(() => scanner.stop())
+                    .catch(() => {})
+                    .finally(() => {
+                        try { scanner.clear(); } catch (e) {}
+                    });
+            }
+        } finally {
+            document.getElementById('cameraModal').style.display = 'none';
         }
-        document.getElementById('cameraModal').style.display = 'none';
     }
 
     function lookupBarcode() {
@@ -328,43 +460,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!barcode) return;
 
         feedback.textContent = 'Recherche...';
-        feedback.style.color = '#666';
+        feedback.style.color = 'var(--text-muted)';
 
         fetch('../api/lookup_product.php?barcode=' + encodeURIComponent(barcode))
             .then(r => r.json())
             .then(data => {
                 if (!data.found) {
                     feedback.textContent = '⚠ ' + (data.message || 'Produit introuvable');
-                    feedback.style.color = '#dc3545';
+                    feedback.style.color = 'var(--danger)';
                     return;
                 }
+
+                const isCarton = data.type_conditionnement === 'carton';
 
                 // Chercher si le produit est déjà dans le brouillon
                 const selects = document.querySelectorAll('.product-select');
                 let existingRow = null;
                 selects.forEach(sel => {
-                    if (sel.value == data.id) existingRow = sel.closest('.item-row');
+                    if (sel.value == data.id_produit) existingRow = sel.closest('.item-row');
                 });
 
-                const qty = data.is_carton ? data.quantite_par_carton : 1;
-
                 if (existingRow) {
-                    const qtyInput = existingRow.querySelector('.qty-input');
-                    qtyInput.value = parseInt(qtyInput.value || 1) + qty;
-                    feedback.textContent = '✔ Quantité mise à jour : ' + data.nom;
+                    // Un scan de plus = +1 dans le conditionnement scanné (carton ou unité)
+                    const targetInput = existingRow.querySelector(isCarton ? '.qte-carton-input' : '.qte-unite-input');
+                    targetInput.value = (parseInt(targetInput.value) || 0) + 1;
+                    updateRowConversion(existingRow);
+                    feedback.textContent = '✔ Quantité mise à jour : ' + data.nom_produit;
                 } else {
-                    const row = addItem(data.id);
-                    row.querySelector('.qty-input').value = qty;
-                    feedback.textContent = '✔ Ajouté : ' + data.nom + (data.is_carton ? ' (carton ×' + qty + ')' : '');
+                    addItem(data.id_produit, isCarton ? 1 : 0, isCarton ? 0 : 1);
+                    feedback.textContent = '✔ Ajouté : ' + data.nom_produit + (isCarton
+                        ? ` — conditionnement Carton (1 = ${data.coefficient} unités)`
+                        : ' — conditionnement Unité');
                 }
 
-                feedback.style.color = '#28a745';
+                feedback.style.color = 'var(--success)';
                 input.value = '';
                 input.focus();
             })
             .catch(() => {
                 feedback.textContent = 'Erreur de connexion';
-                feedback.style.color = '#dc3545';
+                feedback.style.color = 'var(--danger)';
             });
     }
 
@@ -372,12 +507,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!-- MODAL CAMÉRA -->
 <div id="cameraModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.85);
-     z-index:9000; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
+     z-index:9000; flex-direction:column; align-items:center; justify-content:center; padding:20px; overflow-y:auto;">
 
-    <div style="background:#1a1a2e; border-radius:16px; width:100%; max-width:420px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,.6);">
+    <div style="background:#1a1a2e; border-radius:16px; width:100%; max-width:420px; max-height:90vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,.6); margin:auto;">
 
         <!-- Titre -->
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #2d2d44;">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #2d2d44; position:sticky; top:0; background:#1a1a2e; z-index:1;">
             <span style="color:#fff; font-weight:600; font-size:1rem;">
                 <i class="fas fa-camera" style="color:#28a745; margin-right:8px;"></i>Scanner un code barre
             </span>
@@ -387,7 +522,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <!-- Viseur caméra -->
-        <div style="position:relative; background:#000;">
+        <div style="position:relative; background:#000; max-height:280px; overflow:hidden;">
             <div id="camera-reader" style="width:100%;"></div>
             <div style="position:absolute; left:10%; width:80%; height:2px; top:50%;
                  background:linear-gradient(90deg,transparent,#28a745,transparent);

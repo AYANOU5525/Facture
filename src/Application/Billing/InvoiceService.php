@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\Billing;
 
+use App\Application\Inventory\PackagingConverter;
 use App\Infrastructure\Persistence\InvoiceRepository;
 use InvalidArgumentException;
 use PDO;
@@ -40,11 +41,10 @@ final class InvoiceService
         try {
             foreach ($items as $item) {
                 $productId = (int) ($item['produit'] ?? 0);
-                $quantity = (int) ($item['quantite'] ?? 0);
-                $factor = max(1, (int) ($item['facteur_conversion'] ?? 1));
-                $realQuantity = $quantity * $factor;
+                $qteUnite = max(0, (int) ($item['qte_unite'] ?? 0));
+                $qteCarton = max(0, (int) ($item['qte_carton'] ?? 0));
 
-                if ($productId <= 0 || $quantity <= 0) {
+                if ($productId <= 0 || ($qteUnite <= 0 && $qteCarton <= 0)) {
                     continue;
                 }
                 if (isset($seen[$productId])) {
@@ -53,20 +53,28 @@ final class InvoiceService
                 $seen[$productId] = true;
 
                 $product = $this->repository->lockProduct($productId, $enterpriseId);
-                if (!$product || (int) $product['Quantite_En_Stock'] < $realQuantity) {
-                    throw new RuntimeException('Stock insuffisant pour ' . ($product['Nom_Produit'] ?? 'le produit') . '.');
+                if (!$product) {
+                    throw new RuntimeException('Produit introuvable.');
                 }
 
-                $unitPrice = isset($item['prix']) ? (float) $item['prix'] : (float) $product['Prix_Unitaire_Produit'] * $factor;
-                $lineTotal = isset($item['prix']) ? $unitPrice * $quantity : $unitPrice * $realQuantity;
+                // Coefficient carton lu uniquement depuis le produit verrouillé en base — jamais depuis le client,
+                // pour empêcher toute falsification du facteur de conversion via une requête modifiée.
+                $realQuantity = PackagingConverter::combinedUnits($product, $qteCarton, $qteUnite);
+
+                if ((int) $product['Quantite_En_Stock'] < $realQuantity) {
+                    throw new RuntimeException('Stock insuffisant pour ' . $product['Nom_Produit'] . '.');
+                }
+
+                $unitPrice = (float) $product['Prix_Unitaire_Produit'];
+                $lineTotal = $unitPrice * $realQuantity;
                 $total += $lineTotal;
                 $articles[] = [
                     'id_produit' => $productId,
                     'nom' => $item['label'] ?? $product['Nom_Produit'],
-                    'quantite' => $quantity,
-                    'facteur_conversion' => $factor,
+                    'quantite_carton' => $qteCarton,
+                    'quantite_unite' => $qteUnite,
                     'quantite_unites' => $realQuantity,
-                    'prix' => $unitPrice,
+                    'prix_unitaire' => $unitPrice,
                     'total' => $lineTotal,
                 ];
                 $this->repository->decreaseStock($productId, $realQuantity);

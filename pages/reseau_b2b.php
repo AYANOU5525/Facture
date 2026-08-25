@@ -4,10 +4,10 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../config/db.php';
 require_once __DIR__ . '/../includes/b2b_helpers.php';
 
-requireRole(ROLE_PROPRIO);
+exigerPermission(peutAccederB2B());
 
 if (!isset($_SESSION['entreprise_id'])) {
-    header('Location: ../dashboard.php');
+    header('Location: dashboard.php');
     exit;
 }
 
@@ -509,7 +509,7 @@ require_once __DIR__ . '/../includes/header.php';
 
     /* ── Carte entreprise ── */
     .entreprise-card {
-        background: white;
+        background: var(--bg-card);
         border-radius: 16px;
         border: 1px solid var(--zinc-200);
         overflow: hidden;
@@ -704,7 +704,7 @@ require_once __DIR__ . '/../includes/header.php';
         gap: 6px;
         padding: 12px 18px;
         border-top: 1px solid var(--zinc-100);
-        background: white;
+        background: var(--bg-card);
     }
 
     /* Responsive */

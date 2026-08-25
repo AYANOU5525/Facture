@@ -5,7 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Génère un token CSRF à usage unique et l'ajoute à la liste des tokens valides.
-function csrfToken(): string
+function jetonCsrf(): string
 {
     if (!isset($_SESSION['csrf_tokens']) || !is_array($_SESSION['csrf_tokens'])) {
         $_SESSION['csrf_tokens'] = [];
@@ -23,7 +23,7 @@ function csrfToken(): string
 }
 
 // Vérifie ET consomme le token (usage unique).
-function verifyCsrf(string $token): bool
+function verifierCsrf(string $token): bool
 {
     if (empty($_SESSION['csrf_tokens']) || !is_array($_SESSION['csrf_tokens'])) {
         return false;
@@ -41,9 +41,9 @@ function verifyCsrf(string $token): bool
     return true;
 }
 
-function requireCsrf(): void
+function exigerCsrf(): void
 {
-    if (!verifyCsrf((string) ($_POST['csrf_token'] ?? ''))) {
+    if (!verifierCsrf((string) ($_POST['csrf_token'] ?? ''))) {
         http_response_code(403);
         exit('Requête refusée. Veuillez actualiser la page et réessayer.');
     }

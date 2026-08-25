@@ -5,11 +5,9 @@ require_once '../config/db.php';
 $page_title = 'Tableau de bord';
 include '../includes/header.php';
 
-// Récupération des données entreprise (déjà dans la session via auth.php)
 $entreprise_id = $_SESSION['entreprise_id'];
 
-// ── Livreur → tableau de bord livraisons ──
-if (hasRole(ROLE_LIVREUR)) {
+if (aRole(ROLE_LIVREUR)) {
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM Logistique WHERE Id_Entreprise = ? AND Statut_Livraison IN ('traitement','en_attente')");
     $stmt->execute([$entreprise_id]);
     $a_expedier = (int) $stmt->fetchColumn();
@@ -40,251 +38,411 @@ if (hasRole(ROLE_LIVREUR)) {
 
     $heure = date('H');
     $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
-    ?>
-<style>
-.livreur-delivery-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px; }
-.livreur-card { background:var(--bg-card); border:1px solid var(--zinc-200); border-radius:14px; padding:18px 20px; display:flex; flex-direction:column; gap:10px; transition:box-shadow .2s,transform .2s; }
-.livreur-card:hover { box-shadow:var(--shadow-md); transform:translateY(-2px); }
-.livreur-card.card-urgent { border-left:4px solid var(--danger); }
-.livreur-card.card-route  { border-left:4px solid var(--info);   }
-.livreur-card.card-wait   { border-left:4px solid var(--zinc-200); }
-.lc-top { display:flex; align-items:center; gap:12px; }
-.lc-avatar { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; }
-.lc-avatar.b2b    { background:rgba(0,70,255,.1); color:var(--primary); }
-.lc-avatar.retail { background:rgba(10,143,91,.1); color:var(--success); }
-.lc-name { flex:1; min-width:0; }
-.lc-name strong { display:block; font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.lc-name span   { font-size:.75rem; color:var(--text-muted); font-family:monospace; }
-.lc-row { display:flex; align-items:center; gap:8px; font-size:.82rem; color:var(--text-muted); }
-.lc-row i { width:13px; text-align:center; }
-.lc-row.overdue { color:var(--danger); font-weight:600; }
-.pulse-dot { display:inline-block; width:7px; height:7px; background:var(--info); border-radius:50%; margin-right:5px; animation:lc-pulse 1.5s ease-in-out infinite; }
-@keyframes lc-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.75)} }
-</style>
+?>
+    <style>
+        .livreur-delivery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+            gap: 16px;
+        }
 
-<div class="container fade-in">
-    <div class="dashboard-header">
-        <div>
-            <h1><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?> !</h1>
-            <p style="color:var(--text-muted);">Tableau de bord livraisons — <?= date('d/m/Y') ?></p>
-        </div>
-        <span class="badge badge-warning" style="font-size:.85rem; padding:7px 16px; border-radius:20px;">
-            <i class="fas fa-truck"></i> Livreur
-        </span>
-    </div>
+        .livreur-card {
+            background: var(--bg-card);
+            border: 1px solid var(--zinc-200);
+            border-radius: 14px;
+            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: box-shadow .2s, transform .2s;
+        }
 
-    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:28px;">
-        <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
-            <div class="stat-icon" style="color:var(--warning);"><i class="fas fa-box-open"></i></div>
-            <div class="stat-info">
-                <h3>À prendre en charge</h3>
-                <div class="stat-value" style="color:var(--text-main);"><?= $a_expedier ?></div>
+        .livreur-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .livreur-card.card-urgent {
+            border-left: 4px solid var(--danger);
+        }
+
+        .livreur-card.card-route {
+            border-left: 4px solid var(--info);
+        }
+
+        .livreur-card.card-wait {
+            border-left: 4px solid var(--zinc-200);
+        }
+
+        .lc-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .lc-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .lc-avatar.b2b {
+            background: rgba(0, 70, 255, .1);
+            color: var(--primary);
+        }
+
+        .lc-avatar.retail {
+            background: rgba(10, 143, 91, .1);
+            color: var(--success);
+        }
+
+        .lc-name {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .lc-name strong {
+            display: block;
+            font-size: .95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .lc-name span {
+            font-size: .75rem;
+            color: var(--text-muted);
+            font-family: monospace;
+        }
+
+        .lc-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: .82rem;
+            color: var(--text-muted);
+        }
+
+        .lc-row i {
+            width: 13px;
+            text-align: center;
+        }
+
+        .lc-row.overdue {
+            color: var(--danger);
+            font-weight: 600;
+        }
+
+        .pulse-dot {
+            display: inline-block;
+            width: 7px;
+            height: 7px;
+            background: var(--info);
+            border-radius: 50%;
+            margin-right: 5px;
+            animation: lc-pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes lc-pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1)
+            }
+
+            50% {
+                opacity: .5;
+                transform: scale(.75)
+            }
+        }
+    </style>
+
+    <div class="container fade-in">
+        <div class="dashboard-header">
+            <div>
+                <h1><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?> !</h1>
+                <p style="color:var(--text-muted);">Tableau de bord livraisons — <?= date('d/m/Y') ?></p>
             </div>
-        </div>
-        <div class="stat-card gradient-blue">
-            <div class="stat-icon"><i class="fas fa-truck"></i></div>
-            <div class="stat-info">
-                <h3>En route</h3>
-                <div class="stat-value"><?= $en_route ?></div>
-            </div>
-        </div>
-        <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
-            <div class="stat-icon" style="color:var(--success);"><i class="fas fa-check-circle"></i></div>
-            <div class="stat-info">
-                <h3>Livrées aujourd'hui</h3>
-                <div class="stat-value" style="color:var(--text-main);"><?= $livrees_jour ?></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header-flex">
-            <h3 style="margin:0;"><i class="fas fa-route" style="color:var(--primary);margin-right:8px;"></i> Mes livraisons en cours</h3>
-            <a href="logistique.php" class="btn btn-secondary btn-sm"><i class="fas fa-list"></i> Tout voir</a>
+            <span class="badge badge-warning" style="font-size:.85rem; padding:7px 16px; border-radius:20px;">
+                <i class="fas fa-truck"></i> Livreur
+            </span>
         </div>
 
-        <?php if ($livraisons_actives): ?>
-        <div class="livreur-delivery-grid" style="padding:4px 0 8px;">
-            <?php foreach ($livraisons_actives as $l):
-                $is_b2b   = !empty($l['Id_Commande_B2B']);
-                $nom      = $is_b2b ? ($l['Nom_Acheteur'] ?? '-') : ($l['Nom_Client'] ?? '-');
-                $ref      = $is_b2b ? ($l['Numero_Commande'] ?? '-') : ($l['Numero_Vente'] ?? '-');
-                $is_route = $l['Statut_Livraison'] === 'expediee';
-                $retard   = $l['Date_Livraison_Prevue'] && strtotime($l['Date_Livraison_Prevue']) < time();
-                $cls      = $retard ? 'card-urgent' : ($is_route ? 'card-route' : 'card-wait');
-            ?>
-            <div class="livreur-card <?= $cls ?>">
-                <div class="lc-top">
-                    <div class="lc-avatar <?= $is_b2b ? 'b2b' : 'retail' ?>">
-                        <i class="fas fa-<?= $is_b2b ? 'building' : 'user' ?>"></i>
-                    </div>
-                    <div class="lc-name">
-                        <strong><?= htmlspecialchars($nom) ?></strong>
-                        <span><?= htmlspecialchars($ref) ?></span>
-                    </div>
-                    <?php if ($is_route): ?>
-                        <span class="badge badge-info" style="font-size:.72rem; white-space:nowrap; padding:4px 8px;">
-                            <span class="pulse-dot"></span>En route
-                        </span>
-                    <?php else: ?>
-                        <span class="badge badge-secondary" style="font-size:.72rem; padding:4px 8px;">
-                            <?= ucfirst(str_replace('_',' ',$l['Statut_Livraison'])) ?>
-                        </span>
-                    <?php endif; ?>
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:28px;">
+            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+                <div class="stat-icon" style="color:var(--warning);"><i class="fas fa-box-open"></i></div>
+                <div class="stat-info">
+                    <h3>À prendre en charge</h3>
+                    <div class="stat-value" style="color:var(--text-main);"><?= $a_expedier ?></div>
                 </div>
-
-                <?php if (!empty($l['Adresse_Livraison'])): ?>
-                <div class="lc-row">
-                    <i class="fas fa-map-marker-alt" style="color:var(--danger);"></i>
-                    <?= htmlspecialchars(mb_strimwidth($l['Adresse_Livraison'], 0, 52, '…')) ?>
-                </div>
-                <?php endif; ?>
-
-                <div class="lc-row <?= $retard ? 'overdue' : '' ?>">
-                    <i class="fas fa-<?= $retard ? 'exclamation-triangle' : 'calendar-alt' ?>"></i>
-                    <?php if ($l['Date_Livraison_Prevue']): ?>
-                        <?= $retard ? 'En retard — prévu le ' : 'Prévu le ' ?><?= date('d/m/Y', strtotime($l['Date_Livraison_Prevue'])) ?>
-                    <?php else: ?>
-                        Pas de date prévue
-                    <?php endif; ?>
-                </div>
-
-                <?php if ($is_route): ?>
-                    <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-success" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:2px;">
-                        <i class="fas fa-check-circle"></i> Confirmer la livraison
-                    </a>
-                <?php else: ?>
-                    <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-primary" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:2px;">
-                        <i class="fas fa-shipping-fast"></i> Traiter cette livraison
-                    </a>
-                <?php endif; ?>
             </div>
-            <?php endforeach; ?>
+            <div class="stat-card gradient-blue">
+                <div class="stat-icon"><i class="fas fa-truck"></i></div>
+                <div class="stat-info">
+                    <h3>En route</h3>
+                    <div class="stat-value"><?= $en_route ?></div>
+                </div>
+            </div>
+            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+                <div class="stat-icon" style="color:var(--success);"><i class="fas fa-check-circle"></i></div>
+                <div class="stat-info">
+                    <h3>Livrées aujourd'hui</h3>
+                    <div class="stat-value" style="color:var(--text-main);"><?= $livrees_jour ?></div>
+                </div>
+            </div>
         </div>
-        <?php else: ?>
-            <div class="empty-state">
-                <i class="fas fa-check-double" style="font-size:3rem;color:var(--success);margin-bottom:14px;display:block;"></i>
-                <p style="color:var(--text-muted);">Aucune livraison en cours. Bien joué !</p>
+
+        <div class="card">
+            <div class="card-header-flex">
+                <h3 style="margin:0;"><i class="fas fa-route" style="color:var(--primary);margin-right:8px;"></i> Mes livraisons en cours</h3>
+                <a href="logistique.php" class="btn btn-secondary btn-sm"><i class="fas fa-list"></i> Tout voir</a>
             </div>
-        <?php endif; ?>
+
+            <?php if ($livraisons_actives): ?>
+                <div class="livreur-delivery-grid" style="padding:4px 0 8px;">
+                    <?php foreach ($livraisons_actives as $l):
+                        $is_b2b   = !empty($l['Id_Commande_B2B']);
+                        $nom      = $is_b2b ? ($l['Nom_Acheteur'] ?? '-') : ($l['Nom_Client'] ?? '-');
+                        $ref      = $is_b2b ? ($l['Numero_Commande'] ?? '-') : ($l['Numero_Vente'] ?? '-');
+                        $is_route = $l['Statut_Livraison'] === 'expediee';
+                        $retard   = $l['Date_Livraison_Prevue'] && strtotime($l['Date_Livraison_Prevue']) < time();
+                        $cls      = $retard ? 'card-urgent' : ($is_route ? 'card-route' : 'card-wait');
+                    ?>
+                        <div class="livreur-card <?= $cls ?>">
+                            <div class="lc-top">
+                                <div class="lc-avatar <?= $is_b2b ? 'b2b' : 'retail' ?>">
+                                    <i class="fas fa-<?= $is_b2b ? 'building' : 'user' ?>"></i>
+                                </div>
+                                <div class="lc-name">
+                                    <strong><?= htmlspecialchars($nom) ?></strong>
+                                    <span><?= htmlspecialchars($ref) ?></span>
+                                </div>
+                                <?php if ($is_route): ?>
+                                    <span class="badge badge-info" style="font-size:.72rem; white-space:nowrap; padding:4px 8px;">
+                                        <span class="pulse-dot"></span>En route
+                                    </span>
+                                <?php else: ?>
+                                    <span class="badge badge-secondary" style="font-size:.72rem; padding:4px 8px;">
+                                        <?= ucfirst(str_replace('_', ' ', $l['Statut_Livraison'])) ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+
+                            <?php if (!empty($l['Adresse_Livraison'])): ?>
+                                <div class="lc-row">
+                                    <i class="fas fa-map-marker-alt" style="color:var(--danger);"></i>
+                                    <?= htmlspecialchars(mb_strimwidth($l['Adresse_Livraison'], 0, 52, '…')) ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <div class="lc-row <?= $retard ? 'overdue' : '' ?>">
+                                <i class="fas fa-<?= $retard ? 'exclamation-triangle' : 'calendar-alt' ?>"></i>
+                                <?php if ($l['Date_Livraison_Prevue']): ?>
+                                    <?= $retard ? 'En retard — prévu le ' : 'Prévu le ' ?><?= date('d/m/Y', strtotime($l['Date_Livraison_Prevue'])) ?>
+                                <?php else: ?>
+                                    Pas de date prévue
+                                <?php endif; ?>
+                            </div>
+
+                            <?php if ($is_route): ?>
+                                <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-success" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:2px;">
+                                    <i class="fas fa-check-circle"></i> Confirmer la livraison
+                                </a>
+                            <?php else: ?>
+                                <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-primary" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:2px;">
+                                    <i class="fas fa-shipping-fast"></i> Traiter cette livraison
+                                </a>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class="fas fa-check-double" style="font-size:3rem;color:var(--success);margin-bottom:14px;display:block;"></i>
+                    <p style="color:var(--text-muted);">Aucune livraison en cours. Bien joué !</p>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
-</div>
-</body></html>
+    </body>
+
+    </html>
 <?php
-exit();
+    exit();
 }
 
 // ── Admin plateforme → tableau de bord plateforme uniquement ──
-if (isAppAdmin()) {
+if (estAdminPlateforme()) {
     $nb_entreprises = (int) $pdo->query("SELECT COUNT(*) FROM Entreprise")->fetchColumn();
     $nb_utilisateurs = (int) $pdo->query("SELECT COUNT(*) FROM Utilisateur")->fetchColumn();
     $nb_ventes_total = (int) $pdo->query("SELECT COUNT(*) FROM Vente")->fetchColumn();
     $ca_total_plateforme = (float) ($pdo->query("SELECT COALESCE(SUM(Montant_Total),0) FROM Vente")->fetchColumn());
 
     $entreprises_recentes = $pdo->query("
-        SELECT e.Nom_Entreprise, e.Date_Creation,
+        SELECT e.Id_Entreprise, e.Nom_Entreprise, e.Secteur_Activite, e.Ville,
                COUNT(u.Id_Utilisateur) AS nb_membres
         FROM Entreprise e
         LEFT JOIN Utilisateur u ON u.Id_Entreprise = e.Id_Entreprise
         GROUP BY e.Id_Entreprise
-        ORDER BY e.Date_Creation DESC
+        ORDER BY e.Id_Entreprise DESC
         LIMIT 8
     ")->fetchAll();
 
     $heure = date('H');
     $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
-    ?>
-<style>
-.company-row { display:flex; align-items:center; gap:14px; padding:13px 24px; border-bottom:1px solid var(--zinc-100); transition:background .15s; }
-.company-row:hover { background:var(--zinc-50); }
-.company-row:last-child { border-bottom:none; }
-.company-avatar { width:40px; height:40px; border-radius:10px; background:linear-gradient(135deg,var(--primary),#4f7bff); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.85rem; flex-shrink:0; letter-spacing:-.5px; }
-.company-meta-name { flex:1; min-width:0; }
-.company-meta-name strong { display:block; font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.company-meta-name small { color:var(--text-muted); font-size:.78rem; }
-.company-badge-members { display:flex; align-items:center; gap:5px; background:var(--zinc-100); border-radius:20px; padding:4px 10px; font-size:.8rem; font-weight:600; color:var(--text-muted); white-space:nowrap; }
-</style>
+?>
+    <style>
+        .company-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 13px 24px;
+            border-bottom: 1px solid var(--zinc-100);
+            transition: background .15s;
+        }
 
-<div class="container fade-in">
-    <div class="dashboard-header" style="align-items:flex-start;">
-        <div>
-            <h1><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?> !</h1>
-            <p style="color:var(--text-muted); margin-top:4px; font-size:.9rem;">
-                <i class="fas fa-lock" style="margin-right:5px;opacity:.6;"></i>
-                Accès lecture seule — données agrégées de la plateforme.
-            </p>
-        </div>
-        <span class="badge badge-danger" style="font-size:.85rem; padding:7px 16px; border-radius:20px; white-space:nowrap;">
-            <i class="fas fa-shield-alt"></i> Admin Plateforme
-        </span>
-    </div>
+        .company-row:hover {
+            background: var(--zinc-50);
+        }
 
-    <div class="stats-grid" style="grid-template-columns:repeat(4,1fr); margin-bottom:28px;">
-        <div class="stat-card gradient-blue">
-            <div class="stat-icon"><i class="fas fa-building"></i></div>
-            <div class="stat-info">
-                <h3>Entreprises</h3>
-                <div class="stat-value"><?= $nb_entreprises ?></div>
-            </div>
-        </div>
-        <div class="stat-card gradient-orange">
-            <div class="stat-icon"><i class="fas fa-users"></i></div>
-            <div class="stat-info">
-                <h3>Utilisateurs</h3>
-                <div class="stat-value"><?= $nb_utilisateurs ?></div>
-            </div>
-        </div>
-        <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
-            <div class="stat-icon" style="color:var(--success);"><i class="fas fa-receipt"></i></div>
-            <div class="stat-info">
-                <h3>Ventes totales</h3>
-                <div class="stat-value" style="color:var(--text-main);"><?= number_format($nb_ventes_total, 0, ',', ' ') ?></div>
-            </div>
-        </div>
-        <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
-            <div class="stat-icon" style="color:var(--primary);"><i class="fas fa-wallet"></i></div>
-            <div class="stat-info">
-                <h3>CA Plateforme</h3>
-                <div class="stat-value" style="color:var(--text-main);"><?= number_format($ca_total_plateforme, 0, ',', ' ') ?> <small style="font-size:.45em;font-weight:500;">FCFA</small></div>
-            </div>
-        </div>
-    </div>
+        .company-row:last-child {
+            border-bottom: none;
+        }
 
-    <div class="card">
-        <div class="card-header-flex" style="padding-bottom:12px;">
-            <h3 style="margin:0;"><i class="fas fa-building" style="color:var(--primary);margin-right:8px;"></i> Entreprises enregistrées</h3>
-            <span style="font-size:.8rem; background:var(--zinc-100); color:var(--text-muted); padding:4px 12px; border-radius:20px;"><?= $nb_entreprises ?> au total</span>
+        .company-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--primary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: .85rem;
+            flex-shrink: 0;
+            letter-spacing: -.5px;
+        }
+
+        .company-meta-name {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .company-meta-name strong {
+            display: block;
+            font-size: .95rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .company-meta-name small {
+            color: var(--text-muted);
+            font-size: .78rem;
+        }
+
+        .company-badge-members {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: var(--zinc-100);
+            border-radius: 20px;
+            padding: 4px 10px;
+            font-size: .8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+    </style>
+
+    <div class="container fade-in">
+        <div class="dashboard-header" style="align-items:flex-start;">
+            <div>
+                <h1><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?> !</h1>
+                <p style="color:var(--text-muted); margin-top:4px; font-size:.9rem;">
+                    <i class="fas fa-lock" style="margin-right:5px;opacity:.6;"></i>
+                    Accès lecture seule — données agrégées de la plateforme.
+                </p>
+            </div>
+            <span class="badge badge-danger" style="font-size:.85rem; padding:7px 16px; border-radius:20px; white-space:nowrap;">
+                <i class="fas fa-shield-alt"></i> Admin Plateforme
+            </span>
         </div>
-        <?php if ($entreprises_recentes): ?>
-            <?php foreach ($entreprises_recentes as $e):
-                $initials = mb_strtoupper(mb_substr($e['Nom_Entreprise'], 0, 2));
-            ?>
-            <div class="company-row">
-                <div class="company-avatar"><?= htmlspecialchars($initials) ?></div>
-                <div class="company-meta-name">
-                    <strong><?= htmlspecialchars($e['Nom_Entreprise']) ?></strong>
-                    <small>Inscrite le <?= $e['Date_Creation'] ? date('d/m/Y', strtotime($e['Date_Creation'])) : '—' ?></small>
+
+        <div class="stats-grid" style="grid-template-columns:repeat(4,1fr); margin-bottom:28px;">
+            <div class="stat-card gradient-blue">
+                <div class="stat-icon"><i class="fas fa-building"></i></div>
+                <div class="stat-info">
+                    <h3>Entreprises</h3>
+                    <div class="stat-value"><?= $nb_entreprises ?></div>
                 </div>
-                <div class="company-badge-members">
-                    <i class="fas fa-user" style="font-size:.7rem;"></i> <?= (int)$e['nb_membres'] ?>
+            </div>
+            <div class="stat-card gradient-orange">
+                <div class="stat-icon"><i class="fas fa-users"></i></div>
+                <div class="stat-info">
+                    <h3>Utilisateurs</h3>
+                    <div class="stat-value"><?= $nb_utilisateurs ?></div>
                 </div>
             </div>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <div class="empty-state">
-                <i class="fas fa-building" style="font-size:3rem;color:var(--text-muted);display:block;margin-bottom:14px;"></i>
-                <p style="color:var(--text-muted);">Aucune entreprise enregistrée.</p>
+            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+                <div class="stat-icon" style="color:var(--success);"><i class="fas fa-receipt"></i></div>
+                <div class="stat-info">
+                    <h3>Ventes totales</h3>
+                    <div class="stat-value" style="color:var(--text-main);"><?= number_format($nb_ventes_total, 0, ',', ' ') ?></div>
+                </div>
             </div>
-        <?php endif; ?>
+            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+                <div class="stat-icon" style="color:var(--primary);"><i class="fas fa-wallet"></i></div>
+                <div class="stat-info">
+                    <h3>CA Plateforme</h3>
+                    <div class="stat-value" style="color:var(--text-main);"><?= number_format($ca_total_plateforme, 0, ',', ' ') ?> <small style="font-size:.45em;font-weight:500;">FCFA</small></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header-flex" style="padding-bottom:12px;">
+                <h3 style="margin:0;"><i class="fas fa-building" style="color:var(--primary);margin-right:8px;"></i> Entreprises enregistrées</h3>
+                <span style="font-size:.8rem; background:var(--zinc-100); color:var(--text-muted); padding:4px 12px; border-radius:20px;"><?= $nb_entreprises ?> au total</span>
+            </div>
+            <?php if ($entreprises_recentes): ?>
+                <?php foreach ($entreprises_recentes as $e):
+                    $initials = mb_strtoupper(mb_substr($e['Nom_Entreprise'], 0, 2));
+                ?>
+                    <div class="company-row">
+                        <div class="company-avatar"><?= htmlspecialchars($initials) ?></div>
+                        <div class="company-meta-name">
+                            <strong><?= htmlspecialchars($e['Nom_Entreprise']) ?></strong>
+                            <small><?= htmlspecialchars($e['Secteur_Activite'] ?? $e['Ville'] ?? 'Entreprise enregistrée') ?></small>
+                        </div>
+                        <div class="company-badge-members">
+                            <i class="fas fa-user" style="font-size:.7rem;"></i> <?= (int)$e['nb_membres'] ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class="fas fa-building" style="font-size:3rem;color:var(--text-muted);display:block;margin-bottom:14px;"></i>
+                    <p style="color:var(--text-muted);">Aucune entreprise enregistrée.</p>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
-</div>
-</body></html>
+    </body>
+
+    </html>
 <?php
-exit();
+    exit();
 }
 
-// ── Vendeur → tableau de bord simplifié ──
-if (hasRole(ROLE_VENDEUR)) {
+if (aRole(ROLE_VENDEUR)) {
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM Vente WHERE Id_Entreprise = ? AND DATE(Date_Vente) = CURDATE()");
     $stmt->execute([$entreprise_id]);
     $ventes_jour = (int) $stmt->fetchColumn();
@@ -307,105 +465,138 @@ if (hasRole(ROLE_VENDEUR)) {
 
     $heure = date('H');
     $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
-    ?>
-<style>
-.vendeur-cta { display:flex; align-items:center; gap:18px; background:linear-gradient(135deg,#10b981,#059669); color:#fff; border-radius:16px; padding:22px 28px; text-decoration:none; margin-bottom:28px; box-shadow:0 8px 20px -4px rgba(16,185,129,.35); transition:transform .2s,box-shadow .2s; }
-.vendeur-cta:hover { transform:translateY(-3px); box-shadow:0 14px 28px -6px rgba(16,185,129,.45); color:#fff; }
-.vendeur-cta-icon { font-size:2rem; flex-shrink:0; }
-.vendeur-cta-label { font-size:1.15rem; font-weight:700; letter-spacing:.5px; }
-.vendeur-cta-sub { font-size:.82rem; opacity:.82; margin-top:2px; }
-</style>
+?>
+    <style>
+        .vendeur-cta {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            background: var(--success);
+            color: #fff;
+            border-radius: 16px;
+            padding: 22px 28px;
+            text-decoration: none;
+            margin-bottom: 28px;
+            box-shadow: 0 8px 20px -4px rgba(16, 185, 129, .20);
+            transition: transform .2s, box-shadow .2s;
+        }
 
-<div class="container fade-in">
-    <div class="dashboard-header">
-        <div>
-            <h1><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?> !</h1>
-            <p style="color:var(--text-muted);">Votre tableau de bord vendeur — <?= date('d/m/Y') ?></p>
+        .vendeur-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 14px 28px -6px rgba(16, 185, 129, .45);
+            color: #fff;
+        }
+
+        .vendeur-cta-icon {
+            font-size: 2rem;
+            flex-shrink: 0;
+        }
+
+        .vendeur-cta-label {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: .5px;
+        }
+
+        .vendeur-cta-sub {
+            font-size: .82rem;
+            opacity: .82;
+            margin-top: 2px;
+        }
+    </style>
+
+    <div class="container fade-in">
+        <div class="dashboard-header">
+            <div>
+                <h1><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?> !</h1>
+                <p style="color:var(--text-muted);">Votre tableau de bord vendeur — <?= date('d/m/Y') ?></p>
+            </div>
+            <span class="badge badge-success" style="font-size:.85rem; padding:7px 16px; border-radius:20px;">
+                <i class="fas fa-cash-register"></i> Vendeur
+            </span>
         </div>
-        <span class="badge badge-success" style="font-size:.85rem; padding:7px 16px; border-radius:20px;">
-            <i class="fas fa-cash-register"></i> Vendeur
-        </span>
-    </div>
 
-    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:24px;">
-        <div class="stat-card gradient-blue">
-            <div class="stat-icon"><i class="fas fa-receipt"></i></div>
-            <div class="stat-info">
-                <h3>Ventes aujourd'hui</h3>
-                <div class="stat-value"><?= $ventes_jour ?></div>
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr); margin-bottom:24px;">
+            <div class="stat-card gradient-blue">
+                <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+                <div class="stat-info">
+                    <h3>Ventes aujourd'hui</h3>
+                    <div class="stat-value"><?= $ventes_jour ?></div>
+                </div>
+            </div>
+            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+                <div class="stat-icon" style="color:var(--success);"><i class="fas fa-wallet"></i></div>
+                <div class="stat-info">
+                    <h3>CA du jour</h3>
+                    <div class="stat-value" style="color:var(--text-main);"><?= number_format($ca_jour, 0, ',', ' ') ?> <small style="font-size:.5em;font-weight:500;">FCFA</small></div>
+                </div>
+            </div>
+            <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
+                <div class="stat-icon" style="color:#8b5cf6;"><i class="fas fa-users"></i></div>
+                <div class="stat-info">
+                    <h3>Clients servis</h3>
+                    <div class="stat-value" style="color:var(--text-main);"><?= $nb_clients ?></div>
+                </div>
             </div>
         </div>
-        <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
-            <div class="stat-icon" style="color:var(--success);"><i class="fas fa-wallet"></i></div>
-            <div class="stat-info">
-                <h3>CA du jour</h3>
-                <div class="stat-value" style="color:var(--text-main);"><?= number_format($ca_jour, 0, ',', ' ') ?> <small style="font-size:.5em;font-weight:500;">FCFA</small></div>
-            </div>
-        </div>
-        <div class="stat-card" style="background:var(--bg-card); border:1px solid var(--zinc-200);">
-            <div class="stat-icon" style="color:#8b5cf6;"><i class="fas fa-users"></i></div>
-            <div class="stat-info">
-                <h3>Clients servis</h3>
-                <div class="stat-value" style="color:var(--text-main);"><?= $nb_clients ?></div>
-            </div>
-        </div>
-    </div>
 
-    <a href="invoice_add.php" class="vendeur-cta">
-        <i class="fas fa-cash-register vendeur-cta-icon"></i>
-        <div>
-            <div class="vendeur-cta-label">Nouvelle Vente</div>
-            <div class="vendeur-cta-sub">Créer une facture maintenant</div>
-        </div>
-        <i class="fas fa-arrow-right" style="margin-left:auto; opacity:.7; font-size:1.2rem;"></i>
-    </a>
+        <a href="invoice_add.php" class="vendeur-cta">
+            <i class="fas fa-cash-register vendeur-cta-icon"></i>
+            <div>
+                <div class="vendeur-cta-label">Nouvelle Vente</div>
+                <div class="vendeur-cta-sub">Créer une facture maintenant</div>
+            </div>
+            <i class="fas fa-arrow-right" style="margin-left:auto; opacity:.7; font-size:1.2rem;"></i>
+        </a>
 
-    <div class="card">
-        <div class="card-header-flex">
-            <h3 style="margin:0;"><i class="fas fa-receipt" style="color:var(--primary);margin-right:8px;"></i> Ventes récentes</h3>
-            <a href="sales.php" class="btn-link">Tout voir</a>
-        </div>
-        <?php if ($ventes_recentes): ?>
-            <div class="scrollable-list">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Client</th>
-                            <th>Référence</th>
-                            <th>Date</th>
-                            <th class="text-right">Montant</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($ventes_recentes as $v): ?>
+        <div class="card">
+            <div class="card-header-flex">
+                <h3 style="margin:0;"><i class="fas fa-receipt" style="color:var(--primary);margin-right:8px;"></i> Ventes récentes</h3>
+                <a href="sales.php" class="btn-link">Tout voir</a>
+            </div>
+            <?php if ($ventes_recentes): ?>
+                <div class="scrollable-list">
+                    <table class="table table-hover">
+                        <thead>
                             <tr>
-                                <td><strong><?= htmlspecialchars($v['Nom_Client']) ?></strong></td>
-                                <td style="color:var(--text-muted); font-size:.83rem;"><?= htmlspecialchars($v['Numero_Vente']) ?></td>
-                                <td style="color:var(--text-muted); font-size:.83rem;"><?= date('d/m/Y H:i', strtotime($v['Date_Vente'])) ?></td>
-                                <td class="text-right font-weight-bold text-success"><?= number_format($v['Montant_Total'], 0, ',', ' ') ?> F</td>
-                                <td>
-                                    <a href="invoice_view.php?ref=<?= urlencode($v['Numero_Vente']) ?>" target="_blank" class="btn btn-sm btn-secondary" title="Voir facture">
-                                        <i class="fas fa-file-invoice"></i>
-                                    </a>
-                                </td>
+                                <th>Client</th>
+                                <th>Référence</th>
+                                <th>Date</th>
+                                <th class="text-right">Montant</th>
+                                <th></th>
                             </tr>
-                        <?php endforeach; ?>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($ventes_recentes as $v): ?>
+                                <tr>
+                                    <td><strong><?= htmlspecialchars($v['Nom_Client']) ?></strong></td>
+                                    <td style="color:var(--text-muted); font-size:.83rem;"><?= htmlspecialchars($v['Numero_Vente']) ?></td>
+                                    <td style="color:var(--text-muted); font-size:.83rem;"><?= date('d/m/Y H:i', strtotime($v['Date_Vente'])) ?></td>
+                                    <td class="text-right font-weight-bold text-success"><?= number_format($v['Montant_Total'], 0, ',', ' ') ?> F</td>
+                                    <td>
+                                        <a href="invoice_view.php?ref=<?= urlencode($v['Numero_Vente']) ?>" target="_blank" class="btn btn-sm btn-secondary" title="Voir facture">
+                                            <i class="fas fa-file-invoice"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
-        <?php else: ?>
-            <div class="empty-state">
-                <i class="fas fa-receipt" style="font-size:3rem;color:var(--text-muted);display:block;margin-bottom:14px;"></i>
-                <p style="color:var(--text-muted);">Aucune vente enregistrée.</p>
-                <a href="invoice_add.php" class="btn btn-primary btn-sm" style="margin-top:8px;"><i class="fas fa-plus"></i> Créer une vente</a>
-            </div>
-        <?php endif; ?>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class="fas fa-receipt" style="font-size:3rem;color:var(--text-muted);display:block;margin-bottom:14px;"></i>
+                    <p style="color:var(--text-muted);">Aucune vente enregistrée.</p>
+                    <a href="invoice_add.php" class="btn btn-primary btn-sm" style="margin-top:8px;"><i class="fas fa-plus"></i> Créer une vente</a>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
-</div>
-</body></html>
+    </body>
+
+    </html>
 <?php
-exit();
+    exit();
 }
 
 // 1. Chiffre d'Affaires (Ventes + B2B Vendu)
@@ -430,7 +621,7 @@ $total_clients = $stmt->fetchColumn();
 
 // 4. Dépenses B2B (Achats) — managers uniquement
 $total_achats = 0;
-if (isManager()) {
+if (estProprietaire()) {
     $stmt = $pdo->prepare("SELECT SUM(Montant_Total) FROM Commande_B2B WHERE Id_Entreprise_Acheteuse = ? AND Statut != 'en_attente'");
     $stmt->execute([$entreprise_id]);
     $total_achats = $stmt->fetchColumn() ?? 0;
@@ -454,11 +645,13 @@ $stmt->execute([$entreprise_id]);
 $ca_mensuel_raw = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
 
 // Construire un tableau des 6 derniers mois (même si aucune vente ce mois-là)
+$mois_abreges_fr = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
 $mois_labels = [];
 $ca_data     = [];
 for ($i = 5; $i >= 0; $i--) {
-    $key = date('Y-m', strtotime("-$i month"));
-    $mois_labels[] = strftime('%b %Y', strtotime($key . '-01')) ?: date('M Y', strtotime($key . '-01'));
+    $ts  = strtotime("-$i month");
+    $key = date('Y-m', $ts);
+    $mois_labels[] = $mois_abreges_fr[(int) date('n', $ts) - 1] . ' ' . date('Y', $ts);
     $ca_data[]     = (float) ($ca_mensuel_raw[$key] ?? 0);
 }
 
@@ -494,59 +687,59 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
     </div>
 
     <?php if (!empty($produits_alerte)): ?>
-    <div class="stock-alert-banner">
-        <i class="fas fa-exclamation-triangle"></i>
-        <div>
-            <strong><?= count($produits_alerte) ?> produit(s) en alerte de stock</strong>
-            <ul class="alert-list">
-                <?php foreach ($produits_alerte as $pa): ?>
-                    <li class="alert-chip"><?= htmlspecialchars($pa['Nom_Produit']) ?> — <?= $pa['Quantite_En_Stock'] ?> restant(s)</li>
-                <?php endforeach; ?>
-            </ul>
+        <div class="stock-alert-banner">
+            <i class="fas fa-exclamation-triangle"></i>
+            <div>
+                <strong><?= count($produits_alerte) ?> produit(s) en alerte de stock</strong>
+                <ul class="alert-list">
+                    <?php foreach ($produits_alerte as $pa): ?>
+                        <li class="alert-chip"><?= htmlspecialchars($pa['Nom_Produit']) ?> — <?= $pa['Quantite_En_Stock'] ?> restant(s)</li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
         </div>
-    </div>
     <?php endif; ?>
 
     <!-- QUICK ACTION CARDS -->
     <div class="dashboard-featured-actions" style="background: var(--bg-card); padding: 25px; border-radius: 16px; margin-bottom: 30px; box-shadow: var(--shadow-md); border: 1px solid var(--zinc-200);">
         <h2 style="margin-top: 0; margin-bottom: 20px; font-size: 1.4rem; color: var(--text-main);"><i class="fas fa-bolt"></i> Actions Rapides Caisse & Stock</h2>
-        <div class="dashboard-featured-grid" style="display: grid; grid-template-columns: <?= canManageStock() ? '1fr 1fr' : '1fr' ?>; gap: 20px;">
+        <div class="dashboard-featured-grid" style="display: grid; grid-template-columns: <?= peutGererStock() ? '1fr 1fr' : '1fr' ?>; gap: 20px;">
 
-            <?php if (canManageStock()): ?>
-            <a href="approvisionnement.php" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); color: white; border-radius: 16px; padding: 30px; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.3);" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
-                <i class="fas fa-box-open" style="font-size: 3rem; margin-bottom: 15px;"></i>
-                <h3 style="margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px;">Entrée Stock</h3>
-            </a>
+            <?php if (peutGererStock()): ?>
+                <a href="approvisionnement.php" style="background: var(--info); color: white; border-radius: 16px; padding: 30px; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2);" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <i class="fas fa-box-open" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                    <h3 style="margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px;">Entrée Stock</h3>
+                </a>
             <?php endif; ?>
 
-            <?php if (canSell()): ?>
-            <a href="invoice_add.php" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border-radius: 16px; padding: 30px; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.3);" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
-                <i class="fas fa-cash-register" style="font-size: 3rem; margin-bottom: 15px;"></i>
-                <h3 style="margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px;">Vente Produit</h3>
-            </a>
+            <?php if (peutVendre()): ?>
+                <a href="invoice_add.php" style="background: var(--success); color: white; border-radius: 16px; padding: 30px; text-decoration: none; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <i class="fas fa-cash-register" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                    <h3 style="margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 1px;">Vente Produit</h3>
+                </a>
             <?php endif; ?>
 
         </div>
     </div>
 
     <div class="quick-actions">
-        <?php if (canViewStock()): ?>
-        <a href="products.php" class="action-btn">
-            <div class="icon-box blue"><i class="fas fa-plus"></i></div>
-            <span>Nouveau Produit</span>
-        </a>
+        <?php if (peutVoirStock()): ?>
+            <a href="products.php" class="action-btn">
+                <div class="icon-box blue"><i class="fas fa-plus"></i></div>
+                <span>Nouveau Produit</span>
+            </a>
         <?php endif; ?>
-        <?php if (canAccessB2B()): ?>
-        <a href="reseau_b2b.php" class="action-btn">
-            <div class="icon-box purple"><i class="fas fa-search"></i></div>
-            <span>Chercher Fournisseur</span>
-        </a>
+        <?php if (peutAccederB2B()): ?>
+            <a href="reseau_b2b.php" class="action-btn">
+                <div class="icon-box purple"><i class="fas fa-search"></i></div>
+                <span>Chercher Fournisseur</span>
+            </a>
         <?php endif; ?>
-        <?php if (canDeliver()): ?>
-        <a href="logistique.php" class="action-btn">
-            <div class="icon-box orange"><i class="fas fa-truck"></i></div>
-            <span>Logistique (<?= $expeditions_urgent ?>)</span>
-        </a>
+        <?php if (peutLivrer()): ?>
+            <a href="logistique.php" class="action-btn">
+                <div class="icon-box orange"><i class="fas fa-truck"></i></div>
+                <span>Logistique (<?= $expeditions_urgent ?>)</span>
+            </a>
         <?php endif; ?>
     </div>
 
@@ -565,15 +758,15 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
             </div>
         </a>
 
-        <?php if (isManager()): ?>
-        <!-- Dépenses -->
-        <div class="stat-card gradient-orange">
-            <div class="stat-icon"><i class="fas fa-shopping-bag"></i></div>
-            <div class="stat-info">
-                <h3>Achats B2B (Dépenses)</h3>
-                <div class="stat-value"><?= number_format($total_achats, 0, ',', ' ') ?> <small>F</small></div>
+        <?php if (estProprietaire()): ?>
+            <!-- Dépenses -->
+            <div class="stat-card gradient-orange">
+                <div class="stat-icon"><i class="fas fa-shopping-bag"></i></div>
+                <div class="stat-info">
+                    <h3>Achats B2B (Dépenses)</h3>
+                    <div class="stat-value"><?= number_format($total_achats, 0, ',', ' ') ?> <small>F</small></div>
+                </div>
             </div>
-        </div>
         <?php endif; ?>
 
         <a href="clients.php" class="stat-card bg-white" style="text-decoration: none; display: flex; color: inherit;">
@@ -651,100 +844,114 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
         </div>
 
         <!-- COMMANDES B2B EN ATTENTE — managers seulement -->
-        <?php if (isManager()): ?>
-        <div class="card">
-            <div class="card-header-flex">
-                <h3><i class="fas fa-bell text-warning"></i> Commandes à Valider</h3>
-                <a href="commandes_b2b.php?onglet=recues" class="btn-link">Gérer</a>
-            </div>
-            <?php
-            $stmt = $pdo->prepare("SELECT c.*, e.Nom_Entreprise FROM Commande_B2B c JOIN Entreprise e ON c.Id_Entreprise_Acheteuse = e.Id_Entreprise WHERE c.Id_Entreprise_Vendeuse = ? AND c.Statut = 'en_attente' ORDER BY c.Date_Commande DESC LIMIT 5");
-            $stmt->execute([$entreprise_id]);
-            $b2b = $stmt->fetchAll();
-            ?>
-            <?php if ($b2b): ?>
-                <div class="scrollable-list">
-                    <div class="list-group">
-                        <?php foreach ($b2b as $c): ?>
-                            <div class="list-item">
-                                <div class="d-flex align-items-center">
-                                    <div class="icon-circle bg-light-warning"><i class="fas fa-exclamation"></i></div>
-                                    <div>
-                                        <div class="font-weight-bold"><?= htmlspecialchars($c['Nom_Entreprise']) ?></div>
-                                        <small class="text-muted">Commande N°<?= $c['Numero_Commande'] ?></small>
+        <?php if (estProprietaire()): ?>
+            <div class="card">
+                <div class="card-header-flex">
+                    <h3><i class="fas fa-bell text-warning"></i> Commandes à Valider</h3>
+                    <a href="commandes_b2b.php?onglet=recues" class="btn-link">Gérer</a>
+                </div>
+                <?php
+                $stmt = $pdo->prepare("SELECT c.*, e.Nom_Entreprise FROM Commande_B2B c JOIN Entreprise e ON c.Id_Entreprise_Acheteuse = e.Id_Entreprise WHERE c.Id_Entreprise_Vendeuse = ? AND c.Statut = 'en_attente' ORDER BY c.Date_Commande DESC LIMIT 5");
+                $stmt->execute([$entreprise_id]);
+                $b2b = $stmt->fetchAll();
+                ?>
+                <?php if ($b2b): ?>
+                    <div class="scrollable-list">
+                        <div class="list-group">
+                            <?php foreach ($b2b as $c): ?>
+                                <div class="list-item">
+                                    <div class="d-flex align-items-center">
+                                        <div class="icon-circle bg-light-warning"><i class="fas fa-exclamation"></i></div>
+                                        <div>
+                                            <div class="font-weight-bold"><?= htmlspecialchars($c['Nom_Entreprise']) ?></div>
+                                            <small class="text-muted">Commande N°<?= $c['Numero_Commande'] ?></small>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="font-weight-bold"><?= number_format($c['Montant_Total'], 0, ',', ' ') ?> F</div>
+                                        <a href="commandes_b2b.php?onglet=recues" class="btn btn-sm btn-success mt-1">Valider</a>
                                     </div>
                                 </div>
-                                <div class="text-right">
-                                    <div class="font-weight-bold"><?= number_format($c['Montant_Total'], 0, ',', ' ') ?> F</div>
-                                    <a href="commandes_b2b.php?onglet=recues" class="btn btn-sm btn-success mt-1">Valider</a>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
-                </div>
-            <?php else: ?>
-                <div class="empty-state">
-                    <i class="fas fa-check-circle text-success"></i>
-                    <p>Tout est à jour ! Aucune commande en attente.</p>
-                </div>
-            <?php endif; ?>
-        </div>
-        <?php endif; // isManager ?>
+                <?php else: ?>
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle text-success"></i>
+                        <p>Tout est à jour ! Aucune commande en attente.</p>
+                    </div>
+                <?php endif; ?>
+            </div>
+        <?php endif; // estProprietaire 
+        ?>
 
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
-(function () {
-    const labels = <?= json_encode($mois_labels) ?>;
-    const data   = <?= json_encode($ca_data) ?>;
+    (function() {
+        const labels = <?= json_encode($mois_labels) ?>;
+        const data = <?= json_encode($ca_data) ?>;
 
-    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const gridColor  = dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
-    const textColor  = dark ? '#8a8f9a' : '#6b7076';
+        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const gridColor = dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
+        const textColor = dark ? '#8a8f9a' : '#6b7076';
 
-    const ctx = document.getElementById('caChart');
-    if (!ctx) return;
+        const ctx = document.getElementById('caChart');
+        if (!ctx) return;
 
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels,
-            datasets: [{
-                label: 'Chiffre d\'Affaires (F)',
-                data,
-                backgroundColor: 'rgba(0, 70, 255, 0.15)',
-                borderColor:     '#0046ff',
-                borderWidth:     2,
-                borderRadius:    6,
-                fill: true,
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: ctx => new Intl.NumberFormat('fr-FR').format(ctx.parsed.y) + ' F'
-                    }
-                }
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{
+                    label: 'Chiffre d\'Affaires (F)',
+                    data,
+                    backgroundColor: 'rgba(0, 70, 255, 0.15)',
+                    borderColor: '#0046ff',
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    fill: true,
+                }]
             },
-            scales: {
-                x: { grid: { color: gridColor }, ticks: { color: textColor } },
-                y: {
-                    beginAtZero: true,
-                    grid: { color: gridColor },
-                    ticks: {
-                        color: textColor,
-                        callback: v => new Intl.NumberFormat('fr-FR', { notation: 'compact' }).format(v)
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => new Intl.NumberFormat('fr-FR').format(ctx.parsed.y) + ' F'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: gridColor
+                        },
+                        ticks: {
+                            color: textColor
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: gridColor
+                        },
+                        ticks: {
+                            color: textColor,
+                            callback: v => new Intl.NumberFormat('fr-FR', {
+                                notation: 'compact'
+                            }).format(v)
+                        }
                     }
                 }
             }
-        }
-    });
-})();
+        });
+    })();
 </script>
 
 <style>
@@ -760,13 +967,11 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
     .dashboard-header h1 {
         margin: 0;
         font-size: 1.8rem;
-        background: linear-gradient(90deg, var(--text-main), var(--primary));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: var(--text-main);
     }
 
     .date-badge {
-        background: white;
+        background: var(--bg-card);
         padding: 8px 16px;
         border-radius: 20px;
         font-weight: 500;
@@ -785,7 +990,7 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
 
     .action-btn {
         flex: 1;
-        background: white;
+        background: var(--bg-card);
         padding: 15px;
         border-radius: 12px;
         display: flex;
@@ -821,19 +1026,19 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
     }
 
     .icon-box.blue {
-        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        background: var(--info);
     }
 
     .icon-box.green {
-        background: linear-gradient(135deg, #10b981, #059669);
+        background: var(--success);
     }
 
     .icon-box.purple {
-        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        background: #8b5cf6;
     }
 
     .icon-box.orange {
-        background: linear-gradient(135deg, #f59e0b, #d97706);
+        background: var(--warning);
     }
 
 
@@ -857,16 +1062,16 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
     }
 
     .stat-card.bg-white {
-        background: white;
+        background: var(--bg-card);
     }
 
     .stat-card.gradient-blue {
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        background: var(--primary);
         color: white;
     }
 
     .stat-card.gradient-orange {
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        background: var(--warning);
         color: white;
     }
 
@@ -922,17 +1127,17 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
         gap: 25px;
     }
 
-    .dashboard-featured-grid > a,
-    .quick-actions > .action-btn,
-    .dashboard-grid > .card {
+    .dashboard-featured-grid>a,
+    .quick-actions>.action-btn,
+    .dashboard-grid>.card {
         min-width: 0;
     }
 
-    .list-item > .d-flex {
+    .list-item>.d-flex {
         min-width: 0;
     }
 
-    .list-item > .d-flex > div:last-child {
+    .list-item>.d-flex>div:last-child {
         min-width: 0;
         overflow-wrap: anywhere;
     }
@@ -1027,7 +1232,7 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
             grid-template-columns: 1fr !important;
         }
 
-        .dashboard-featured-grid > a {
+        .dashboard-featured-grid>a {
             padding: 24px !important;
         }
 
@@ -1058,18 +1263,18 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
             gap: 12px;
         }
 
-        .list-item > .text-right {
+        .list-item>.text-right {
             flex-shrink: 0;
         }
     }
 
     @media (max-width: 480px) {
-        .dashboard-featured-grid > a {
+        .dashboard-featured-grid>a {
             min-height: 150px;
             padding: 20px !important;
         }
 
-        .dashboard-featured-grid > a h3 {
+        .dashboard-featured-grid>a h3 {
             font-size: 1.15rem !important;
         }
 
@@ -1083,7 +1288,7 @@ $salutation = ($heure >= 18) ? 'Bonsoir' : 'Bonjour';
             overflow-wrap: anywhere;
         }
 
-        .list-item > .text-right {
+        .list-item>.text-right {
             font-size: 0.85rem;
         }
     }

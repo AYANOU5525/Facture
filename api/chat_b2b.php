@@ -16,7 +16,7 @@ require_once '../config/db.php';
 require_once '../includes/b2b_helpers.php';
 require_once '../vendor/autoload.php';
 
-if (!canAccessB2B()) {
+if (!peutAccederB2B()) {
     header('Content-Type: application/json');
     http_response_code(403);
     echo json_encode(['success' => false, 'error' => 'Accès refusé.']);
@@ -78,7 +78,7 @@ if ($action === 'get_messages' && $_SERVER['REQUEST_METHOD'] === 'GET') {
 // ACTION : Envoyer un message
 // ============================================================
 if ($action === 'send' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireCsrf();
+    exigerCsrf();
     
     $commande_id   = intval($_POST['commande_id'] ?? 0);
     $message_texte = trim($_POST['message'] ?? '');
@@ -184,7 +184,7 @@ if ($action === 'send' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 // ACTION : Marquer les messages comme lus
 // ============================================================
 if ($action === 'mark_read' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireCsrf();
+    exigerCsrf();
     
     $commande_id = intval($_POST['commande_id'] ?? $_GET['commande_id'] ?? 0);
     

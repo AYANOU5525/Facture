@@ -15,7 +15,7 @@ final class InvoiceRepository
     public function availableProducts(int $enterpriseId): array
     {
         $statement = $this->pdo->prepare(
-            'SELECT Id_Produit, Nom_Produit, Prix_Unitaire_Produit, Quantite_En_Stock
+            'SELECT Id_Produit, Nom_Produit, Prix_Unitaire_Produit, Quantite_En_Stock, Quantite_Par_Carton
              FROM Produit
              WHERE Id_Entreprise = ? AND Quantite_En_Stock > 0
              ORDER BY Nom_Produit'
@@ -28,7 +28,7 @@ final class InvoiceRepository
     public function lockProduct(int $productId, int $enterpriseId): ?array
     {
         $statement = $this->pdo->prepare(
-            'SELECT Id_Produit, Nom_Produit, Prix_Unitaire_Produit, Quantite_En_Stock
+            'SELECT Id_Produit, Nom_Produit, Prix_Unitaire_Produit, Quantite_En_Stock, Quantite_Par_Carton
              FROM Produit
              WHERE Id_Produit = ? AND Id_Entreprise = ?
              FOR UPDATE'

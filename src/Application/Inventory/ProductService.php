@@ -43,6 +43,14 @@ final class ProductService
             $seuil = 5;
         }
 
+        $codeBarreUnite = trim((string) ($input['code_barre_unite'] ?? ''));
+        $codeBarreCarton = trim((string) ($input['code_barre_carton'] ?? ''));
+
+        $quantiteParCarton = filter_var($input['quantite_par_carton'] ?? 1, FILTER_VALIDATE_INT);
+        if ($quantiteParCarton === false || $quantiteParCarton < 1) {
+            $quantiteParCarton = 1;
+        }
+
         $this->repository->save([
             'nom' => $name,
             'description' => trim((string) ($input['description'] ?? '')),
@@ -52,9 +60,9 @@ final class ProductService
             'en_destockage' => isset($input['en_destockage_b2b']) ? 1 : 0,
             'prix_b2b' => ($input['prix_b2b'] ?? '') !== '' ? $input['prix_b2b'] : null,
             'qte_min_b2b' => ($input['quantite_min_b2b'] ?? '') !== '' ? $input['quantite_min_b2b'] : 1,
-            'code_barre_unite' => null,
-            'code_barre_carton' => null,
-            'quantite_par_carton' => 1,
+            'code_barre_unite' => $codeBarreUnite !== '' ? $codeBarreUnite : null,
+            'code_barre_carton' => $codeBarreCarton !== '' ? $codeBarreCarton : null,
+            'quantite_par_carton' => $quantiteParCarton,
         ], $enterpriseId, $productId);
     }
 }
