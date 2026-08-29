@@ -28,6 +28,11 @@ final class ProductService
         $this->repository->delete($productId, $enterpriseId);
     }
 
+    public function toggleDestockage(int $productId, int $enterpriseId, bool $enabled): void
+    {
+        $this->repository->toggleDestockage($productId, $enterpriseId, $enabled);
+    }
+
     public function save(array $input, int $enterpriseId, ?int $productId = null): void
     {
         $name = trim((string) ($input['nom'] ?? ''));
@@ -49,6 +54,20 @@ final class ProductService
         $quantiteParCarton = filter_var($input['quantite_par_carton'] ?? 1, FILTER_VALIDATE_INT);
         if ($quantiteParCarton === false || $quantiteParCarton < 1) {
             $quantiteParCarton = 1;
+        }
+
+        $codeUniteOrNull = $codeBarreUnite !== '' ? $codeBarreUnite : null;
+        $codeCartonOrNull = $codeBarreCarton !== '' ? $codeBarreCarton : null;
+
+        if ($codeUniteOrNull !== null && $codeCartonOrNull !== null && $codeUniteOrNull === $codeCartonOrNull) {
+            throw new InvalidArgumentException('Le code-barre unité et le code-barre carton doivent être différents.');
+        }
+
+        $conflict = $this->repository->findConflictingProduct($codeUniteOrNull, $codeCartonOrNull, $enterpriseId, $productId);
+        if ($conflict !== null) {
+            throw new InvalidArgumentException(
+                'Ce code-barres est déjà utilisé par le produit « ' . $conflict['Nom_Produit'] . ' ». Un même code-barres ne peut pas être partagé entre deux produits.'
+            );
         }
 
         $this->repository->save([

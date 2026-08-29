@@ -58,6 +58,41 @@ final class StockRepository
         return (int) $this->pdo->lastInsertId();
     }
 
+    /**
+     * Bascule le déstockage B2B sans toucher aux autres champs du produit.
+     * $prixB2B / $qteMinB2B, si fournis, priment sur les valeurs déjà en base (saisie
+     * explicite de l'entreprise). Sinon, si on active et qu'aucun prix B2B n'a jamais
+     * été défini, on reprend le prix unitaire courant comme valeur de départ — le
+     * produit n'apparaît jamais à 0 F sur le réseau B2B.
+     */
+    public function toggleDestockage(
+        int $productId,
+        int $enterpriseId,
+        bool $enabled,
+        ?float $prixB2B = null,
+        ?int $qteMinB2B = null
+    ): void {
+        $statement = $this->pdo->prepare(
+            'UPDATE Produit
+                SET En_Destockage_B2B = ?,
+                    Prix_B2B = CASE
+                        WHEN ? = 1 AND ? IS NOT NULL THEN ?
+                        WHEN ? = 1 AND Prix_B2B IS NULL THEN Prix_Unitaire_Produit
+                        ELSE Prix_B2B
+                    END,
+                    Quantite_Min_B2B = CASE WHEN ? = 1 AND ? IS NOT NULL THEN ? ELSE Quantite_Min_B2B END
+              WHERE Id_Produit = ? AND Id_Entreprise = ?'
+        );
+        $enabledFlag = $enabled ? 1 : 0;
+        $statement->execute([
+            $enabledFlag,
+            $enabledFlag, $prixB2B, $prixB2B,
+            $enabledFlag,
+            $enabledFlag, $qteMinB2B, $qteMinB2B,
+            $productId, $enterpriseId,
+        ]);
+    }
+
     public function findByNameForUpdate(string $name, int $enterpriseId): ?int
     {
         $statement = $this->pdo->prepare(

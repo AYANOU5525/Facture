@@ -1,0 +1,577 @@
+/* ============================================================
+   FACTUPRO.B2B — Bootstrap 5 theme bridge
+   Brand tokens + Bootstrap CSS-variable overrides. Component
+   markup itself is plain Bootstrap (navbar, card, table, btn,
+   form-control, badge, alert, modal, offcanvas, dropdown...).
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root,
+[data-bs-theme="light"] {
+  /* — Brand tokens (also used directly in a few bespoke rules below) — */
+  --primary:        #4f6ef7;
+  --primary-dark:   #3a57e0;
+  --primary-light:  rgba(79, 110, 247, 0.12);
+  --success:        #10b981;
+  --warning:        #f59e0b;
+  --danger:         #ef4444;
+  --info:           #3b82f6;
+  --text-main:      #0f172a;
+  --text-muted:     #64748b;
+  --bg-body:        #f0f2f8;
+  --bg-card:        #ffffff;
+  --border:         rgba(0, 0, 0, 0.08);
+  --zinc-50:        #f9fafb;
+  --zinc-100:       #f3f4f6;
+  --zinc-200:       #e5e7eb;
+  --radius:         10px;
+  --shadow-sm:      0 2px 8px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:      0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+
+  /* — Bootstrap variable bridge — */
+  --bs-primary: var(--primary);
+  --bs-primary-rgb: 79, 110, 247;
+  --bs-primary-text-emphasis: var(--primary-dark);
+  --bs-primary-bg-subtle: var(--primary-light);
+  --bs-primary-border-subtle: rgba(79, 110, 247, 0.35);
+  --bs-link-color: var(--primary);
+  --bs-link-color-rgb: 79, 110, 247;
+  --bs-link-hover-color: var(--primary-dark);
+  --bs-link-hover-color-rgb: 58, 87, 224;
+
+  --bs-success: var(--success);
+  --bs-success-rgb: 16, 185, 129;
+  --bs-success-text-emphasis: #0a6d54;
+  --bs-success-bg-subtle: rgba(16, 185, 129, 0.12);
+  --bs-success-border-subtle: rgba(16, 185, 129, 0.35);
+
+  --bs-warning: var(--warning);
+  --bs-warning-rgb: 245, 158, 11;
+  --bs-warning-text-emphasis: #92600a;
+  --bs-warning-bg-subtle: rgba(245, 158, 11, 0.14);
+  --bs-warning-border-subtle: rgba(245, 158, 11, 0.35);
+
+  --bs-danger: var(--danger);
+  --bs-danger-rgb: 239, 68, 68;
+  --bs-danger-text-emphasis: #a02525;
+  --bs-danger-bg-subtle: rgba(239, 68, 68, 0.12);
+  --bs-danger-border-subtle: rgba(239, 68, 68, 0.35);
+
+  --bs-info: var(--info);
+  --bs-info-rgb: 59, 130, 246;
+  --bs-info-text-emphasis: #1d5cb8;
+  --bs-info-bg-subtle: rgba(59, 130, 246, 0.12);
+  --bs-info-border-subtle: rgba(59, 130, 246, 0.35);
+
+  --bs-body-bg: var(--bg-body);
+  --bs-body-bg-rgb: 240, 242, 248;
+  --bs-body-color: var(--text-main);
+  --bs-body-color-rgb: 15, 23, 42;
+  --bs-emphasis-color: var(--text-main);
+  --bs-secondary-color: var(--text-muted);
+  --bs-secondary-bg: var(--zinc-100);
+  --bs-tertiary-bg: var(--zinc-50);
+  --bs-border-color: var(--border);
+  --bs-border-color-translucent: var(--border);
+
+  --bs-card-bg: var(--bg-card);
+  --bs-card-border-color: var(--border);
+  --bs-card-cap-bg: var(--bg-card);
+
+  --bs-font-sans-serif: 'Inter', 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-bs-theme="light"]) {
+    --primary-light:  rgba(79, 110, 247, 0.18);
+    --text-main:      #e2e8f0;
+    --text-muted:     #94a3b8;
+    --bg-body:        #0d0f1a;
+    --bg-card:        #13162a;
+    --border:         rgba(255, 255, 255, 0.08);
+    --zinc-50:         #1a1d2e;
+    --zinc-100:        #232638;
+    --zinc-200:        #2d3146;
+
+    --bs-body-bg: var(--bg-body);
+    --bs-body-bg-rgb: 13, 15, 26;
+    --bs-body-color: var(--text-main);
+    --bs-body-color-rgb: 226, 232, 240;
+    --bs-emphasis-color: var(--text-main);
+    --bs-secondary-color: var(--text-muted);
+    --bs-secondary-bg: var(--zinc-100);
+    --bs-tertiary-bg: var(--zinc-50);
+    --bs-border-color: var(--border);
+    --bs-border-color-translucent: var(--border);
+    --bs-card-bg: var(--bg-card);
+    --bs-card-border-color: var(--border);
+    --bs-card-cap-bg: var(--bg-card);
+    --bs-primary-bg-subtle: var(--primary-light);
+    --bs-success-text-emphasis: #4ade80;
+    --bs-success-bg-subtle: rgba(16, 185, 129, 0.16);
+    --bs-warning-text-emphasis: #fbbf24;
+    --bs-warning-bg-subtle: rgba(245, 158, 11, 0.16);
+    --bs-danger-text-emphasis: #f87171;
+    --bs-danger-bg-subtle: rgba(239, 68, 68, 0.16);
+    --bs-info-text-emphasis: #60a5fa;
+    --bs-info-bg-subtle: rgba(59, 130, 246, 0.16);
+  }
+}
+
+[data-bs-theme="dark"] {
+  --primary-light:  rgba(79, 110, 247, 0.18);
+  --text-main:      #e2e8f0;
+  --text-muted:     #94a3b8;
+  --bg-body:        #0d0f1a;
+  --bg-card:        #13162a;
+  --border:         rgba(255, 255, 255, 0.08);
+  --zinc-50:         #1a1d2e;
+  --zinc-100:        #232638;
+  --zinc-200:        #2d3146;
+
+  --bs-body-bg: var(--bg-body);
+  --bs-body-bg-rgb: 13, 15, 26;
+  --bs-body-color: var(--text-main);
+  --bs-body-color-rgb: 226, 232, 240;
+  --bs-emphasis-color: var(--text-main);
+  --bs-secondary-color: var(--text-muted);
+  --bs-secondary-bg: var(--zinc-100);
+  --bs-tertiary-bg: var(--zinc-50);
+  --bs-border-color: var(--border);
+  --bs-border-color-translucent: var(--border);
+  --bs-card-bg: var(--bg-card);
+  --bs-card-border-color: var(--border);
+  --bs-card-cap-bg: var(--bg-card);
+  --bs-primary-bg-subtle: var(--primary-light);
+  --bs-success-text-emphasis: #4ade80;
+  --bs-success-bg-subtle: rgba(16, 185, 129, 0.16);
+  --bs-warning-text-emphasis: #fbbf24;
+  --bs-warning-bg-subtle: rgba(245, 158, 11, 0.16);
+  --bs-danger-text-emphasis: #f87171;
+  --bs-danger-bg-subtle: rgba(239, 68, 68, 0.16);
+  --bs-info-text-emphasis: #60a5fa;
+  --bs-info-bg-subtle: rgba(59, 130, 246, 0.16);
+}
+
+/* ============================================================
+   BASE
+   ============================================================ */
+body {
+  font-family: 'Inter', 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-weight: 700;
+}
+
+a { transition: color .15s ease; }
+
+/* ============================================================
+   APP SHELL — sidebar (offcanvas responsive) + topbar + main
+   ============================================================ */
+:root {
+  --sidebar-width: 240px;
+  --topbar-height: 56px;
+}
+
+/* — Sidebar — */
+.app-sidebar {
+  --bs-offcanvas-width: var(--sidebar-width);
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+}
+
+.app-sidebar .offcanvas-header { border-bottom: 1px solid var(--border); }
+
+.app-sidebar-body {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-main);
+  text-decoration: none;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.sidebar-brand .brand-icon {
+  width: 32px;
+  height: 32px;
+  background: var(--primary);
+  border-radius: 8px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.sidebar-nav { flex: 1; padding-bottom: 16px; }
+
+.nav-group { margin-top: 14px; }
+
+.nav-group-title {
+  padding: 6px 16px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  opacity: 0.85;
+}
+
+.app-sidebar .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 1px 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-left: 3px solid transparent;
+}
+
+.app-sidebar .nav-link i {
+  width: 16px;
+  text-align: center;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.app-sidebar .nav-link:hover {
+  background: var(--bs-secondary-bg);
+  color: var(--text-main);
+}
+
+.app-sidebar .nav-link.active {
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 600;
+  border-left-color: var(--primary);
+  margin-left: 5px;
+  padding-left: 8px;
+}
+
+/* — Topbar — */
+.app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  height: var(--topbar-height);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: color-mix(in srgb, var(--bg-card) 92%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+  border-bottom: 1px solid var(--border);
+}
+
+.topbar-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.topbar-user {
+  text-decoration: none;
+  color: var(--text-main);
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.topbar-user:hover { background: var(--bs-secondary-bg); }
+
+.topbar-username { font-size: 0.875rem; font-weight: 600; }
+
+/* — Main content — */
+.app-main { min-height: calc(100vh - var(--topbar-height)); }
+
+@media (min-width: 992px) {
+  .app-sidebar.offcanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    visibility: visible;
+    transform: none;
+    box-shadow: none;
+    z-index: 1030;
+  }
+
+  .app-topbar,
+  .app-main {
+    margin-left: var(--sidebar-width);
+  }
+}
+
+/* ============================================================
+   STAT CARDS — shared "icon + label + value" pattern used across
+   dashboard.php, products.php, and other KPI strips.
+   ============================================================ */
+.stat-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: var(--bs-secondary-bg);
+  flex-shrink: 0;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  opacity: 0.85;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.icon-box {
+  width: 45px;
+  height: 45px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.icon-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.action-btn {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.action-btn:hover {
+  transform: translateY(-3px);
+  border-color: var(--bs-primary) !important;
+}
+
+.btn-icon {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--bs-secondary-bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.btn-icon:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.avatar-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+/* Dark-mode pill toggle */
+#dark-toggle {
+  position: relative;
+  width: 64px;
+  justify-content: flex-start;
+  padding: 0 4px;
+}
+
+[data-bs-theme="dark"] #dark-toggle { justify-content: flex-end; }
+
+#dark-toggle::before {
+  content: '';
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  transition: background .2s ease;
+  flex-shrink: 0;
+}
+
+[data-bs-theme="dark"] #dark-toggle::before {
+  background: var(--primary);
+  box-shadow: 0 0 12px rgba(79,110,247,0.5);
+}
+
+#dark-icon {
+  position: absolute;
+  font-size: 0.7rem;
+  pointer-events: none;
+}
+
+#dark-icon.fa-moon { right: 10px; }
+[data-bs-theme="dark"] #dark-icon.fa-sun { left: 10px; color: #fbbf24; }
+
+/* ============================================================
+   AUTH PAGES (login/register/reset) — kept, small footprint
+   ============================================================ */
+.login-body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-body);
+  padding: 20px;
+}
+
+.authentication-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  padding: 36px 32px;
+}
+
+.auth-header { text-align: center; margin-bottom: 24px; }
+
+.auth-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  border-radius: 14px;
+  background: var(--primary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+}
+
+/* ============================================================
+   DASHBOARD — bandeau de KPI sobre (un seul bloc à séparateurs fins,
+   pas N cartes colorées empilées) — utilisé par les 4 vues de
+   views/dashboard/*.php.
+   ============================================================ */
+.dash-kpi-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.dash-kpi {
+  flex: 1 1 190px;
+  background: var(--bg-card);
+  padding: 14px 20px;
+}
+
+.dash-kpi-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.dash-kpi-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.dash-kpi-value small {
+  font-size: 0.6em;
+  font-weight: 500;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
+.dash-kpi.is-primary .dash-kpi-value { color: var(--primary); font-size: 1.65rem; }
+.dash-kpi.is-danger .dash-kpi-value  { color: var(--danger); }
+
+/* Ligne de livraison / élément de liste compact (dashboard livreur) */
+.dash-delivery { border-left: 3px solid var(--border); }
+.dash-delivery.is-late  { border-left-color: var(--danger); }
+.dash-delivery.is-route { border-left-color: var(--info); }
+
+/* ============================================================
+   EXTRA CONTEXTUAL BADGES (order-status colors Bootstrap has no
+   default for) — used by includes/b2b_helpers.php::badgeStatutCommande()
+   ============================================================ */
+.text-bg-purple { color: #fff; background-color: #8b5cf6 !important; }
+.text-bg-teal   { color: #fff; background-color: #14b8a6 !important; }
+
+.badge-pulse { animation: badge-pulse-anim 1.4s ease-in-out infinite; }
+@keyframes badge-pulse-anim {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .6; }
+}
+
+.password-wrapper { position: relative; display: flex; align-items: center; }
+.password-wrapper .form-control { padding-right: 46px; }
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0;
+  line-height: 1;
+}
+.password-toggle:hover { color: var(--primary); }

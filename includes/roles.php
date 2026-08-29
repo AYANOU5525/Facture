@@ -178,10 +178,10 @@ function nomRole(string $role = ''): string
 function classeBadgeRole(string $role): string
 {
     return match($role) {
-        ROLE_ADMIN   => 'badge-danger',
-        ROLE_PROPRIO => 'badge-primary',
-        ROLE_VENDEUR => 'badge-success',
-        ROLE_LIVREUR => 'badge-warning',
-        default      => 'badge-secondary',
+        ROLE_ADMIN   => 'text-bg-danger',
+        ROLE_PROPRIO => 'text-bg-primary',
+        ROLE_VENDEUR => 'text-bg-success',
+        ROLE_LIVREUR => 'text-bg-warning',
+        default      => 'text-bg-secondary',
     };
 }

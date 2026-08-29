@@ -1,0 +1,155 @@
+t=2026-08-25T18:09:01+0000 lvl=info msg="command usage" msg="Flag --domain has been deprecated, use --url instead"
+t=2026-08-25T18:09:01+0000 lvl=info msg="no configuration paths supplied"
+t=2026-08-25T18:09:01+0000 lvl=info msg="using configuration at default config path" path=C:\\Users\\ALEX\\AppData\\Local\\ngrok\\ngrok.yml
+t=2026-08-25T18:09:01+0000 lvl=info msg="open config file" path=C:\\Users\\ALEX\\AppData\\Local\\ngrok\\ngrok.yml err=nil
+t=2026-08-25T18:09:01+0000 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-08-25T18:09:01+0000 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4040 allow_hosts=[]
+t=2026-08-25T18:09:02+0000 lvl=info msg="client session established" obj=tunnels.session
+t=2026-08-25T18:09:02+0000 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-08-25T18:09:02+0000 lvl=info msg="started tunnel" obj=tunnels name=command_line addr=http://localhost:8080 url=https://trousers-nickname-outrank.ngrok-free.dev
+t=2026-08-25T18:16:45+0000 lvl=info msg="join connections" obj=join id=b7a17a098291 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:15441
+t=2026-08-25T18:19:04+0000 lvl=info msg="join connections" obj=join id=1906361f3a9b l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:19:32+0000 lvl=info msg="join connections" obj=join id=b962fed30530 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:19:43+0000 lvl=info msg="join connections" obj=join id=dc24e5548230 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:20:44+0000 lvl=info msg="join connections" obj=join id=d7e9bf7f2148 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:21:14+0000 lvl=info msg="join connections" obj=join id=15b0229c70be l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:21:44+0000 lvl=info msg="join connections" obj=join id=3ba8816fe5ec l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:22:14+0000 lvl=info msg="join connections" obj=join id=03f5340742df l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:22:44+0000 lvl=info msg="join connections" obj=join id=1b3d7ecc41b4 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:23:14+0000 lvl=info msg="join connections" obj=join id=ff5864c97482 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:23:44+0000 lvl=info msg="join connections" obj=join id=d802ea8bd0f1 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:24:14+0000 lvl=info msg="join connections" obj=join id=7234e1da3623 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:24:44+0000 lvl=info msg="join connections" obj=join id=1e2c57a76a97 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:25:14+0000 lvl=info msg="join connections" obj=join id=c29acffa1e7c l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:25:44+0000 lvl=info msg="join connections" obj=join id=57f6464c365c l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:26:14+0000 lvl=info msg="join connections" obj=join id=5bfa074ec0c6 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:26:44+0000 lvl=info msg="join connections" obj=join id=f5c899965770 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:26:57+0000 lvl=info msg="join connections" obj=join id=25d204f97a4a l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:27:29+0000 lvl=info msg="join connections" obj=join id=daff081a98de l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:27:53+0000 lvl=info msg="join connections" obj=join id=372eec4f6a63 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:27:53+0000 lvl=info msg="join connections" obj=join id=804a698fe101 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:28:06+0000 lvl=info msg="join connections" obj=join id=f5bc5125bd70 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28587
+t=2026-08-25T18:28:08+0000 lvl=info msg="join connections" obj=join id=21eeca4f0595 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:39555
+t=2026-08-25T18:28:10+0000 lvl=info msg="join connections" obj=join id=31402c0c24e0 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:39555
+t=2026-08-25T18:28:37+0000 lvl=info msg="join connections" obj=join id=2b0941a976df l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:39555
+t=2026-08-25T18:29:08+0000 lvl=info msg="join connections" obj=join id=603ec6adcda4 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:39555
+t=2026-08-25T18:29:38+0000 lvl=info msg="join connections" obj=join id=b53dfacd3ebf l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:39555
+t=2026-08-25T18:30:08+0000 lvl=info msg="join connections" obj=join id=5b4e5255d440 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:39555
+t=2026-08-25T18:30:38+0000 lvl=info msg="join connections" obj=join id=511de59c5c34 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:39555
+t=2026-08-25T18:31:08+0000 lvl=info msg="join connections" obj=join id=ecdf164c85f0 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:39555
+t=2026-08-25T18:31:38+0000 lvl=info msg="join connections" obj=join id=32d4e8c27e4f l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:39555
+t=2026-08-25T18:32:08+0000 lvl=info msg="join connections" obj=join id=c707e169cdb2 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:39555
+t=2026-08-25T18:32:38+0000 lvl=info msg="join connections" obj=join id=c5ca29ccfd58 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:39555
+t=2026-08-25T18:32:48+0000 lvl=info msg="join connections" obj=join id=dd5c2f99bea9 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:39555
+t=2026-08-25T18:33:04+0000 lvl=info msg="join connections" obj=join id=a2ac736ba89f l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:39555
+t=2026-08-25T18:33:07+0000 lvl=info msg="join connections" obj=join id=66410ace2580 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:39555
+t=2026-08-25T18:39:23+0000 lvl=info msg="join connections" obj=join id=6c1c2af67530 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:52935
+t=2026-08-25T18:40:21+0000 lvl=info msg="join connections" obj=join id=014fe8b0ce73 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:31329
+t=2026-08-25T18:40:27+0000 lvl=info msg="join connections" obj=join id=3d9dca62912a l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:31329
+t=2026-08-25T18:52:04+0000 lvl=info msg="join connections" obj=join id=fe56c63ff978 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:25907
+t=2026-08-25T18:53:17+0000 lvl=info msg="join connections" obj=join id=a791391973f7 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:45913
+t=2026-08-25T19:07:54+0000 lvl=info msg="join connections" obj=join id=a4dcc9e8ab78 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:27735
+t=2026-08-25T19:13:50+0000 lvl=info msg="join connections" obj=join id=5e44d2a0527d l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:41477
+t=2026-08-25T19:14:08+0000 lvl=info msg="join connections" obj=join id=faaa2d3aed64 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:41477
+t=2026-08-25T19:14:31+0000 lvl=info msg="join connections" obj=join id=ca443f9736d9 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:41477
+t=2026-08-25T19:19:03+0000 lvl=info msg="join connections" obj=join id=7908f40ce5fd l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:32277
+t=2026-08-25T19:22:58+0000 lvl=info msg="join connections" obj=join id=c8b329e0e8f4 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:13113
+t=2026-08-25T19:26:10+0000 lvl=info msg="join connections" obj=join id=c8f44dc27c47 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:24519
+t=2026-08-25T19:29:16+0000 lvl=info msg="join connections" obj=join id=00fb3ab84d43 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:65455
+t=2026-08-25T19:29:44+0000 lvl=info msg="join connections" obj=join id=6fb75b18eeeb l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:65455
+t=2026-08-25T19:30:01+0000 lvl=info msg="join connections" obj=join id=1b48c33e77bb l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:65455
+t=2026-08-25T19:53:57+0000 lvl=info msg="join connections" obj=join id=166ab9888b0a l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:54323
+t=2026-08-25T19:54:19+0000 lvl=info msg="join connections" obj=join id=34282ad1b28a l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:54323
+t=2026-08-25T19:58:22+0000 lvl=info msg="join connections" obj=join id=bf4cac29904c l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:30159
+t=2026-08-25T19:58:24+0000 lvl=info msg="join connections" obj=join id=ab92e3dc2da0 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:51625
+t=2026-08-25T20:01:37+0000 lvl=info msg="join connections" obj=join id=6953e0223784 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:55335
+t=2026-08-25T20:01:45+0000 lvl=info msg="join connections" obj=join id=05cf30e818e7 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:55335
+t=2026-08-25T20:09:08+0000 lvl=info msg="join connections" obj=join id=f72d3a75bf08 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:27793
+t=2026-08-25T20:09:10+0000 lvl=info msg="join connections" obj=join id=19a3adc3e2e9 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:27793
+t=2026-08-25T20:16:55+0000 lvl=info msg="join connections" obj=join id=d34f541137ce l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:21437
+t=2026-08-25T20:17:12+0000 lvl=info msg="join connections" obj=join id=a69d47e6bd90 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:21437
+t=2026-08-25T20:17:44+0000 lvl=info msg="join connections" obj=join id=e66ce73af097 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:21437
+t=2026-08-25T20:18:55+0000 lvl=info msg="join connections" obj=join id=fc7af26c4877 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:58371
+t=2026-08-25T20:18:56+0000 lvl=info msg="join connections" obj=join id=f68a382aac48 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:42777
+t=2026-08-25T20:21:56+0000 lvl=info msg="join connections" obj=join id=d370ecf55cb0 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:28709
+t=2026-08-25T20:24:23+0000 lvl=info msg="join connections" obj=join id=98a5317260f9 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:12405
+t=2026-08-25T20:33:33+0000 lvl=info msg="join connections" obj=join id=c79f7d38bd66 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:15723
+t=2026-08-25T20:34:02+0000 lvl=info msg="join connections" obj=join id=bbc0d1449f6e l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:15723
+t=2026-08-25T20:40:14+0000 lvl=info msg="join connections" obj=join id=2ca15b1fc0b1 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:49353
+t=2026-08-25T20:40:29+0000 lvl=info msg="join connections" obj=join id=a14f37523f9e l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:49353
+t=2026-08-25T20:42:39+0000 lvl=info msg="join connections" obj=join id=98a98392dd30 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:23771
+t=2026-08-25T20:42:46+0000 lvl=info msg="join connections" obj=join id=ab02c923664e l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:23771
+t=2026-08-25T20:42:59+0000 lvl=info msg="join connections" obj=join id=033d29a725e6 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:23771
+t=2026-08-25T20:43:01+0000 lvl=info msg="join connections" obj=join id=0038e2a07b6c l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:32585
+t=2026-08-25T20:43:04+0000 lvl=info msg="join connections" obj=join id=98498e8b6058 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:32585
+t=2026-08-25T20:45:11+0000 lvl=info msg="join connections" obj=join id=1f44dd05d643 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:51983
+t=2026-08-25T20:49:40+0000 lvl=info msg="join connections" obj=join id=0bd8cec2c85f l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:51455
+t=2026-08-25T20:52:29+0000 lvl=info msg="join connections" obj=join id=eaed93c77ba2 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:15935
+t=2026-08-25T20:53:02+0000 lvl=info msg="join connections" obj=join id=02c8558ef43f l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:15935
+t=2026-08-25T20:56:51+0000 lvl=info msg="join connections" obj=join id=4af3404f6c96 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:13835
+t=2026-08-25T20:57:40+0000 lvl=info msg="join connections" obj=join id=5ab4b4e81dbb l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:13835
+t=2026-08-25T20:57:57+0000 lvl=info msg="join connections" obj=join id=0cd500a4ec53 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:13835
+t=2026-08-25T20:58:35+0000 lvl=info msg="join connections" obj=join id=cf6f168d32a0 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:13835
+t=2026-08-25T20:58:44+0000 lvl=info msg="join connections" obj=join id=b2da464baadc l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:13835
+t=2026-08-25T21:00:57+0000 lvl=info msg="join connections" obj=join id=d8d7c8484790 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:26845
+t=2026-08-25T21:01:33+0000 lvl=info msg="join connections" obj=join id=b4c03ee57165 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:26845
+t=2026-08-25T21:01:54+0000 lvl=info msg="join connections" obj=join id=6ad744a51a1e l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:26845
+t=2026-08-25T21:02:06+0000 lvl=info msg="join connections" obj=join id=abe0769c13b1 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:26845
+t=2026-08-25T21:03:27+0000 lvl=info msg="join connections" obj=join id=4d80a6587253 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:64437
+t=2026-08-25T21:03:45+0000 lvl=info msg="join connections" obj=join id=90c0a0b1dcc9 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:64437
+t=2026-08-25T21:04:32+0000 lvl=info msg="join connections" obj=join id=ea9c27b07168 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:64437
+t=2026-08-25T21:05:14+0000 lvl=info msg="join connections" obj=join id=bebfe34fd092 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:64437
+t=2026-08-25T21:07:20+0000 lvl=info msg="join connections" obj=join id=d6f192e5725e l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:17165
+t=2026-08-25T21:10:13+0000 lvl=info msg="join connections" obj=join id=94e65f49cfd7 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:51553
+t=2026-08-25T21:11:19+0000 lvl=info msg="join connections" obj=join id=1c6295108364 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:24967
+t=2026-08-25T21:11:43+0000 lvl=info msg="join connections" obj=join id=774a4ac8cf33 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:24967
+t=2026-08-25T21:11:59+0000 lvl=info msg="join connections" obj=join id=3bd5a35e587c l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:24967
+t=2026-08-25T21:17:39+0000 lvl=info msg="join connections" obj=join id=4b3751297534 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:65461
+t=2026-08-25T21:17:41+0000 lvl=info msg="join connections" obj=join id=3b9b83b80468 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:51409
+t=2026-08-25T21:18:05+0000 lvl=info msg="join connections" obj=join id=80ac8e49ee13 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:51409
+t=2026-08-25T21:18:12+0000 lvl=info msg="join connections" obj=join id=3d6877b2cecd l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:51409
+t=2026-08-25T21:18:19+0000 lvl=info msg="join connections" obj=join id=00a1a7f3c501 l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:51409
+t=2026-08-25T21:26:41+0000 lvl=info msg="join connections" obj=join id=de771bcd6f5b l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:55471
+t=2026-08-25T21:31:26+0000 lvl=info msg="join connections" obj=join id=d30e9b6e5e7d l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:51531
+t=2026-08-25T21:33:01+0000 lvl=info msg="join connections" obj=join id=b87a7ecb462f l=[::1]:8080 r=[2001:67c:2628:647:36:2300:0:62]:32971
+t=2026-08-26T21:15:09+0000 lvl=eror msg="heartbeat timeout, terminating session" obj=tunnels.session obj=csess id=37d5e207bf03 clientid=a7b4a5b62c0d0478c300aad3ad772f2a
+t=2026-08-26T21:15:22+0000 lvl=eror msg="session closed, starting reconnect loop" obj=tunnels.session obj=csess id=b7b667b972e8 err="session closed"
+t=2026-08-26T21:15:22+0000 lvl=eror msg="failed to reconnect session" obj=tunnels.session err="failed to dial ngrok server with address \"connect.ngrok-agent.com:443\": dial tcp: lookup connect.ngrok-agent.com: no such host"
+t=2026-08-26T21:15:36+0000 lvl=eror msg="failed to reconnect session" obj=tunnels.session err="failed to send authentication request: EOF"
+t=2026-08-26T21:15:42+0000 lvl=info msg="client session established" obj=tunnels.session
+t=2026-08-26T21:15:42+0000 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-08-26T21:39:38+0000 lvl=info msg="join connections" obj=join id=be5557c8874b l=[::1]:8080 r=156.38.84.69:56470
+t=2026-08-26T22:06:51+0000 lvl=info msg="join connections" obj=join id=c9fe6759ac39 l=[::1]:8080 r=156.38.84.69:63740
+t=2026-08-26T22:24:09+0000 lvl=info msg="join connections" obj=join id=18ec92d77299 l=[::1]:8080 r=156.38.84.69:56933
+t=2026-08-26T22:25:20+0000 lvl=info msg="join connections" obj=join id=191d6d3f66ba l=[::1]:8080 r=156.38.84.69:56933
+t=2026-08-26T22:26:11+0000 lvl=info msg="join connections" obj=join id=56e59f32e6b2 l=[::1]:8080 r=156.38.84.69:56933
+t=2026-08-26T22:26:21+0000 lvl=info msg="join connections" obj=join id=b1d7ddbae8ee l=[::1]:8080 r=156.38.84.69:56933
+t=2026-08-26T22:26:43+0000 lvl=info msg="join connections" obj=join id=8f35ddd84e5a l=[::1]:8080 r=156.38.84.69:56933
+t=2026-08-26T22:26:56+0000 lvl=info msg="join connections" obj=join id=df8eb9d75b02 l=[::1]:8080 r=156.38.84.69:56933
+t=2026-08-26T22:27:16+0000 lvl=info msg="join connections" obj=join id=2652471b8d07 l=[::1]:8080 r=156.38.84.69:56933
+t=2026-08-26T22:27:53+0000 lvl=info msg="join connections" obj=join id=1e7cd568b890 l=[::1]:8080 r=156.38.84.69:56933
+t=2026-08-26T22:27:59+0000 lvl=info msg="join connections" obj=join id=238b0c7e148e l=[::1]:8080 r=156.38.84.69:56933
+t=2026-08-26T22:28:48+0000 lvl=info msg="join connections" obj=join id=9b7d4855d74e l=[::1]:8080 r=156.38.84.69:56933
+t=2026-08-26T22:30:34+0000 lvl=info msg="join connections" obj=join id=d90470971936 l=[::1]:8080 r=156.38.84.69:56933
+t=2026-08-26T22:48:10+0000 lvl=info msg="join connections" obj=join id=1023b70b27f7 l=[::1]:8080 r=[2001:67c:2628:647:38:1900:0:24]:57145
+t=2026-08-26T22:48:24+0000 lvl=info msg="join connections" obj=join id=26cf0be8a533 l=[::1]:8080 r=[2001:67c:2628:647:38:1900:0:24]:57145
+t=2026-08-26T22:48:39+0000 lvl=info msg="join connections" obj=join id=4b833ea104d8 l=[::1]:8080 r=[2001:67c:2628:647:38:1900:0:24]:57145
+t=2026-08-27T12:09:27+0000 lvl=eror msg="heartbeat timeout, terminating session" obj=tunnels.session obj=csess id=c7a2a863ae65 clientid=a7b4a5b62c0d0478c300aad3ad772f2a
+t=2026-08-27T12:09:33+0000 lvl=eror msg="session closed, starting reconnect loop" obj=tunnels.session obj=csess id=b7b667b972e8 err="read tcp 192.168.0.105:52151->52.28.187.147:443: wsarecv: An existing connection was forcibly closed by the remote host."
+t=2026-08-27T12:09:43+0000 lvl=info msg="client session established" obj=tunnels.session
+t=2026-08-27T12:09:43+0000 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-08-27T17:15:04+0000 lvl=eror msg="session closed, starting reconnect loop" obj=tunnels.session obj=csess id=b7b667b972e8 err="read tcp 192.168.0.105:61623->3.123.83.158:443: wsarecv: An established connection was aborted by the software in your host machine."
+t=2026-08-27T17:15:10+0000 lvl=info msg="client session established" obj=tunnels.session
+t=2026-08-27T17:15:10+0000 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-08-27T17:15:18+0000 lvl=eror msg="heartbeat timeout, terminating session" obj=tunnels.session obj=csess id=59c1ec160e6c clientid=a7b4a5b62c0d0478c300aad3ad772f2a
+t=2026-08-27T23:04:08+0000 lvl=eror msg="heartbeat timeout, terminating session" obj=tunnels.session obj=csess id=5bdc90b6e423 clientid=a7b4a5b62c0d0478c300aad3ad772f2a
+t=2026-08-27T23:04:20+0000 lvl=eror msg="session closed, starting reconnect loop" obj=tunnels.session obj=csess id=b7b667b972e8 err="read tcp [2c0f:f0f8:207:af00:29bc:9751:5a8c:5a47]:50786->[2a05:d014:21b:8e02:1045:ca8e:29ad:49be]:443: wsarecv: An existing connection was forcibly closed by the remote host."
+t=2026-08-27T23:04:43+0000 lvl=eror msg="failed to reconnect session" obj=tunnels.session err="failed to send authentication request: EOF"
+t=2026-08-27T23:05:06+0000 lvl=info msg="client session established" obj=tunnels.session
+t=2026-08-27T23:05:06+0000 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-08-28T00:08:12+0000 lvl=eror msg="heartbeat timeout, terminating session" obj=tunnels.session obj=csess id=e6fd622abceb clientid=a7b4a5b62c0d0478c300aad3ad772f2a
+t=2026-08-28T00:08:12+0000 lvl=eror msg="session closed, starting reconnect loop" obj=tunnels.session obj=csess id=b7b667b972e8 err="session closed"
+t=2026-08-28T00:08:29+0000 lvl=eror msg="failed to reconnect session" obj=tunnels.session err="failed to send authentication request: read tcp [2c0f:f0f8:207:af00:edfa:cde7:53e7:cb03]:51414->[2a05:d014:21b:8e01:2fcd:4670:51ae:ac39]:443: wsarecv: An established connection was aborted by the software in your host machine."
+t=2026-08-28T00:08:31+0000 lvl=eror msg="failed to reconnect session" obj=tunnels.session err="failed to dial ngrok server with address \"connect.ngrok-agent.com:443\": dial tcp: lookup connect.ngrok-agent.com: no such host"
+t=2026-08-28T00:08:36+0000 lvl=info msg="client session established" obj=tunnels.session
+t=2026-08-28T00:08:36+0000 lvl=info msg="tunnel session started" obj=tunnels.session

@@ -32,7 +32,8 @@ if (session_status() === PHP_SESSION_NONE) {
     <link rel="dns-prefetch" href="https://raw.githubusercontent.com">
 
     <!-- Styles -->
-    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../assets/css/theme.css">
     <link rel="stylesheet" href="../assets/css/animations.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
@@ -40,222 +41,211 @@ if (session_status() === PHP_SESSION_NONE) {
 <body>
 
     <?php if (isset($_SESSION['user_id'])): ?>
-        <nav class="navbar" id="mainNavbar">
-            <div class="navbar-content">
+        <?php $current = basename($_SERVER['PHP_SELF']); ?>
 
-                <!-- LEFT: BRAND -->
-                <div class="nav-left">
-                    <a href="dashboard.php" class="nav-brand">
-                        <div class="brand-icon">
-                            <i class="fas fa-cube"></i>
-                        </div>
-                        <span class="brand-text">
-                            FactuPro<span class="brand-highlight">.B2B</span>
-                        </span>
-                    </a>
-                </div>
+        <!-- ============================================================
+             SIDEBAR — offcanvas sur mobile/tablette, fixe en colonne à
+             partir du breakpoint lg (voir theme.css : @media (min-width: 992px)).
+             ============================================================ -->
+        <div class="offcanvas offcanvas-start app-sidebar" tabindex="-1" id="appSidebar" aria-labelledby="appSidebarLabel">
+            <div class="offcanvas-header d-lg-none">
+                <span class="offcanvas-title" id="appSidebarLabel">Menu</span>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
+            </div>
+            <div class="offcanvas-body app-sidebar-body">
+                <a href="dashboard.php" class="sidebar-brand">
+                    <span class="brand-icon d-inline-flex align-items-center justify-content-center">
+                        <i class="fas fa-cube"></i>
+                    </span>
+                    <span>FactuPro<span class="text-primary">.B2B</span></span>
+                </a>
 
-                <!-- CENTER: MAIN NAVIGATION -->
-                <div class="nav-center" style="flex:1; display:flex; justify-content:center;">
-                    <ul class="nav-links main-nav">
-                        <li>
-                            <a href="dashboard.php"
-                                class="<?= basename($_SERVER['PHP_SELF']) == 'dashboard.php' ? 'active' : '' ?>"
-                                title="Tableau de bord">
-                                <i class="fas fa-chart-pie"></i> Dash
+                <nav class="sidebar-nav" aria-label="Navigation principale">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a href="dashboard.php" class="nav-link <?= $current === 'dashboard.php' ? 'active' : '' ?>">
+                                <i class="fas fa-chart-pie"></i> Tableau de bord
                             </a>
                         </li>
-                        <?php if (peutVoirStock()): ?>
-                            <li>
-                                <a href="products.php"
-                                    class="<?= basename($_SERVER['PHP_SELF']) == 'products.php' ? 'active' : '' ?>"
-                                    title="Inventaire">
-                                    <i class="fas fa-box"></i> Stocks
-                                </a>
-                            </li>
-                        <?php endif; ?>
-                        <?php if (peutGererStock()): ?>
-                            <li>
-                                <a href="approvisionnement.php"
-                                    class="<?= basename($_SERVER['PHP_SELF']) == 'approvisionnement.php' ? 'active' : '' ?>"
-                                    title="Entrée en stock">
-                                    <i class="fas fa-truck-loading"></i> Réception
-                                </a>
-                            </li>
-                        <?php endif; ?>
-                        <?php if (peutVendre()): ?>
-                            <li>
-                                <a href="sales.php"
-                                    class="<?= basename($_SERVER['PHP_SELF']) == 'sales.php' ? 'active' : '' ?>"
-                                    title="Historique">
-                                    <i class="fas fa-receipt"></i> Ventes
-                                </a>
-                            </li>
-                            <li>
-                                <a href="invoices.php"
-                                    class="<?= basename($_SERVER['PHP_SELF']) == 'invoices.php' ? 'active' : '' ?>"
-                                    title="Facturation">
-                                    <i class="fas fa-file-invoice"></i> Factures
-                                </a>
-                            </li>
-                            <li>
-                                <a href="clients.php"
-                                    class="<?= basename($_SERVER['PHP_SELF']) == 'clients.php' ? 'active' : '' ?>"
-                                    title="Base clients">
-                                    <i class="fas fa-users"></i> Clients
-                                </a>
-                            </li>
-                        <?php endif; ?>
-                        <?php if (peutLivrer()): ?>
-                            <li>
-                                <a href="logistique.php"
-                                    class="<?= basename($_SERVER['PHP_SELF']) == 'logistique.php' ? 'active' : '' ?>"
-                                    title="Livraisons">
-                                    <i class="fas fa-truck"></i> Logistique
-                                </a>
-                            </li>
-                        <?php endif; ?>
                     </ul>
-                </div>
 
-                <!-- RIGHT: ACTIONS -->
-                <div class="nav-right" style="display:flex; align-items:center; gap:8px;">
-
-                    <!-- Dark mode pill toggle — Uiverse.io style -->
-                    <button id="dark-toggle" title="Mode sombre / clair" aria-label="Basculer le thème">
-                        <i class="fas fa-moon" id="dark-icon"></i>
-                    </button>
-
-                    <!-- Notification Bell — ReactBits pulse ring -->
-                    <?php if (peutAccederB2B()): ?>
-                        <a href="notifications_b2b.php" class="notif-bell" id="notifBell" title="Notifications B2B">
-                            <i class="fas fa-bell"></i>
-                            <span id="nav-notif-badge">0</span>
-                        </a>
+                    <?php if (peutVoirVentes() || peutCreerVente() || peutVoirFactures() || peutVoirClients()): ?>
+                    <div class="nav-group">
+                        <div class="nav-group-title">Ventes</div>
+                        <ul class="nav flex-column">
+                            <?php if (peutCreerVente()): ?>
+                                <li class="nav-item">
+                                    <a href="invoice_add.php" class="nav-link <?= $current === 'invoice_add.php' ? 'active' : '' ?>">
+                                        <i class="fas fa-cash-register"></i> Nouvelle vente
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if (peutVoirVentes()): ?>
+                                <li class="nav-item">
+                                    <a href="sales.php" class="nav-link <?= $current === 'sales.php' ? 'active' : '' ?>">
+                                        <i class="fas fa-receipt"></i> Ventes
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if (peutVoirFactures()): ?>
+                                <li class="nav-item">
+                                    <a href="invoices.php" class="nav-link <?= $current === 'invoices.php' ? 'active' : '' ?>">
+                                        <i class="fas fa-file-invoice"></i> Factures
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if (peutVoirClients()): ?>
+                                <li class="nav-item">
+                                    <a href="clients.php" class="nav-link <?= $current === 'clients.php' ? 'active' : '' ?>">
+                                        <i class="fas fa-users"></i> Clients
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                        </ul>
+                    </div>
                     <?php endif; ?>
 
-                    <!-- Burger / User menu -->
-                    <div class="user-dropdown">
-                        <button id="burgerBtn" aria-label="Menu utilisateur" aria-expanded="false">
-                            <i class="fas fa-bars" id="burgerIcon"></i>
-                        </button>
-
-                        <div id="userMenu" role="menu" aria-hidden="true">
-                            <!-- User info header -->
-                            <div style="display:flex; align-items:center; gap:10px; padding:10px 12px 8px;">
-                                <div style="width:36px; height:36px; border-radius:10px; background:var(--primary); display:flex; align-items:center; justify-content:center; color:white; font-size:0.9rem; font-weight:700; flex-shrink:0;">
-                                    <?= strtoupper(substr($_SESSION['username'] ?? 'U', 0, 1)) ?>
-                                </div>
-                                <div style="min-width:0;">
-                                    <div style="font-weight:700; font-size:0.875rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                                        <?= htmlspecialchars($_SESSION['username'] ?? '') ?>
-                                    </div>
-                                    <span class="badge badge-primary" style="font-size:0.65rem; margin-top:2px; display:inline-flex;">
-                                        <?= nomRole($_SESSION['role'] ?? '') ?>
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div class="dropdown-divider"></div>
-
-                            <!-- Mobile nav links -->
-                            <ul style="list-style:none; padding:0; margin:0;">
-                                <li class="mobile-nav-links">
-                                    <a href="dashboard.php" class="dropdown-item" role="menuitem">
-                                        <i class="fas fa-chart-pie" style="color:var(--primary);"></i>
-                                        <span>Tableau de bord</span>
+                    <?php if (peutVoirProduits() || peutGererStock()): ?>
+                    <div class="nav-group">
+                        <div class="nav-group-title">Stocks</div>
+                        <ul class="nav flex-column">
+                            <?php if (peutVoirProduits()): ?>
+                                <li class="nav-item">
+                                    <a href="products.php" class="nav-link <?= $current === 'products.php' ? 'active' : '' ?>">
+                                        <i class="fas fa-box"></i> Produits
                                     </a>
                                 </li>
-                                <?php if (peutVoirStock()): ?>
-                                    <li class="mobile-nav-links">
-                                        <a href="products.php" class="dropdown-item" role="menuitem">
-                                            <i class="fas fa-box" style="color:var(--warning);"></i>
-                                            <span>Stocks</span>
-                                        </a>
-                                    </li>
-                                <?php endif; ?>
-                                <?php if (peutGererStock()): ?>
-                                    <li class="mobile-nav-links">
-                                        <a href="approvisionnement.php" class="dropdown-item" role="menuitem">
-                                            <i class="fas fa-truck-loading" style="color:var(--info);"></i>
-                                            <span>Réception</span>
-                                        </a>
-                                    </li>
-                                <?php endif; ?>
-                                <?php if (peutVendre()): ?>
-                                    <li class="mobile-nav-links">
-                                        <a href="sales.php" class="dropdown-item" role="menuitem">
-                                            <i class="fas fa-receipt" style="color:var(--success);"></i>
-                                            <span>Ventes</span>
-                                        </a>
-                                    </li>
-                                    <li class="mobile-nav-links">
-                                        <a href="invoices.php" class="dropdown-item" role="menuitem">
-                                            <i class="fas fa-file-invoice" style="color:var(--primary);"></i>
-                                            <span>Factures</span>
-                                        </a>
-                                    </li>
-                                    <li class="mobile-nav-links">
-                                        <a href="clients.php" class="dropdown-item" role="menuitem">
-                                            <i class="fas fa-users" style="color:var(--info);"></i>
-                                            <span>Clients</span>
-                                        </a>
-                                    </li>
-                                <?php endif; ?>
-                                <?php if (peutLivrer()): ?>
-                                    <li class="mobile-nav-links">
-                                        <a href="logistique.php" class="dropdown-item" role="menuitem">
-                                            <i class="fas fa-truck" style="color:var(--warning);"></i>
-                                            <span>Logistique</span>
-                                        </a>
-                                    </li>
-                                <?php endif; ?>
-
-                                <?php if (peutGererEquipe()): ?>
-                                    <div class="dropdown-divider"></div>
-                                    <li>
-                                        <a href="team.php" class="dropdown-item" role="menuitem">
-                                            <i class="fas fa-user-shield" style="color:var(--primary);"></i>
-                                            <span>Gestion d'équipe</span>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="settings.php" class="dropdown-item" role="menuitem">
-                                            <i class="fas fa-cog" style="color:var(--text-muted);"></i>
-                                            <span>Paramètres</span>
-                                        </a>
-                                    </li>
-                                <?php endif; ?>
-                                <?php if (peutAccederB2B()): ?>
-                                    <div class="dropdown-divider"></div>
-                                    <li>
-                                        <a href="reseau_b2b.php" class="dropdown-item" role="menuitem">
-                                            <i class="fas fa-globe" style="color:var(--primary);"></i>
-                                            <span>Réseau B2B</span>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a href="commandes_b2b.php" class="dropdown-item" role="menuitem">
-                                            <i class="fas fa-comments" style="color:var(--success);"></i>
-                                            <span>Commandes &amp; chat B2B</span>
-                                        </a>
-                                    </li>
-                                <?php endif; ?>
-
-                                <div class="dropdown-divider"></div>
-                                <li>
-                                    <a href="../includes/logout.php" class="dropdown-item logout-item" role="menuitem">
-                                        <i class="fas fa-sign-out-alt"></i>
-                                        <span>Déconnexion</span>
+                            <?php endif; ?>
+                            <?php if (peutGererStock()): ?>
+                                <li class="nav-item">
+                                    <a href="approvisionnement.php" class="nav-link <?= $current === 'approvisionnement.php' ? 'active' : '' ?>">
+                                        <i class="fas fa-truck-loading"></i> Approvisionnement
                                     </a>
                                 </li>
-                            </ul>
-                        </div>
+                            <?php endif; ?>
+                        </ul>
                     </div>
+                    <?php endif; ?>
+
+                    <?php if (peutAccederB2B() || peutGererB2B()): ?>
+                    <div class="nav-group">
+                        <div class="nav-group-title">B2B</div>
+                        <ul class="nav flex-column">
+                            <?php if (peutAccederB2B()): ?>
+                                <li class="nav-item">
+                                    <a href="reseau_b2b.php" class="nav-link <?= $current === 'reseau_b2b.php' ? 'active' : '' ?>">
+                                        <i class="fas fa-globe"></i> Réseau
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if (peutGererB2B()): ?>
+                                <li class="nav-item">
+                                    <a href="commandes_b2b.php" class="nav-link <?= $current === 'commandes_b2b.php' ? 'active' : '' ?>">
+                                        <i class="fas fa-comments"></i> Commandes
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="annonces.php" class="nav-link <?= $current === 'annonces.php' ? 'active' : '' ?>">
+                                        <i class="fas fa-bullhorn"></i> Annonces
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="notifications_b2b.php" class="nav-link <?= $current === 'notifications_b2b.php' ? 'active' : '' ?>">
+                                        <i class="fas fa-bell"></i> Notifications
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                        </ul>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if (peutVoirExpeditions()): ?>
+                    <div class="nav-group">
+                        <div class="nav-group-title">Logistique</div>
+                        <ul class="nav flex-column">
+                            <li class="nav-item">
+                                <a href="logistique.php" class="nav-link <?= $current === 'logistique.php' ? 'active' : '' ?>">
+                                    <i class="fas fa-truck"></i> Livraisons
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if (peutGererEquipe() || peutGererParametres()): ?>
+                    <div class="nav-group">
+                        <div class="nav-group-title">Administration</div>
+                        <ul class="nav flex-column">
+                            <?php if (peutGererEquipe()): ?>
+                                <li class="nav-item">
+                                    <a href="team.php" class="nav-link <?= $current === 'team.php' ? 'active' : '' ?>">
+                                        <i class="fas fa-user-shield"></i> Équipe
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if (peutGererParametres()): ?>
+                                <li class="nav-item">
+                                    <a href="settings.php" class="nav-link <?= $current === 'settings.php' ? 'active' : '' ?>">
+                                        <i class="fas fa-cog"></i> Paramètres
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                        </ul>
+                    </div>
+                    <?php endif; ?>
+                </nav>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             HEADER SUPÉRIEUR COMPACT — titre de page, notifications, menu utilisateur
+             ============================================================ -->
+        <header class="app-topbar">
+            <button class="btn-icon d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#appSidebar" aria-controls="appSidebar" aria-label="Ouvrir le menu">
+                <i class="fas fa-bars"></i>
+            </button>
+
+            <h1 class="topbar-title"><?= htmlspecialchars($page_title ?? 'FactuPro') ?></h1>
+
+            <div class="topbar-actions">
+                <button id="dark-toggle" class="btn btn-icon rounded-pill" title="Mode sombre / clair" aria-label="Basculer le thème">
+                    <i class="fas fa-moon" id="dark-icon"></i>
+                </button>
+
+                <?php if (peutAccederB2B()): ?>
+                    <a href="notifications_b2b.php" class="btn btn-icon" id="notifBell" title="Notifications B2B">
+                        <i class="fas fa-bell"></i>
+                    </a>
+                <?php endif; ?>
+
+                <div class="dropdown">
+                    <a href="#" class="topbar-user d-flex align-items-center gap-2" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="avatar-circle"><?= strtoupper(substr($_SESSION['username'] ?? 'U', 0, 1)) ?></span>
+                        <span class="d-none d-md-inline topbar-username"><?= htmlspecialchars($_SESSION['username'] ?? '') ?></span>
+                        <i class="fas fa-chevron-down d-none d-md-inline" style="font-size:.7rem; opacity:.6;"></i>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end p-2" style="min-width:240px;">
+                        <li class="px-2 py-1">
+                            <div class="fw-bold text-truncate"><?= htmlspecialchars($_SESSION['username'] ?? '') ?></div>
+                            <span class="badge text-bg-primary"><?= nomRole($_SESSION['role'] ?? '') ?></span>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <?php if (peutGererEquipe()): ?>
+                            <li><a href="team.php" class="dropdown-item"><i class="fas fa-user-shield text-primary me-2"></i>Gestion d'équipe</a></li>
+                            <li><a href="settings.php" class="dropdown-item"><i class="fas fa-cog text-secondary me-2"></i>Paramètres</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                        <?php endif; ?>
+                        <li>
+                            <a href="../includes/logout.php" class="dropdown-item text-danger">
+                                <i class="fas fa-sign-out-alt me-2"></i>Déconnexion
+                            </a>
+                        </li>
+                    </ul>
                 </div>
             </div>
-        </nav>
+        </header>
 
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
         <script>
             (function() {
                 /* ── Dark Mode Pill Toggle ── */
@@ -265,6 +255,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
                 function applyTheme(dark) {
                     root.setAttribute('data-theme', dark ? 'dark' : 'light');
+                    root.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
                     if (icon) {
                         icon.className = dark ? 'fas fa-sun' : 'fas fa-moon';
                     }
@@ -275,109 +266,13 @@ if (session_status() === PHP_SESSION_NONE) {
 
                 if (toggle) {
                     toggle.addEventListener('click', function() {
-                        const isDark = root.getAttribute('data-theme') === 'dark';
+                        const isDark = root.getAttribute('data-bs-theme') === 'dark';
                         applyTheme(!isDark);
                         localStorage.setItem('factupro_theme', !isDark ? 'dark' : 'light');
-                    });
-                }
-
-                /* ── Burger / Dropdown — Animated ── */
-                const burgerBtn = document.getElementById('burgerBtn');
-                const burgerIcon = document.getElementById('burgerIcon');
-                const userMenu = document.getElementById('userMenu');
-
-                function toggleMenu(open) {
-                    if (!userMenu) return;
-                    if (open) {
-                        userMenu.classList.add('open');
-                        userMenu.style.display = 'block';
-                        userMenu.setAttribute('aria-hidden', 'false');
-                        if (burgerBtn) burgerBtn.setAttribute('aria-expanded', 'true');
-                        if (burgerIcon) {
-                            burgerIcon.className = 'fas fa-times';
-                        }
-                    } else {
-                        userMenu.classList.remove('open');
-                        userMenu.setAttribute('aria-hidden', 'true');
-                        if (burgerBtn) burgerBtn.setAttribute('aria-expanded', 'false');
-                        if (burgerIcon) {
-                            burgerIcon.className = 'fas fa-bars';
-                        }
-                        // hide after animation
-                        setTimeout(() => {
-                            if (!userMenu.classList.contains('open')) {
-                                userMenu.style.display = 'none';
-                            }
-                        }, 200);
-                    }
-                }
-
-                if (userMenu) userMenu.style.display = 'none';
-
-                if (burgerBtn && userMenu) {
-                    burgerBtn.addEventListener('click', function(e) {
-                        e.stopPropagation();
-                        const isOpen = userMenu.classList.contains('open');
-                        toggleMenu(!isOpen);
-                    });
-
-                    document.addEventListener('click', function(e) {
-                        if (userMenu.classList.contains('open') &&
-                            !userMenu.contains(e.target) &&
-                            e.target !== burgerBtn &&
-                            !burgerBtn.contains(e.target)) {
-                            toggleMenu(false);
-                        }
-                    });
-
-                    document.addEventListener('keydown', function(e) {
-                        if (e.key === 'Escape' && userMenu.classList.contains('open')) {
-                            toggleMenu(false);
-                            burgerBtn.focus();
-                        }
-                    });
-                }
-
-                /* ── Notification Badge — ReactBits pulse ── */
-                <?php if (peutAccederB2B()): ?>
-
-                    function updateNotifBadge() {
-                        fetch('../api/notifications.php?action=count')
-                            .then(res => res.json())
-                            .then(data => {
-                                const badge = document.getElementById('nav-notif-badge');
-                                if (badge) {
-                                    if (data.success && data.count > 0) {
-                                        badge.textContent = data.count > 99 ? '99+' : data.count;
-                                        badge.style.display = 'flex';
-                                        badge.classList.add('has-notif');
-                                    } else {
-                                        badge.style.display = 'none';
-                                        badge.classList.remove('has-notif');
-                                    }
-                                }
-                            })
-                            .catch(err => console.error('Notifications:', err));
-                    }
-                    updateNotifBadge();
-                    setInterval(updateNotifBadge, 30000);
-                <?php endif; ?>
-
-                /* ── Navbar scroll shadow ── */
-                const navbar = document.getElementById('mainNavbar');
-                if (navbar) {
-                    window.addEventListener('scroll', function() {
-                        if (window.scrollY > 10) {
-                            navbar.style.boxShadow = 'var(--shadow-md)';
-                        } else {
-                            navbar.style.boxShadow = 'var(--shadow-sm)';
-                        }
-                    }, {
-                        passive: true
                     });
                 }
             })();
         </script>
     <?php endif; ?>
 
-    <main class="container fade-in">
+    <main class="app-main fade-in">

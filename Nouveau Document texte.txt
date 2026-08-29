@@ -1,0 +1,7 @@
+Redirection automatique sur la page de connexion
+Envoyer des mails quand un employé est créé
+Dissocier les formulaires et les liste
+Afficher la liste
+Ajouter un bouton Ajouter produit et une fois cliqué…
+Mettre des tirets quand il n’y a pas d’information
+implementer les scanner de code barre en entrée et en sortie

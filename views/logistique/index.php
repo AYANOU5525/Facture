@@ -1,0 +1,167 @@
+<style>
+code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+}
+.delay-alert {
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+</style>
+
+<div class="container fade-in py-4">
+    <div class="mb-3">
+        <p class="text-body-secondary mb-0">Expéditions, livraisons et suivi des transporteurs</p>
+    </div>
+
+    <!-- KPI STRIP -->
+    <div class="dash-kpi-row">
+        <div class="dash-kpi">
+            <div class="dash-kpi-label">En préparation</div>
+            <div class="dash-kpi-value"><?= $nb_attente ?></div>
+        </div>
+        <div class="dash-kpi is-primary">
+            <div class="dash-kpi-label">En transit</div>
+            <div class="dash-kpi-value"><?= $nb_route ?></div>
+        </div>
+        <div class="dash-kpi">
+            <div class="dash-kpi-label">Livrées</div>
+            <div class="dash-kpi-value"><?= $nb_livrees ?></div>
+        </div>
+        <div class="dash-kpi <?= $nb_retard > 0 ? 'is-danger' : '' ?>">
+            <div class="dash-kpi-label">En retard</div>
+            <div class="dash-kpi-value"><?= $nb_retard ?></div>
+        </div>
+    </div>
+
+    <!-- TABLE CARD -->
+    <div class="card">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h2 class="fs-6 mb-0">Expéditions &amp; Livraisons</h2>
+                <p class="text-body-secondary small mb-0"><?= count($logistique) ?> expédition<?= count($logistique) > 1 ? 's' : '' ?></p>
+            </div>
+
+            <form method="GET" class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="input-group input-group-sm" style="width:220px;">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="search" name="q" class="form-control" value="<?= htmlspecialchars($recherche) ?>" placeholder="Commande, client, transporteur...">
+                </div>
+                <select name="statut" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+                    <option value="">Tous les statuts</option>
+                    <option value="traitement" <?= $statut_filtre === 'traitement' ? 'selected' : '' ?>>En préparation</option>
+                    <option value="en_attente" <?= $statut_filtre === 'en_attente' ? 'selected' : '' ?>>En attente</option>
+                    <option value="expediee" <?= $statut_filtre === 'expediee' ? 'selected' : '' ?>>En route</option>
+                    <option value="livree" <?= $statut_filtre === 'livree' ? 'selected' : '' ?>>Livrée</option>
+                    <option value="annulee" <?= $statut_filtre === 'annulee' ? 'selected' : '' ?>>Annulée</option>
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-sync"></i></button>
+                <?php if ($recherche !== '' || $statut_filtre !== ''): ?>
+                    <a href="logistique.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-times"></i></a>
+                <?php endif; ?>
+            </form>
+        </div>
+
+        <?php if (count($logistique) > 0): ?>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Réf. Document</th>
+                            <th>Client / Acheteur</th>
+                            <th>Transporteur</th>
+                            <th>N° Suivi</th>
+                            <th>Statut</th>
+                            <th>Date Prévue</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($logistique as $i => $l):
+                            $dp = $l['Date_Livraison_Prevue'];
+                            $retard = $dp && strtotime($dp) < time() && $l['Statut_Livraison'] !== 'livree' && $l['Statut_Livraison'] !== 'annulee';
+
+                            $sbadge = match($l['Statut_Livraison']) {
+                                'livree'     => 'success',
+                                'expediee'   => 'info',
+                                'en_attente' => 'warning',
+                                'traitement' => 'warning',
+                                'annulee'    => 'danger',
+                                default      => 'secondary',
+                            };
+                            $slabel = match($l['Statut_Livraison']) {
+                                'livree'     => 'Livrée',
+                                'expediee'   => 'En route',
+                                'en_attente' => 'En attente',
+                                'traitement' => 'Préparation',
+                                'annulee'    => 'Annulée',
+                                default      => ucfirst($l['Statut_Livraison']),
+                            };
+                        ?>
+                            <tr>
+                                <td>
+                                    <?php if ($l['Id_Commande_B2B']): ?>
+                                        <span class="badge text-bg-primary mb-1"><i class="fas fa-handshake"></i> B2B</span><br>
+                                        <code><?= htmlspecialchars($l['Numero_Commande'] ?? '-') ?></code>
+                                    <?php else: ?>
+                                        <span class="badge text-bg-secondary mb-1"><i class="fas fa-store"></i> Comptoir</span><br>
+                                        <code><?= htmlspecialchars($l['Numero_Vente'] ?? '-') ?></code>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="fw-semibold">
+                                    <?php if ($l['Id_Commande_B2B']): ?>
+                                        <?= htmlspecialchars($l['Nom_Acheteur'] ?? '-') ?>
+                                    <?php else: ?>
+                                        <?= htmlspecialchars($l['Nom_Client'] ?? '-') ?>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?= htmlspecialchars($l['Transporteur'] ?? '-') ?></td>
+                                <td><code><?= htmlspecialchars($l['Numero_Suivi'] ?? '-') ?></code></td>
+                                <td>
+                                    <span class="badge text-bg-<?= $sbadge ?>"><?= $slabel ?></span>
+                                </td>
+                                <td>
+                                    <?php if ($retard): ?>
+                                        <span class="delay-alert text-danger" title="Livraison en retard ! Date limite dépassée.">
+                                            <i class="fas fa-exclamation-triangle"></i> <?= date('d/m/Y', strtotime($dp)) ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="text-body-secondary small">
+                                            <?= $dp ? date('d/m/Y', strtotime($dp)) : '—' ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="text-center">
+                                    <?php if (aRole(ROLE_LIVREUR) && $l['Statut_Livraison'] === 'expediee'): ?>
+                                        <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-success" title="Confirmer la livraison">
+                                            <i class="fas fa-check-circle"></i> Livré
+                                        </a>
+                                    <?php elseif (aRole(ROLE_LIVREUR)): ?>
+                                        <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-primary" title="Traiter cette livraison">
+                                            <i class="fas fa-arrow-right"></i> Traiter
+                                        </a>
+                                    <?php else: ?>
+                                        <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-outline-primary" title="Suivi &amp; Carte">
+                                            <i class="fas fa-map-marked-alt"></i> Carte
+                                        </a>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php else: ?>
+            <div class="card-body text-center py-5">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-body-secondary text-body-tertiary mb-3" style="width:68px;height:68px;font-size:1.8rem;">
+                    <i class="fas fa-truck"></i>
+                </div>
+                <h3 class="fs-6 mb-2">Aucune expédition</h3>
+                <p class="text-body-secondary small mb-0">Aucun colis ne correspond aux critères de recherche actuels.</p>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+</body>
+</html>

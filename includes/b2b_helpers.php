@@ -326,20 +326,20 @@ function decrementerStockCommande(PDO $pdo, int $id_commande): void
 function badgeStatutCommande(string $statut, bool $urgente = false): string
 {
     $map = [
-        'en_attente'     => ['label' => 'En attente',     'classe' => 'badge-warning',   'icon' => 'fa-clock'],
-        'validee'        => ['label' => LABEL_VALIDEE,    'classe' => 'badge-info',      'icon' => 'fa-check-circle'],
-        'en_preparation' => ['label' => 'En préparation', 'classe' => 'badge-purple',    'icon' => 'fa-box-open'],
-        'prete'          => ['label' => 'Prête',          'classe' => 'badge-teal',      'icon' => 'fa-check-double'],
-        'expediee'       => ['label' => 'Expédiée',       'classe' => 'badge-primary',   'icon' => 'fa-shipping-fast'],
-        'livree'         => ['label' => 'Livrée',         'classe' => 'badge-success',   'icon' => 'fa-check-circle'],
-        'refusee'        => ['label' => 'Refusée',        'classe' => 'badge-danger',    'icon' => 'fa-times-circle'],
+        'en_attente'     => ['label' => 'En attente',     'classe' => 'text-bg-warning', 'icon' => 'fa-clock'],
+        'validee'        => ['label' => LABEL_VALIDEE,    'classe' => 'text-bg-info',    'icon' => 'fa-check-circle'],
+        'en_preparation' => ['label' => 'En préparation', 'classe' => 'text-bg-purple',  'icon' => 'fa-box-open'],
+        'prete'          => ['label' => 'Prête',          'classe' => 'text-bg-teal',    'icon' => 'fa-check-double'],
+        'expediee'       => ['label' => 'Expédiée',       'classe' => 'text-bg-primary', 'icon' => 'fa-shipping-fast'],
+        'livree'         => ['label' => 'Livrée',         'classe' => 'text-bg-success', 'icon' => 'fa-check-circle'],
+        'refusee'        => ['label' => 'Refusée',        'classe' => 'text-bg-danger',  'icon' => 'fa-times-circle'],
     ];
 
-    $info = $map[$statut] ?? ['label' => strtoupper($statut), 'classe' => 'badge-secondary', 'icon' => 'fa-question'];
+    $info = $map[$statut] ?? ['label' => strtoupper($statut), 'classe' => 'text-bg-secondary', 'icon' => 'fa-question'];
     $html = "<span class=\"badge {$info['classe']}\"><i class=\"fas {$info['icon']}\"></i> {$info['label']}</span>";
 
     if ($urgente && in_array($statut, ['en_attente', 'validee', 'en_preparation', 'prete'])) {
-        $html .= ' <span class="badge badge-urgent badge-pulse">⚡ URGENT</span>';
+        $html .= ' <span class="badge text-bg-danger badge-pulse">⚡ URGENT</span>';
     }
 
     return $html;

@@ -1,9 +1,9 @@
 # 📋 Rapport Complet — Projet FactuPro
 
-> **Date du rapport** : 25 août 2026
+> **Date du rapport** : 25 août 2026 (mise à jour — session UX B2B / impayés / audit portabilité)
 > **Chemin du projet** : `c:\laragon\www\facturation`
 > **Type** : Application Web PHP — Gestion de facturation & réseau B2B
-> **Portée de ce rapport** : audit complet du code, de la sécurité et de l'infrastructure, après une session de travail approfondie (sécurité, RBAC, système code-barres/carton, refontes UI, portabilité Linux/Docker)
+> **Portée de ce rapport** : suite de la session précédente (sécurité, RBAC, code-barres) — refonte UX B2B, tentative puis retrait complet de la gestion des impayés, corrections de bugs réels, corrections de contraste mode sombre, et unification des migrations SQL avec **un bug critique de portabilité détecté et corrigé pendant cet audit**.
 
 ---
 
@@ -14,144 +14,120 @@
 | Élément | Valeur |
 |---|---|
 | **Langage** | PHP 8.2/8.3 |
-| **Base de données** | MySQL 8.x (via PDO, requêtes préparées partout) |
-| **Environnement** | Laragon (local, Windows) + Docker (`docker-compose.yml`, testé sous Linux) |
-| **Exposition externe** | Tunnel ngrok (`https://trousers-nickname-outrank.ngrok-free.dev`) |
+| **Base de données** | MySQL 8.x (via PDO, requêtes préparées partout) — **deux instances actives en parallèle** (voir §2) |
+| **Environnement** | Laragon (local, Windows) + Docker (`docker-compose.yml`, app+MySQL+phpMyAdmin) |
+| **Exposition externe** | Tunnel ngrok (`https://trousers-nickname-outrank.ngrok-free.dev`) → conteneur Docker (port 8080) |
 | **Dépendances** | `vlucas/phpdotenv`, `phpmailer/phpmailer` |
 | **Rôles** | `admin` (plateforme), `proprio`, `vendeur`, `livreur` — RBAC centralisé |
-| **Sécurité sessions** | Timeout 15 min inactivité, CSRF à usage unique, bcrypt, verrou anti-bruteforce (5 tentatives/15 min) |
+| **Sécurité sessions** | Timeout inactivité, CSRF à usage unique, bcrypt, verrou anti-bruteforce |
+
+### ⚠️ Point d'infrastructure important : deux bases de données distinctes
+
+L'application tourne en réalité sur **deux serveurs MySQL séparés** :
+1. **MySQL natif Windows/Laragon** (port 3306) — utilisé par les scripts locaux (`php -S`, tests CLI).
+2. **MySQL du conteneur Docker `facturation_db`** (port 3307, exposé) — c'est **celui-ci que sert réellement l'app en ligne** via ngrok → `facturation_app` (port 8080).
+
+Toute migration de schéma doit être appliquée **sur les deux** pour rester cohérente. Cette session a découvert ce piège en plein audit (une fonctionnalité fonctionnait en local mais plantait via le lien ngrok) — désormais documenté ici pour éviter de le reperdre.
 
 ---
 
-## 2. ⚠️ État du dépôt — IMPORTANT
+## 2. ⚠️ État du dépôt
 
-**Rien n'est commité.** 40 fichiers modifiés + 4 nouveaux fichiers non trackés, tous depuis le dernier commit (`76ac1ca — Refonte UX des tableaux de bord et pages logistique`, 20 août). C'est le travail de toute la session en cours de sécurité, RBAC, code-barres et refonte UI.
+**Rien n'est commité** depuis `cc88490 — Met à jour le rapport d'analyse du projet`. État actuel :
 
 ```
- M  .env.example, api/*.php (3), assets/css/style.css, database/facturation.sql
- M  includes/{auth,b2b_helpers,csrf,error_handler,header,roles}.php
- D  includes/commandes_b2b.php          (doublon mort supprimé)
- M  pages/*.php (25 fichiers)
- M  src/Application/{Billing,Inventory}/*.php, src/Infrastructure/Persistence/*.php
- ?? "Nouveau Document texte.txt"        (bloc-notes personnel — à committer ou supprimer)
- ?? assets/css/animations.css           (nouveau, utilisé par header.php)
- ?? database/reset_demo.php             (script de seed, CLI-only)
- ?? src/Application/Inventory/PackagingConverter.php  (nouveau service)
+ M  api/lookup_product.php, assets/css/style.css        (pré-existants, session précédente)
+ M  pages/notifications_b2b.php, pages/team.php         (pré-existants, session précédente)
+ M  database/facturation.sql                            (régénéré cette session, voir §6.5)
+ D  database/migration_rbac_roles.sql, migration_roles.sql   (fusionnés dans facturation.sql)
+ M  includes/header.php, pages/{approvisionnement,commandes_b2b,dashboard,
+     invoice_add,products,reseau_b2b,vente_workflow}.php
+ M  src/Application/Inventory/{ProductService,StockService}.php
+ M  src/Infrastructure/Persistence/{ProductRepository,StockRepository}.php
+ ?? "Nouveau Document texte.txt"     (bloc-notes perso — décision en attente depuis la dernière fois)
+ ?? _ngrok.log                       (log local, non gitignoré — voir §8)
+ ?? api/scan_session.php, pages/scanner_mobile.php,
+    src/Application/Inventory/ProductLookupService.php   (scanner mobile, travail antérieur non commité)
 ```
 
-**Recommandation** : découper en commits logiques (sécurité / RBAC+renommage FR / code-barres-carton / UI) plutôt qu'un seul gros commit, pour garder un historique lisible.
+**Recommandation inchangée** : découper en commits logiques avant de continuer (voir §9).
 
 ---
 
-## 3. 🔒 Sécurité — vulnérabilités trouvées et corrigées cette session
+## 3. 🆕 Travail de cette session
 
-| # | Problème | Gravité | Statut |
-|---|---|---|---|
-| 1 | `pages/team.php` : n'importe quel `proprio` pouvait s'auto-promouvoir (ou promouvoir un employé) au rôle `admin` plateforme via le formulaire d'équipe — aucune validation serveur | 🔴 Critique | ✅ Corrigé — whitelist stricte `['proprio','vendeur','livreur']` |
-| 2 | `database/reset_demo.php` accessible publiquement (aucune garde CLI, contrairement à `check_db.php`) — n'importe qui pouvait vider toute la BDD et la reseeder avec des mots de passe connus | 🔴 Critique | ✅ Corrigé — garde `PHP_SAPI !== 'cli'` ajoutée |
-| 3 | `includes/error_handler.php` affichait la stack trace complète (chemins serveur, requêtes, code) à n'importe quel visiteur en cas d'exception | 🟠 Élevé | ✅ Corrigé — conditionné à `APP_DEBUG=true` |
-| 4 | Portabilité Linux/Docker : `database/facturation.sql` créait les tables en minuscules alors que **tout le code** interroge en `PascalCase` — fonctionnait par accident sur Windows (MySQL insensible à la casse) mais aurait **totalement cassé** sur tout hébergement Linux classique | 🔴 Critique (déploiement) | ✅ Corrigé — 14 tables renommées dans le dump + `reset_demo.php` |
-| 5 | Corruption du dump SQL (caractère `=` isolé cassant l'import, ligne `@@SQL_MODE` scindée par un retour à la ligne) | 🟡 Moyen | ✅ Corrigé |
-| 6 | `InvoiceService::createDirectSale()` appliquait le facteur de conversion carton **deux fois** (prix ET quantité) — vente à 20× le bon prix | 🔴 Critique (intégrité financière) | ✅ Corrigé, testé (voir §5) |
-| 7 | Le facteur de conversion carton était envoyé par le client et accepté tel quel côté serveur — falsifiable via devtools/requête modifiée | 🟠 Élevé | ✅ Corrigé — coefficient toujours recalculé serveur depuis le produit verrouillé en base |
-| 8 | CSP bloquait silencieusement les tuiles de carte, icônes, géocodage et calcul d'itinéraire (Leaflet/OSM/Nominatim/OSRM) — la carte semblait "ne jamais charger" | 🟡 Moyen (fonctionnel) | ✅ Corrigé — domaines nécessaires ajoutés à `img-src`/`connect-src`/`style-src` |
-| 9 | CSP/Permissions-Policy bloquaient le scanner caméra (`camera=()`, `unpkg.com` absent de `script-src`) | 🟡 Moyen (fonctionnel) | ✅ Corrigé |
+### 3.1 Refonte UX du réseau B2B
+- **`commandes_b2b.php`** : l'ancien tableau « une quantité par produit à la fois » est remplacé par un vrai sélecteur — on choisit un produit, la quantité minimale et le prix unitaire s'affichent immédiatement, on l'ajoute à un panier visible, le total se recalcule en direct.
+- **`reseau_b2b.php`** : le bouton « Commander » présélectionne désormais réellement le fournisseur sur `commandes_b2b.php` (le paramètre `?vendeur=` était généré mais jamais lu côté serveur — corrigé).
+- **`approvisionnement.php`** : le formulaire manuel de saisie libre (scanner + ajout ligne par ligne) a été retiré à la demande de l'utilisateur ; seule la section « Réceptions B2B à traiter » subsiste.
 
-### Points déjà solides (vérifiés, pas de régression)
-- **CSRF** : présent sur les 15 pages qui traitent du POST, token à usage unique
-- **Injections SQL** : aucune requête concaténée trouvée dans tout le projet — 100% requêtes préparées
-- **`.env`** : correctement ignoré par git (`.gitignore`), jamais commité
-- **Mots de passe** : `password_hash()`/`password_verify()` (bcrypt), jamais en clair en base
-- **Isolation multi-entreprise** : chaque requête filtre par `Id_Entreprise` de la session
+### 3.2 Déstockage B2B en un clic
+- Case à cocher directement dans le tableau de `products.php` (bascule immédiate, sans ouvrir la modale) et dans `approvisionnement.php` (au moment de réceptionner une commande B2B, avec saisie optionnelle du prix B2B / quantité min.).
+- `ProductRepository::toggleDestockage()` / `StockRepository::toggleDestockage()` : si on active le déstockage sans prix B2B déjà défini, le prix unitaire courant est repris automatiquement (jamais 0 F sur le réseau B2B).
+
+### 3.3 Gestion des impayés — construite puis intégralement annulée
+Sur demande, une fonctionnalité complète a été construite (table `Client` dédiée, relances automatiques par email à l'échéance, paiements partiels avec passage direct en `en_retard` si insuffisant, page `impayes.php` dédiée), **puis retirée en totalité** sur demande explicite de l'utilisateur.
+
+Le retrait a été vérifié propre :
+- Code : `pages/impayes.php`, `includes/relances.php`, `ClientRepository.php` supprimés ; `clients.php`, `invoices.php`, `InvoiceService.php`, `InvoiceRepository.php`, `auth.php` reconfirmés identiques au dernier commit (`git diff` vide) ; `header.php`/`invoice_add.php` nettoyés manuellement (ils portaient d'autres changements légitimes à préserver).
+- Base de données : `DROP TABLE Client`, retrait de `Vente.Id_Client`, `Facture.Montant_Paye`, `Facture.Date_Derniere_Relance`, enum `Notification_B2B.Type_Notif` remis à sa liste d'origine — appliqué **sur les deux bases**, vérifié par `grep` qu'aucune référence ne subsiste dans le code (`ClientRepository`, `Montant_Paye`, `Id_Client`, etc. → 0 résultat).
+- Aucune perte de donnée réelle : les 9-10 lignes `Client` créées par le backfill n'avaient jamais reçu d'email/téléphone.
+
+### 3.4 Deux bugs réels trouvés et corrigés
+| Bug | Fichier | Détail |
+|---|---|---|
+| Variable utilisée avant définition | `pages/vente_workflow.php` | `$avec_livraison` servait à décider la redirection après confirmation de paiement (ligne ~46) mais n'était calculée que 20 lignes plus bas — la redirection logistique/retrait était donc toujours incorrecte. Corrigé en remontant le calcul avant les traitements POST. |
+| Bouton « Valider la vente » resté désactivé en permanence | `pages/invoice_add.php` | La ligne d'en-tête du tableau d'articles partageait la classe `.item-row` avec les vraies lignes produit. `recalculate()` (JS) itérait dessus via `querySelectorAll('.item-row')`, plantait silencieusement (`Cannot read properties of null`) sur cette ligne d'en-tête avant d'atteindre le code qui active le bouton. Diagnostiqué en simulant une vraie soumission POST côté serveur (aucune erreur là) puis en retraçant le JS ligne par ligne. Corrigé en isolant la ligne d'en-tête sous une classe distincte (`item-row-legend`) exclue des sélecteurs. |
+
+### 3.5 Corrections de contraste mode sombre / mode clair
+Plusieurs éléments avaient un fond clair **figé** (couleur fixe, pas de variable CSS) combiné à du texte utilisant `var(--text-muted)`/`var(--text-main)` — invisible une fois le fond du reste de la page assombri. Corrigés : fenêtre de chat et historique de statut sur `commandes_b2b.php`, en-tête des cartes entreprise + badges de réactivité/distance sur `reseau_b2b.php`, bordures et icônes de plusieurs cartes statistiques sur `dashboard.php`. La carte « Achats B2B (Dépenses) » (fond orange) a par ailleurs un contraste texte ajusté à la demande explicite de l'utilisateur.
+
+### 3.6 Unification des migrations SQL — bug de casse détecté et corrigé
+Les 4 migrations SQL restantes (`migration_roles`, `migration_rbac_roles`, `migration_scan_session`, `migration_scan_session_mode`) ont été vérifiées appliquées sur les deux bases puis fusionnées dans `database/facturation.sql` via `mysqldump`.
+
+**Piège détecté pendant cet audit** : le premier dump a été pris depuis le MySQL **natif Windows**, qui stocke les tables en minuscules par défaut (`lower_case_table_names=1`). Résultat : `facturation.sql` se serait retrouvé avec des tables `annonce`, `produit`, etc. en minuscules — alors que **tout le code PHP interroge en PascalCase** (`Produit`, `Entreprise`...). Sur Windows, MySQL est insensible à la casse donc ça n'aurait rien cassé localement ; sur un déploiement Linux (le conteneur Docker, sensible à la casse), ça aurait reproduit **exactement** le bug de portabilité déjà corrigé lors de la session précédente (rapport §3, item 4). Détecté par une simple vérification (`grep "^CREATE TABLE"`) avant de considérer la tâche terminée — re-généré depuis le MySQL **du conteneur Docker** (Linux, casse préservée), qui donne bien `Produit`, `Entreprise`, etc. Validé par import isolé dans une base temporaire (créée puis supprimée).
 
 ---
 
-## 4. 👥 RBAC — Système de rôles
+## 4. 🔒 Sécurité — état vérifié cette session
 
-Quatre rôles (`includes/roles.php`) : `admin` (plateforme, aucune entreprise), `proprio` (accès complet à son entreprise), `vendeur` (ventes/clients/factures, stock en lecture), `livreur` (logistique uniquement).
+Repasse ciblée (pas un audit complet redondant avec la session précédente, dont les points restent valables) :
 
-**Architecture** : chaque page utilise `exigerPermission(peutX())` — une fonction métier centralisée — plutôt qu'une liste de rôles recopiée à chaque page. Ce pattern a directement empêché la récidive du bug #1 ci-dessus : modifier une permission se fait dans `roles.php` uniquement, jamais page par page.
-
-Deux fonctions restent définies mais jamais appelées (`peutGererExpeditions`, `peutGererPlateforme`) — normal : aucune page de gestion manuelle d'expédition ni de panneau admin-plateforme n'existe encore. Prêtes pour ces futures fonctionnalités.
-
-**Toutes les fonctions et le code `includes/`/`src/` sont en français** (renommage complet effectué cette session — `hasRole→aRole`, `requireRole→exigerRole`, `csrfToken→jetonCsrf`, etc. — 28 fonctions), cohérent avec le reste du code déjà francophone.
-
----
-
-## 5. 📦 Système code-barres & carton (nouveau, construit cette session)
-
-### Principe
-- `Code_Barre_Unite` / `Code_Barre_Carton` / `Quantite_Par_Carton` sur `Produit` ; `Quantite_En_Stock` toujours en unités.
-- Scanner = identification uniquement, ne touche jamais au stock. Le stock ne bouge qu'à la validation réelle (vente ou approvisionnement).
-- **Mélange carton + unité** possible sur une même ligne (ex : 2 cartons + 5 unités).
-
-### Architecture
-- **`src/Application/Inventory/PackagingConverter.php`** (nouveau) — point unique de conversion (`toUnits`, `combinedUnits`, `detect`), réutilisé par `InvoiceService`, `StockService` et `api/lookup_product.php`. Aucune logique dupliquée.
-- **Sécurité** : le coefficient de conversion est **toujours** recalculé côté serveur depuis `Quantite_Par_Carton` du produit verrouillé en base (`FOR UPDATE`) — jamais depuis une valeur envoyée par le client.
-- **`api/lookup_product.php`** retourne explicitement `type_conditionnement` (`unite`/`carton`) et `coefficient`, déterminés serveur.
-
-### Tests réels effectués (HTTPS, données nettoyées après coup)
-| Scénario | Résultat |
+| Vérification | Résultat |
 |---|---|
-| Vente à l'unité seule | ✅ |
-| Vente au carton seul | ✅ |
-| Mélange carton + unité sur une ligne | ✅ |
-| Stock insuffisant → rejet, transaction annulée (aucune vente ni décrément orphelins) | ✅ |
-| Entrée en stock (approvisionnement), mélange | ✅ |
-| Falsification du coefficient carton côté client | ✅ Neutralisée (serveur autoritaire) |
-| Réception B2B → produit auto-créé chez l'acheteur avec code-barre du vendeur copié | ✅ |
+| Injection SQL (concaténation dans une requête) | 0 occurrence trouvée (`grep` sur `pages/`, `src/`, `api/`, `includes/`) |
+| Secrets/API keys en dur dans le code | 0 occurrence trouvée |
+| Couverture CSRF sur les pages modifiées cette session | `exigerCsrf()` présent sur chaque bloc de traitement POST (`commandes_b2b`, `approvisionnement`, `products`, `invoice_add`, `vente_workflow` — vérifié un-à-un) |
+| Lint PHP complet | **62/62 fichiers**, 0 erreur de syntaxe |
+| Résidus du système impayés supprimé | 0 référence résiduelle (`ClientRepository`, `Montant_Paye`, `Id_Client`, `verifierRelancesEcheance`...) |
 
-**Aucune migration SQL requise** — les colonnes existaient déjà, seule la logique applicative manquait.
+Les points de sécurité de la session précédente (CSRF, RBAC, mots de passe bcrypt, isolation multi-entreprise, coefficient carton toujours recalculé serveur) n'ont pas régressé — vérifiés par relecture des fichiers concernés.
 
 ---
 
-## 6. 🎨 Interface & Design System
+## 5. 👥 RBAC & 📦 Système code-barres/carton
 
-- **Mode sombre** : variable `--bg-card` etc. déjà en place ; plusieurs fonds blancs codés en dur (`background: white`/`#fff`) qui restaient figés en mode sombre ont été corrigés sur `annonces.php`, `dashboard.php`, `notifications_b2b.php`, `reseau_b2b.php`, `team.php`, `settings.php` (le dernier trouvé et corrigé pendant cet audit).
-- **Menu utilisateur** : fond translucide (`glassmorphism`) rendu opaque.
-- **`products.php`** : formulaire produit réorganisé (sections encadrées codes-barres/B2B, groupes champ+bouton scanner soudés), espacement carte/bordure corrigé.
-- **`approvisionnement.php`** : lignes d'articles passées de styles inline bruts à une grille CSS cohérente avec le reste de l'app.
-- **Scanner caméra** (3 pages) : bug de mise en page corrigé (vidéo sans limite de hauteur pouvait pousser les boutons hors écran) + bug JS corrigé (fermeture de la modale garantie même si la caméra échoue à démarrer — `NotFoundError` etc., prouvé par test).
+Inchangés depuis la session précédente — voir rapport initial (§4 et §5 de la version précédente, conservés dans l'historique git). Le point clé reste valable : `exigerPermission(peutX())` centralisé dans `includes/roles.php`, coefficient de conversion carton toujours recalculé serveur depuis le produit verrouillé en base (`FOR UPDATE`), jamais depuis une valeur client.
 
 ---
 
-## 7. 🏗️ Infrastructure
+## 6. 🧹 Qualité de code & points d'attention restants
 
-- **Docker** : `docker-compose.yml` (app + MySQL + phpMyAdmin) fonctionnel, base reconstruite avec le schéma corrigé (casse PascalCase), reseedée avec les mêmes comptes que le local.
-- **13 comptes de démonstration**, 2 entreprises, tous les rôles représentés plusieurs fois (mots de passe individuels, plus de mot de passe partagé).
-- **ngrok** : tunnel HTTPS actif et fonctionnel, domaine réservé stable.
-- **⚠️ Disque C: quasi plein** : `227 Go / 231 Go utilisés (99%), 3.7 Go disponibles`. Pas causé par ce projet (Docker Desktop, VS Code, etc. y contribuent), mais à surveiller — un disque plein peut faire échouer des écritures MySQL/Docker sans avertissement clair.
-
----
-
-## 8. 🧹 Qualité de code
-
-- **Lint complet** : 59 fichiers PHP, **0 erreur de syntaxe**.
-- **Aucun secret en dur**, aucun `var_dump`/`print_r` de debug oublié.
-- **`uploads/chat_b2b/`** : toujours sans `.htaccess` pour désactiver l'exécution de scripts en défense en profondeur (whitelist d'extensions déjà en place côté PHP, donc pas critique, mais recommandé).
-- **Dépendances Composer** : à jour à une version mineure près (`phpstan/phpstan`, `vlucas/phpdotenv`) — non urgent.
-- **`Nouveau Document texte.txt`** : bloc-notes personnel de tâches, ne devrait pas rester dans le dépôt versionné.
+1. **`_ngrok.log`** (114 lignes) traîne à la racine, non gitignoré — à ajouter à `.gitignore` ou supprimer.
+2. **`Nouveau Document texte.txt`** : toujours en attente d'une décision (déplacer hors repo ou committer), signalé depuis la session précédente.
+3. **`.env` MAIL_* toujours en placeholder** (`votre.email@gmail.com`) : les emails de notification B2B (validation commande, refus, expédition — `creerNotificationB2b()`, toujours activement utilisé dans `commandes_b2b.php` et `logistique_edit.php`) partent donc vers Mailpit en local, pas vers de vraies boîtes. Sujet déjà abordé avec l'utilisateur — en attente de ses identifiants SMTP s'il veut l'activer.
+4. **Disque C:** toujours proche de la saturation (~4.4 Go disponibles sur 231 Go) — pré-existant, sans lien avec ce projet, à surveiller.
+5. **Deux migrations SQL restantes non fusionnées à ce jour** : aucune — toutes intégrées dans `facturation.sql` (voir §3.6).
 
 ---
 
-## 9. 📌 Recommandations restantes (non bloquantes)
+## 7. 📌 Recommandations
 
-1. **Committer le travail** de cette session en plusieurs commits logiques avant de continuer.
-2. Décider du sort de `Nouveau Document texte.txt` (déplacer hors repo ou committer si c'est voulu).
-3. Ajouter un `.htaccess` (ou équivalent Nginx) dans `uploads/` pour interdire l'exécution de scripts, en plus de la whitelist d'extensions existante.
-4. Libérer de l'espace sur le disque C: (Docker Desktop et VS Code ont chacun des centaines de Mo de fichiers temporaires nettoyables).
-5. Les items de `Nouveau Document texte.txt` encore pertinents (email de bienvenue employé — déjà fait ; scanner code-barre — fait cette session) peuvent être nettoyés du fichier.
-
----
-
-## 10. 🗂️ Fichiers créés cette session
-
-| Fichier | Rôle |
-|---|---|
-| `src/Application/Inventory/PackagingConverter.php` | Conversion unité/carton centralisée |
-| `database/reset_demo.php` | Seed de démo (13 comptes, 2 entreprises, CLI-only) |
-| `assets/css/animations.css` | Animations UI |
+1. **Committer** en plusieurs commits logiques : (a) refonte UX B2B + déstockage, (b) corrections de bugs (`vente_workflow`, `invoice_add`), (c) corrections mode sombre, (d) unification des migrations SQL. Le cycle construction-puis-retrait de la gestion des impayés ne laisse aucune trace dans le code actuel — rien à committer de ce côté-là.
+2. Régler `_ngrok.log` et `Nouveau Document texte.txt` (gitignore ou suppression).
+3. Si les relances email redeviennent utiles un jour, tenir compte du piège des deux bases de données (§1) — toute nouvelle migration doit être appliquée sur Windows natif **et** Docker.
+4. Configurer un vrai SMTP dans `.env` si les notifications B2B par email doivent réellement partir (actuellement capturées par Mailpit en local).
 
 ---
 
-*Rapport généré par audit automatisé (lint complet + grep ciblé + tests fonctionnels réels en HTTPS) — pas une simple relecture, chaque point de sécurité listé en §3 et §5 a été vérifié par un test reproductible.*
+*Rapport mis à jour par audit ciblé de la session en cours : lint complet (62 fichiers), grep de sécurité, vérification croisée des deux bases de données, et détection d'une régression de portabilité avant qu'elle ne soit committée.*

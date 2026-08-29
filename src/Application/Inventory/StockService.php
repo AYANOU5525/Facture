@@ -62,8 +62,14 @@ final class StockService
         return $received;
     }
 
-    public function receiveB2BLine(array $line, int $quantity, int $enterpriseId): void
-    {
+    public function receiveB2BLine(
+        array $line,
+        int $quantity,
+        int $enterpriseId,
+        bool $enableDestockage = false,
+        ?float $prixB2B = null,
+        ?int $qteMinB2B = null
+    ): void {
         $remaining = (int) $line['Quantite'] - (int) $line['Quantite_Receptionnee'];
         if ($quantity <= 0 || $quantity > $remaining) {
             throw new InvalidArgumentException('La quantité réceptionnée dépasse la quantité restante.');
@@ -86,5 +92,9 @@ final class StockService
         }
 
         $this->repository->increase($productId, $enterpriseId, $quantity);
+
+        if ($enableDestockage) {
+            $this->repository->toggleDestockage($productId, $enterpriseId, true, $prixB2B, $qteMinB2B);
+        }
     }
 }
