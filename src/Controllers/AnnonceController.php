@@ -9,10 +9,10 @@ class AnnonceController extends Controller
     {
         exigerPermission(peutGererB2B());
 
-        $stmt = $this->pdo->prepare("SELECT Id_Entreprise, Latitude, Longitude FROM Entreprise WHERE Id_Entreprise = (SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?)");
-        $stmt->execute([$_SESSION['user_id']]);
+        $mon_entreprise_id = (int) $_SESSION['entreprise_id'];
+        $stmt = $this->pdo->prepare("SELECT Id_Entreprise, Latitude, Longitude FROM Entreprise WHERE Id_Entreprise = ?");
+        $stmt->execute([$mon_entreprise_id]);
         $mon_ent = $stmt->fetch();
-        $mon_entreprise_id = $mon_ent['Id_Entreprise'];
         $j_ai_coords = !empty($mon_ent['Latitude']) && !empty($mon_ent['Longitude']);
 
         $success = '';

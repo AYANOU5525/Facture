@@ -33,9 +33,7 @@ class CommandeB2BController extends Controller
     {
         exigerPermission(peutGererB2B());
 
-        $stmt = $this->pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        $mon_entreprise_id = (int) $stmt->fetchColumn();
+        $mon_entreprise_id = (int) $_SESSION['entreprise_id'];
 
         $success = '';
         $error   = '';
@@ -388,9 +386,16 @@ class CommandeB2BController extends Controller
         try {
             $id_commande = intval($_POST['id_commande'] ?? 0);
 
+            $this->pdo->beginTransaction();
+
+            // Verrouiller la ligne avant de statuer, comme handleValider() : sans ce FOR UPDATE
+            // à l'intérieur de la transaction, deux confirmations concurrentes (double clic,
+            // deux onglets) passeraient toutes les deux le contrôle de statut et dupliqueraient
+            // l'incrément du score de fiabilité et les notifications.
             $stmt = $this->pdo->prepare("
                 SELECT * FROM Commande_B2B
                 WHERE Id_Commande_B2B = ? AND Id_Entreprise_Acheteuse = ? AND Statut = 'expediee'
+                FOR UPDATE
             ");
             $stmt->execute([$id_commande, $mon_entreprise_id]);
             $cmd = $stmt->fetch();
@@ -398,8 +403,6 @@ class CommandeB2BController extends Controller
             if (!$cmd) {
                 throw new \RuntimeException("Commande introuvable.");
             }
-
-            $this->pdo->beginTransaction();
 
             $this->pdo->prepare("
                 UPDATE Commande_B2B SET Statut = 'livree' WHERE Id_Commande_B2B = ?

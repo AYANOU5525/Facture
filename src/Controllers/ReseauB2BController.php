@@ -109,6 +109,27 @@ class ReseauB2BController extends Controller
 
         $entreprises = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
+        // Temps de réponse moyen de tous les vendeurs du répertoire en une seule requête
+        // groupée, plutôt qu'un aller-retour par entreprise dans la boucle ci-dessous
+        // (getTempsReponseMoyen() interrogeait Commande_B2B une fois par ligne affichée).
+        $moyennes_reponse = [];
+        if ($entreprises) {
+            $ids = array_column($entreprises, 'Id_Entreprise');
+            $in = implode(',', array_fill(0, count($ids), '?'));
+            $stmt_moy = $this->pdo->prepare("
+                SELECT Id_Entreprise_Vendeuse, AVG(TIMESTAMPDIFF(MINUTE, Date_Commande, Date_Validation)) AS moy_minutes
+                FROM Commande_B2B
+                WHERE Id_Entreprise_Vendeuse IN ($in)
+                  AND Date_Validation IS NOT NULL
+                  AND Statut IN ('validee', 'expediee', 'livree')
+                GROUP BY Id_Entreprise_Vendeuse
+            ");
+            $stmt_moy->execute($ids);
+            foreach ($stmt_moy->fetchAll(\PDO::FETCH_ASSOC) as $ligne) {
+                $moyennes_reponse[(int) $ligne['Id_Entreprise_Vendeuse']] = (float) $ligne['moy_minutes'];
+            }
+        }
+
         foreach ($entreprises as &$entreprise) {
             $entreprise['distance_km'] = null;
             $entreprise['distance_label'] = 'Distance inconnue';
@@ -130,9 +151,8 @@ class ReseauB2BController extends Controller
                 $entreprise['distance_km'] = $distance;
                 $entreprise['distance_label'] = formaterDistance($distance);
             }
-            $entreprise['reactivite'] = getTempsReponseMoyen(
-                $this->pdo,
-                (int) $entreprise['Id_Entreprise']
+            $entreprise['reactivite'] = $this->classerReactivite(
+                $moyennes_reponse[(int) $entreprise['Id_Entreprise']] ?? 0.0
             );
         }
         unset($entreprise);
@@ -202,5 +222,31 @@ class ReseauB2BController extends Controller
             'j_ai_coords'      => $j_ai_coords,
             'nb_non_lues'      => $nb_non_lues,
         ], 'Réseau B2B');
+    }
+
+    /**
+     * Classe un temps de réponse moyen (en minutes) en label/couleur affichable.
+     * Mêmes seuils que includes/b2b_helpers.php::getTempsReponseMoyen(), reproduits ici
+     * pour classer en mémoire les moyennes déjà chargées en lot (cf. requête groupée
+     * ci-dessus) plutôt que de refaire un aller-retour SQL par entreprise affichée.
+     * @return array ['label' => string, 'minutes' => float, 'classe' => string]
+     */
+    private function classerReactivite(float $moy): array
+    {
+        if ($moy <= 0) {
+            return ['label' => 'Nouveau vendeur', 'minutes' => 0, 'classe' => 'reaction-neutre'];
+        }
+        if ($moy <= 60) {
+            return ['label' => '⚡ Répond en moins d\'1h', 'minutes' => $moy, 'classe' => 'reaction-excellent'];
+        }
+        if ($moy <= 120) {
+            return ['label' => '✅ Répond en moins de 2h', 'minutes' => $moy, 'classe' => 'reaction-bon'];
+        }
+        if ($moy <= 480) {
+            $heures = round($moy / 60);
+            return ['label' => "🕐 Répond en ~{$heures}h", 'minutes' => $moy, 'classe' => 'reaction-moyen'];
+        }
+
+        return ['label' => '🐢 Répond sous 24h', 'minutes' => $moy, 'classe' => 'reaction-lent'];
     }
 }

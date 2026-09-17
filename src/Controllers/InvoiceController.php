@@ -21,11 +21,7 @@ class InvoiceController extends Controller
         exigerPermission(peutCreerVente());
 
         $entreprise_id = $_SESSION['entreprise_id'];
-
-        $stmt = $this->pdo->prepare("SELECT Nom_Utilisateur FROM Utilisateur WHERE Id_Utilisateur = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        $user = $stmt->fetch();
-        $nom_vendeur = trim($user['Nom_Utilisateur'] ?? '');
+        $nom_vendeur = trim($_SESSION['username'] ?? '');
 
         $produits = $this->invoices->availableProducts((int) $entreprise_id);
 

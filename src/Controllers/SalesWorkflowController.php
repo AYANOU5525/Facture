@@ -25,9 +25,7 @@ class SalesWorkflowController extends Controller
             $this->redirect('dashboard.php');
         }
 
-        $stmt = $this->pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        $entreprise_id = $stmt->fetchColumn();
+        $entreprise_id = $_SESSION['entreprise_id'];
 
         $vente = $this->workflow->findSale($numero_vente, (int) $entreprise_id);
         if (!$vente) {
@@ -59,7 +57,9 @@ class SalesWorkflowController extends Controller
             exigerCsrf();
             $transporteur = trim($_POST['transporteur'] ?? '');
             $numero_suivi = trim($_POST['numero_suivi'] ?? '');
-            $date_livraison = $_POST['date_livraison'] ?? null;
+            // Un champ date laissé vide arrive en '' (pas absent) : le normaliser en null,
+            // sinon MySQL rejette '' comme valeur DATETIME (SQLSTATE 22007).
+            $date_livraison = trim($_POST['date_livraison'] ?? '') ?: null;
 
             try {
                 $this->workflow->createLogistics(

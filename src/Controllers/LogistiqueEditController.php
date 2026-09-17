@@ -29,9 +29,7 @@ class LogistiqueEditController extends Controller
         }
 
         $id_logistique = (int) $_GET['id'];
-        $stmt = $this->pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        $entreprise_id = $stmt->fetchColumn();
+        $entreprise_id = (int) $_SESSION['entreprise_id'];
 
         // Récupérer l'entrée logistique
         $log = $this->logistics->find($id_logistique, (int) $entreprise_id);

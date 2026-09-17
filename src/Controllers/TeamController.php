@@ -9,10 +9,7 @@ class TeamController extends Controller
     {
         exigerPermission(peutGererEquipe());
 
-        $stmt = $this->pdo->prepare("SELECT Id_Entreprise, Mot_De_Passe_Utilisateur FROM Utilisateur WHERE Id_Utilisateur = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        $current_admin = $stmt->fetch();
-        $entreprise_id = $current_admin['Id_Entreprise'];
+        $entreprise_id = (int) $_SESSION['entreprise_id'];
 
         $success = '';
         $error = '';
@@ -23,7 +20,7 @@ class TeamController extends Controller
             if ($_POST['action'] === 'add') {
                 [$success, $error] = $this->handleAdd($entreprise_id);
             } elseif ($_POST['action'] === 'switch') {
-                [$success, $error] = $this->handleSwitch($current_admin, $entreprise_id);
+                [$success, $error] = $this->handleSwitch($entreprise_id);
             }
         }
 
@@ -198,13 +195,18 @@ HTML;
     }
 
     /** @return array{0:string,1:string} [$success, $error] */
-    private function handleSwitch(array $current_admin, int $entreprise_id): array
+    private function handleSwitch(int $entreprise_id): array
     {
         $target_id = $_POST['target_id'];
         $admin_password = $_POST['admin_password'];
 
-        // A. Vérifier le mot de passe de l'admin
-        if (!password_verify($admin_password, $current_admin['Mot_De_Passe_Utilisateur'])) {
+        // A. Vérifier le mot de passe de l'admin (hash récupéré ici, pas à chaque
+        // affichage de la page : seule l'action "switch" en a besoin).
+        $stmt = $this->pdo->prepare("SELECT Mot_De_Passe_Utilisateur FROM Utilisateur WHERE Id_Utilisateur = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $current_hash = $stmt->fetchColumn();
+
+        if (!password_verify($admin_password, $current_hash)) {
             return ['', "Mot de passe administrateur incorrect. Action annulée."];
         }
 

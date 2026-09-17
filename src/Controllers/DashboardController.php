@@ -86,8 +86,13 @@ class DashboardController extends Controller
     {
         $nb_entreprises = (int) $this->pdo->query("SELECT COUNT(*) FROM Entreprise")->fetchColumn();
         $nb_utilisateurs = (int) $this->pdo->query("SELECT COUNT(*) FROM Utilisateur")->fetchColumn();
-        $nb_ventes_total = (int) $this->pdo->query("SELECT COUNT(*) FROM Vente")->fetchColumn();
-        $ca_total_plateforme = (float) ($this->pdo->query("SELECT COALESCE(SUM(Montant_Total),0) FROM Vente")->fetchColumn());
+
+        // Une seule requête pour les deux agrégats de Vente plutôt que deux allers-retours.
+        [$nb_ventes_total, $ca_total_plateforme] = $this->pdo
+            ->query("SELECT COUNT(*), COALESCE(SUM(Montant_Total), 0) FROM Vente")
+            ->fetch(\PDO::FETCH_NUM);
+        $nb_ventes_total = (int) $nb_ventes_total;
+        $ca_total_plateforme = (float) $ca_total_plateforme;
 
         $entreprises_recentes = $this->pdo->query("
             SELECT e.Id_Entreprise, e.Nom_Entreprise, e.Secteur_Activite, e.Ville,

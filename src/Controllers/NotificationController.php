@@ -9,9 +9,7 @@ class NotificationController extends Controller
     {
         exigerPermission(peutGererB2B());
 
-        $stmt = $this->pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        $mon_entreprise_id = (int) $stmt->fetchColumn();
+        $mon_entreprise_id = (int) $_SESSION['entreprise_id'];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'mark_all') {
             exigerCsrf();

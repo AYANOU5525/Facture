@@ -11,9 +11,7 @@ class LogistiqueController extends Controller
     {
         exigerPermission(peutVoirExpeditions());
 
-        $stmt = $this->pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        $entreprise_id = (int) $stmt->fetchColumn();
+        $entreprise_id = (int) $_SESSION['entreprise_id'];
 
         $recherche = trim($_GET['q'] ?? '');
         $statut_filtre = $_GET['statut'] ?? '';

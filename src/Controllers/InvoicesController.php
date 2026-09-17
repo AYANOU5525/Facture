@@ -9,9 +9,7 @@ class InvoicesController extends Controller
     {
         exigerPermission(peutVoirFactures());
 
-        $stmt = $this->pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        $entreprise_id = $stmt->fetchColumn();
+        $entreprise_id = $_SESSION['entreprise_id'];
 
         $success = '';
         $error = '';
@@ -32,12 +30,25 @@ class InvoicesController extends Controller
         $stmt->execute([$entreprise_id]);
         $factures = $stmt->fetchAll();
 
-        // KPIs
-        $total_payees     = count(array_filter($factures, fn($f) => $f['Statut_Paiement'] === 'payee'));
-        $total_non_payees = count(array_filter($factures, fn($f) => $f['Statut_Paiement'] === 'non_payee'));
-        $total_annulees   = count(array_filter($factures, fn($f) => $f['Statut_Paiement'] === 'annulee'));
-        $ca_paye          = array_sum(array_map(fn($f) => $f['Statut_Paiement'] === 'payee' ? $f['Montant_TTC'] : 0, $factures));
-        $ca_impaye        = array_sum(array_map(fn($f) => $f['Statut_Paiement'] === 'non_payee' ? $f['Montant_TTC'] : 0, $factures));
+        // KPIs calculés en une seule requête d'agrégation (plutôt que 5 array_filter/array_map
+        // PHP sur la liste complète) — profite de l'index idx_facture_ent_statut.
+        $stmt = $this->pdo->prepare("
+            SELECT
+                SUM(CASE WHEN Statut_Paiement = 'payee' THEN 1 ELSE 0 END) AS total_payees,
+                SUM(CASE WHEN Statut_Paiement = 'non_payee' THEN 1 ELSE 0 END) AS total_non_payees,
+                SUM(CASE WHEN Statut_Paiement = 'annulee' THEN 1 ELSE 0 END) AS total_annulees,
+                SUM(CASE WHEN Statut_Paiement = 'payee' THEN Montant_TTC ELSE 0 END) AS ca_paye,
+                SUM(CASE WHEN Statut_Paiement = 'non_payee' THEN Montant_TTC ELSE 0 END) AS ca_impaye
+            FROM Facture
+            WHERE Id_Entreprise = ?
+        ");
+        $stmt->execute([$entreprise_id]);
+        $kpi = $stmt->fetch();
+        $total_payees     = (int) $kpi['total_payees'];
+        $total_non_payees = (int) $kpi['total_non_payees'];
+        $total_annulees   = (int) $kpi['total_annulees'];
+        $ca_paye          = (float) $kpi['ca_paye'];
+        $ca_impaye        = (float) $kpi['ca_impaye'];
 
         $this->render('invoices/index', [
             'success'           => $success,

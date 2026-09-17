@@ -41,9 +41,7 @@ class NotificationApiController extends Controller
             $this->jsonResponse(['success' => true, 'count' => 0, 'notifications' => []]);
         }
 
-        $stmt = $this->pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        $mon_entreprise_id = (int) $stmt->fetchColumn();
+        $mon_entreprise_id = (int) ($_SESSION['entreprise_id'] ?? 0);
         $notificationService = new NotificationService(new NotificationRepository($this->pdo));
 
         if (!$mon_entreprise_id) {

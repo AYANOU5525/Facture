@@ -24,9 +24,7 @@ class StockController extends Controller
     {
         exigerPermission(peutGererStock());
 
-        $stmt = $this->pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        $entreprise_id = $stmt->fetchColumn();
+        $entreprise_id = $_SESSION['entreprise_id'];
 
         $error = '';
         $success = '';

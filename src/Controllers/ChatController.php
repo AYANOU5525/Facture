@@ -23,9 +23,7 @@ class ChatController extends Controller
         $this->chatRepository = new ChatRepository($pdo);
         $this->chatService = new ChatService($this->chatRepository);
 
-        $stmt = $pdo->prepare("SELECT Id_Entreprise FROM Utilisateur WHERE Id_Utilisateur = ?");
-        $stmt->execute([$_SESSION['user_id']]);
-        $this->mon_entreprise_id = (int) $stmt->fetchColumn();
+        $this->mon_entreprise_id = (int) ($_SESSION['entreprise_id'] ?? 0);
 
         if (!$this->mon_entreprise_id) {
             $this->jsonResponse(['error' => 'Entreprise introuvable pour cet utilisateur.'], 403);
