@@ -38,3 +38,25 @@ Une plateforme unique qui centralise le cycle commercial interne et ouvre un can
   `en_attente → validee → expediee → livree`.
 - **Messagerie Directe** : chat B2B par commande via polling AJAX, permettant de négocier et d'échanger en temps réel.
 - **Flux de Stock Automatisé** : décrémentation et incrémentation automatiques des stocks partenaires à la validation d'une commande B2B.
+
+---
+
+## Installation de la base de données
+
+Le schéma complet est réparti en un fichier principal et des migrations correctives, **à exécuter dans cet ordre** sur une base neuve :
+
+1. `database/facturation.sql` — schéma de base + données de démonstration.
+2. `database/migration_correction_mcd.sql` — ajoute `Ligne_Vente`, `Vente.Id_Vendeur` et les triggers de `Montant_Total`. **Indispensable** : sans cette étape, toute vente échoue avec `SQLSTATE[42S22]: Unknown column 'Id_Vendeur'`.
+3. `database/migration_index_notifications.sql` — index de performance sur `Notification_B2B`.
+4. `database/migration_index_barcode.sql` — index de performance sur les codes-barres produits.
+
+```bash
+mysql -u root --default-character-set=utf8mb4 facturation < database/facturation.sql
+mysql -u root --default-character-set=utf8mb4 facturation < database/migration_correction_mcd.sql
+mysql -u root --default-character-set=utf8mb4 facturation < database/migration_index_notifications.sql
+mysql -u root --default-character-set=utf8mb4 facturation < database/migration_index_barcode.sql
+```
+
+`--default-character-set=utf8mb4` évite que le client `mysql` retombe sur un jeu de caractères par défaut (ex. `cp850` sous Windows) et corrompe les caractères accentués des commentaires de colonnes lors de l'import.
+
+Pour réinitialiser les données de démonstration ensuite (comptes de test à mot de passe connu) : `php database/reset_demo.php`.
