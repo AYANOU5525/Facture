@@ -68,6 +68,10 @@ class ScanSessionController extends Controller
         // Nettoyage paresseux des sessions expirées (pas de cron dans le projet).
         $this->pdo->exec("UPDATE Scan_Session SET Statut = 'expire' WHERE Statut IN ('en_attente','connecte') AND Expires_At < NOW()");
 
+        // Purge des sessions expirées/révoquées de plus de 24h (Scan_Session_Scan suit par CASCADE) —
+        // les 24 dernières heures restent consultables pour le débogage, le reste ne s'accumule pas indéfiniment.
+        $this->pdo->exec("DELETE FROM Scan_Session WHERE Statut IN ('expire','revoque') AND Expires_At < DATE_SUB(NOW(), INTERVAL 24 HOUR)");
+
         // Une seule session de scan active à la fois par utilisateur — on révoque les précédentes.
         $this->pdo->prepare("UPDATE Scan_Session SET Statut = 'revoque' WHERE Id_Utilisateur = ? AND Statut IN ('en_attente','connecte')")
             ->execute([$user_id]);
