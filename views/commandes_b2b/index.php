@@ -1,6 +1,8 @@
 <!-- ============================================================
      VUE — Interface Commandes B2B v2
      ============================================================ -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <div class="container fade-in py-4">
     <div class="mb-3">
         <p class="text-body-secondary mb-0">Gérez vos achats et ventes inter-entreprises</p>
@@ -197,6 +199,25 @@
                                     <input type="text" name="adresse_retrait" id="adresse_retrait" class="form-control form-control-sm"
                                         placeholder="Adresse de retrait...">
                                 </div>
+
+                                <!-- Point de livraison (mode Livraison uniquement) : l'acheteur précise où le
+                                     livreur devra apporter la marchandise, indépendamment de l'adresse de
+                                     l'entreprise. Optionnel — à défaut, le livreur utilisera l'adresse de
+                                     l'entreprise (voir LogisticsRepository::findForEnterprise). -->
+                                <div id="livraison-map-group" style="margin-top:10px;">
+                                    <label class="form-label small text-body-secondary mb-1">
+                                        <i class="fas fa-map-marker-alt text-danger"></i> Lieu de livraison <span class="text-body-tertiary">(optionnel)</span>
+                                    </label>
+                                    <div class="input-group input-group-sm mb-2">
+                                        <input type="text" id="cmd-address-search" class="form-control" placeholder="Rechercher une adresse...">
+                                        <button type="button" class="btn btn-primary" onclick="rechercherLivraisonCmd()"><i class="fas fa-search"></i></button>
+                                    </div>
+                                    <div id="cmd-livraison-map" style="height:220px; border-radius:8px; border:1px solid var(--bs-border-color);"></div>
+                                    <p class="text-body-secondary small mt-1 mb-0">Cliquez sur la carte pour placer le point de livraison.</p>
+                                    <input type="hidden" name="adresse_livraison" id="cmd_adresse_livraison">
+                                    <input type="hidden" name="lat_livraison" id="cmd_lat_livraison">
+                                    <input type="hidden" name="lng_livraison" id="cmd_lng_livraison">
+                                </div>
                             </div>
 
                             <button type="submit" class="btn btn-success btn-block" style="margin-top:15px;">
@@ -389,6 +410,11 @@
                                                             <div class="retrait-info mt-2">
                                                                 <i class="fas fa-map-marker-alt"></i>
                                                                 Retrait : <?= htmlspecialchars($c['Adresse_Retrait']) ?>
+                                                            </div>
+                                                        <?php elseif ($mode_retrait === 'livraison' && !empty($c['Adresse_Livraison'])): ?>
+                                                            <div class="retrait-info mt-2">
+                                                                <i class="fas fa-map-marker-alt text-danger"></i>
+                                                                Livraison : <?= htmlspecialchars($c['Adresse_Livraison']) ?>
                                                             </div>
                                                         <?php endif; ?>
 
@@ -703,7 +729,86 @@
     function toggleAdresseRetrait(show) {
         const group = document.getElementById('adresse-retrait-group');
         if (group) group.style.display = show ? 'block' : 'none';
+
+        const mapGroup = document.getElementById('livraison-map-group');
+        if (mapGroup) mapGroup.style.display = show ? 'none' : 'block';
+        if (!show) {
+            setTimeout(initCmdLivraisonMap, 0); // le conteneur doit être visible avant Leaflet.map()
+        }
     }
+
+    // ── Carte de sélection du point de livraison (formulaire "Nouvelle commande") ──
+    let cmdLivraisonMap = null;
+    let cmdLivraisonMarker = null;
+
+    function initCmdLivraisonMap() {
+        if (cmdLivraisonMap) {
+            cmdLivraisonMap.invalidateSize();
+            return;
+        }
+        const defaultLat = 6.1372, defaultLng = 1.2125; // Lomé, même valeur par défaut que le suivi logistique
+        cmdLivraisonMap = L.map('cmd-livraison-map').setView([defaultLat, defaultLng], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(cmdLivraisonMap);
+
+        cmdLivraisonMap.on('click', function(e) {
+            placerPointLivraisonCmd(e.latlng.lat, e.latlng.lng);
+            reverseGeocodeLivraisonCmd(e.latlng.lat, e.latlng.lng);
+        });
+    }
+
+    function placerPointLivraisonCmd(lat, lng) {
+        if (cmdLivraisonMarker) cmdLivraisonMap.removeLayer(cmdLivraisonMarker);
+        cmdLivraisonMarker = L.marker([lat, lng], { draggable: true }).addTo(cmdLivraisonMap);
+        document.getElementById('cmd_lat_livraison').value = lat;
+        document.getElementById('cmd_lng_livraison').value = lng;
+
+        cmdLivraisonMarker.on('dragend', function() {
+            const pos = cmdLivraisonMarker.getLatLng();
+            document.getElementById('cmd_lat_livraison').value = pos.lat;
+            document.getElementById('cmd_lng_livraison').value = pos.lng;
+            reverseGeocodeLivraisonCmd(pos.lat, pos.lng);
+        });
+    }
+
+    async function reverseGeocodeLivraisonCmd(lat, lng) {
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18`);
+            const data = await response.json();
+            if (data && data.display_name) {
+                document.getElementById('cmd_adresse_livraison').value = data.display_name;
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function rechercherLivraisonCmd() {
+        const query = document.getElementById('cmd-address-search').value.trim();
+        if (!query) return;
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+            const results = await response.json();
+            if (results && results.length > 0) {
+                const res = results[0];
+                const lat = parseFloat(res.lat), lng = parseFloat(res.lon);
+                document.getElementById('cmd_adresse_livraison').value = res.display_name;
+                cmdLivraisonMap.setView([lat, lng], 15);
+                placerPointLivraisonCmd(lat, lng);
+            } else {
+                alert('Adresse non trouvée.');
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        if (document.getElementById('cmd-livraison-map')) {
+            initCmdLivraisonMap();
+        }
+    });
 
     // ── Compte à rebours urgence ──
     function initCountdowns() {

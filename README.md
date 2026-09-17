@@ -49,13 +49,17 @@ Le schéma complet est réparti en un fichier principal et des migrations correc
 2. `database/migration_correction_mcd.sql` — ajoute `Ligne_Vente`, `Vente.Id_Vendeur` et les triggers de `Montant_Total`. **Indispensable** : sans cette étape, toute vente échoue avec `SQLSTATE[42S22]: Unknown column 'Id_Vendeur'`.
 3. `database/migration_index_notifications.sql` — index de performance sur `Notification_B2B`.
 4. `database/migration_index_barcode.sql` — index de performance sur les codes-barres produits.
+5. `database/migration_adresse_livraison_b2b.sql` — ajoute `Commande_B2B.Adresse_Livraison`/`Latitude_Livraison`/`Longitude_Livraison`, le point de livraison choisi par l'acheteur sur la carte pour une commande B2B.
 
 ```bash
 mysql -u root --default-character-set=utf8mb4 facturation < database/facturation.sql
 mysql -u root --default-character-set=utf8mb4 facturation < database/migration_correction_mcd.sql
 mysql -u root --default-character-set=utf8mb4 facturation < database/migration_index_notifications.sql
 mysql -u root --default-character-set=utf8mb4 facturation < database/migration_index_barcode.sql
+mysql -u root --default-character-set=utf8mb4 facturation < database/migration_adresse_livraison_b2b.sql
 ```
+
+**Environnement Docker** : les mêmes migrations doivent être rejouées séparément contre la base du conteneur (`docker-compose.yml` expose MySQL sur le port hôte `3307`, distinct des `3306` habituels) — les deux bases ne se synchronisent jamais automatiquement entre elles.
 
 `--default-character-set=utf8mb4` évite que le client `mysql` retombe sur un jeu de caractères par défaut (ex. `cp850` sous Windows) et corrompe les caractères accentués des commentaires de colonnes lors de l'import.
 

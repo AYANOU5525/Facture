@@ -33,6 +33,24 @@ final class B2BOrderService
         $mode = in_array($input['mode'] ?? '', ['livraison', 'retrait_place'], true)
             ? $input['mode'] : 'livraison';
         $pickupAddress = $mode === 'retrait_place' ? trim((string) ($input['pickup_address'] ?? '')) : null;
+
+        // Point de livraison choisi par l'acheteur sur la carte (mode livraison uniquement).
+        // Optionnel : si l'acheteur ne précise rien, le livreur retombera sur l'adresse de
+        // l'entreprise (cf. LogisticsRepository::findForEnterprise).
+        $deliveryAddress = null;
+        $deliveryLat = null;
+        $deliveryLng = null;
+        if ($mode === 'livraison') {
+            $addr = trim((string) ($input['delivery_address'] ?? ''));
+            $lat = $input['delivery_lat'] ?? null;
+            $lng = $input['delivery_lng'] ?? null;
+            if ($addr !== '' && is_numeric($lat) && is_numeric($lng)) {
+                $deliveryAddress = $addr;
+                $deliveryLat = (float) $lat;
+                $deliveryLng = (float) $lng;
+            }
+        }
+
         $deadline = $urgent ? date('Y-m-d H:i:s', strtotime("+{$deadlineMinutes} minutes")) : null;
 
         $lines = [];
@@ -70,6 +88,7 @@ final class B2BOrderService
                 'number' => $number, 'buyer_id' => $buyerId, 'seller_id' => $sellerId,
                 'total' => $total, 'urgent' => $urgent, 'deadline_minutes' => $deadlineMinutes,
                 'deadline' => $deadline, 'mode' => $mode, 'pickup_address' => $pickupAddress,
+                'delivery_address' => $deliveryAddress, 'delivery_lat' => $deliveryLat, 'delivery_lng' => $deliveryLng,
             ]);
             foreach ($lines as $line) {
                 $this->repository->createLine($orderId, $line);

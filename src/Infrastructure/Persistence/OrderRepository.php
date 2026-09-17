@@ -70,13 +70,15 @@ final class OrderRepository
             'INSERT INTO Commande_B2B
                 (Numero_Commande, Id_Entreprise_Acheteuse, Id_Entreprise_Vendeuse,
                  Montant_Total, Statut, Est_Urgente, Delai_Reponse_Minutes,
-                 Date_Limite_Reponse, Mode_Retrait, Adresse_Retrait, Date_Commande)
-             VALUES (?, ?, ?, ?, \'en_attente\', ?, ?, ?, ?, ?, NOW())'
+                 Date_Limite_Reponse, Mode_Retrait, Adresse_Retrait,
+                 Adresse_Livraison, Latitude_Livraison, Longitude_Livraison, Date_Commande)
+             VALUES (?, ?, ?, ?, \'en_attente\', ?, ?, ?, ?, ?, ?, ?, ?, NOW())'
         );
         $statement->execute([
             $order['number'], $order['buyer_id'], $order['seller_id'], $order['total'],
             $order['urgent'], $order['deadline_minutes'], $order['deadline'],
             $order['mode'], $order['pickup_address'],
+            $order['delivery_address'] ?? null, $order['delivery_lat'] ?? null, $order['delivery_lng'] ?? null,
         ]);
 
         return (int) $this->pdo->lastInsertId();
@@ -162,14 +164,22 @@ final class OrderRepository
         return (int) $this->pdo->lastInsertId();
     }
 
-    public function createB2BLogistics(int $saleId, int $orderId, int $invoiceId, int $enterpriseId): void
-    {
+    public function createB2BLogistics(
+        int $saleId,
+        int $orderId,
+        int $invoiceId,
+        int $enterpriseId,
+        ?string $deliveryAddress = null,
+        ?float $deliveryLat = null,
+        ?float $deliveryLng = null
+    ): void {
         $statement = $this->pdo->prepare(
             "INSERT INTO Logistique
-                (Id_Vente, Id_Commande_B2B, Id_Facture, Statut_Livraison, Id_Entreprise)
-             VALUES (?, ?, ?, 'traitement', ?)"
+                (Id_Vente, Id_Commande_B2B, Id_Facture, Statut_Livraison, Id_Entreprise,
+                 Adresse_Livraison, Adresse_Livraison_Lat, Adresse_Livraison_Lng)
+             VALUES (?, ?, ?, 'traitement', ?, ?, ?, ?)"
         );
-        $statement->execute([$saleId, $orderId, $invoiceId, $enterpriseId]);
+        $statement->execute([$saleId, $orderId, $invoiceId, $enterpriseId, $deliveryAddress, $deliveryLat, $deliveryLng]);
     }
 
     public function markShipped(int $orderId): void

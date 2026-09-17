@@ -193,6 +193,9 @@ class CommandeB2BController extends Controller
                 'deadline_minutes' => (int) ($_POST['delai_minutes'] ?? 120),
                 'mode' => $_POST['mode_retrait'] ?? 'livraison',
                 'pickup_address' => $_POST['adresse_retrait'] ?? '',
+                'delivery_address' => $_POST['adresse_livraison'] ?? '',
+                'delivery_lat' => $_POST['lat_livraison'] ?? null,
+                'delivery_lng' => $_POST['lng_livraison'] ?? null,
             ], $mon_entreprise_id);
             $numero = $commande['number'];
             $id_commande = $commande['id'];

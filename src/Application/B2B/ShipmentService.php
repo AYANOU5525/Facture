@@ -49,7 +49,15 @@ final class ShipmentService
             // Logistique en attente (cf. includes/roles.php) : pas d'entrée créée tant que la
             // fonctionnalité est désactivée.
             if (FEATURE_LOGISTIQUE_ACTIVE) {
-                $this->repository->createB2BLogistics($saleId, $orderId, $invoiceId, $sellerId);
+                $this->repository->createB2BLogistics(
+                    $saleId,
+                    $orderId,
+                    $invoiceId,
+                    $sellerId,
+                    $order['Adresse_Livraison'] ?? null,
+                    isset($order['Latitude_Livraison']) ? (float) $order['Latitude_Livraison'] : null,
+                    isset($order['Longitude_Livraison']) ? (float) $order['Longitude_Livraison'] : null
+                );
             }
             $this->repository->markShipped($orderId);
             $this->repository->recordHistory(
