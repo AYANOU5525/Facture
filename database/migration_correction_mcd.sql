@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS `Ligne_Vente` (
 -- Commande_B2B.Articles_JSON, déjà marqué déprécié plus bas dans le dump.
 ALTER TABLE `Vente`
   MODIFY COLUMN `Articles_JSON` text NULL
-  COMMENT '[DEPRECATED] Remplacé par Ligne_Vente pour les nouvelles ventes ; conservé pour les ventes historiques et l'affichage.';
+  COMMENT '[DEPRECATED] Remplacé par Ligne_Vente pour les nouvelles ventes ; conservé pour les ventes historiques et l''affichage.';
 
 -- Pas de ré-import automatique de l'historique : le JSON des ventes 1-9 ne
 -- porte pas toujours d'Id_Produit fiable (seulement un `nom`), un rapprochement

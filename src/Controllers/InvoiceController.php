@@ -39,7 +39,7 @@ class InvoiceController extends Controller
                 $error = 'Veuillez ajouter au moins un produit.';
             } else {
                 try {
-                    $numero = $this->invoices->createDirectSale($client, $nom_vendeur, $items, (int) $entreprise_id);
+                    $numero = $this->invoices->createDirectSale($client, $nom_vendeur, $items, (int) $entreprise_id, (int) ($_SESSION['user_id'] ?? 0));
                     $this->redirect('vente_workflow.php?ref=' . urlencode($numero) . '&etape=1&mode=' . $mode_remise);
                 } catch (\Throwable $e) {
                     $error = $e->getMessage();

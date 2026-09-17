@@ -355,7 +355,7 @@ class CommandeB2BController extends Controller
     {
         try {
             $id_commande = intval($_POST['id_commande'] ?? 0);
-            $shipment = $this->shipmentService->ship($id_commande, $mon_entreprise_id);
+            $shipment = $this->shipmentService->ship($id_commande, $mon_entreprise_id, (string) ($_SESSION['username'] ?? ''), (int) ($_SESSION['user_id'] ?? 0));
             $cmd = $shipment['order'];
             $ref_facture = $shipment['number'];
 

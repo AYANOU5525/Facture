@@ -31,6 +31,7 @@ $tables = [
     'Annonce',
     'Audit_Log',
     'Password_Reset',
+    'Ligne_Vente',
     'Vente',
     'Produit',
     'Utilisateur',

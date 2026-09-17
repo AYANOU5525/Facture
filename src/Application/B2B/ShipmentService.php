@@ -16,7 +16,7 @@ final class ShipmentService
     ) {
     }
 
-    public function ship(int $orderId, int $sellerId): array
+    public function ship(int $orderId, int $sellerId, string $userName = '', int $userId = 0): array
     {
         $this->pdo->beginTransaction();
         try {
@@ -31,9 +31,14 @@ final class ShipmentService
                 'number' => $number,
                 'enterprise_id' => $sellerId,
                 'client' => $order['Nom_Acheteur'],
+                'seller' => $userName,
+                'seller_id' => $userId,
                 'total' => $order['Montant_Total'],
                 'articles' => json_encode($lines, JSON_UNESCAPED_UNICODE),
             ]);
+            foreach ($lines as $line) {
+                $this->repository->createSaleLine($saleId, $line);
+            }
             $invoiceId = $this->repository->createB2BInvoice(
                 $saleId,
                 $orderId,

@@ -127,14 +127,27 @@ final class OrderRepository
     {
         $statement = $this->pdo->prepare(
             "INSERT INTO Vente
-                (Numero_Vente, Id_Entreprise, Nom_Client, Date_Vente, Montant_Total, Type_Vente, Articles_JSON)
-             VALUES (?, ?, ?, NOW(), ?, 'b2b', ?)"
+                (Numero_Vente, Id_Entreprise, Nom_Client, Nom_Vendeur, Id_Vendeur, Date_Vente, Montant_Total, Type_Vente, Articles_JSON)
+             VALUES (?, ?, ?, ?, ?, NOW(), ?, 'b2b', ?)"
         );
         $statement->execute([
-            $sale['number'], $sale['enterprise_id'], $sale['client'], $sale['total'], $sale['articles'],
+            $sale['number'], $sale['enterprise_id'], $sale['client'], $sale['seller'] ?? null,
+            $sale['seller_id'] ?: null, $sale['total'], $sale['articles'],
         ]);
 
         return (int) $this->pdo->lastInsertId();
+    }
+
+    /** Ligne relationnelle de vente B2B — miroir de createLine() pour Ligne_Commande_B2B. */
+    public function createSaleLine(int $saleId, array $line): void
+    {
+        $statement = $this->pdo->prepare(
+            'INSERT INTO Ligne_Vente (Id_Vente, Id_Produit, Nom_Produit, Quantite, Prix_Unitaire)
+             VALUES (?, ?, ?, ?, ?)'
+        );
+        $statement->execute([
+            $saleId, $line['id_produit'], $line['nom'], $line['quantite'], $line['prix'],
+        ]);
     }
 
     public function createB2BInvoice(int $saleId, int $orderId, string $number, float $total, int $enterpriseId): int

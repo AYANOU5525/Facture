@@ -27,7 +27,8 @@ final class InvoiceService
         string $client,
         string $seller,
         array $items,
-        int $enterpriseId
+        int $enterpriseId,
+        int $sellerId = 0
     ): string {
         if (trim($client) === '' || $items === []) {
             throw new InvalidArgumentException('Client et articles sont obligatoires.');
@@ -89,10 +90,14 @@ final class InvoiceService
                 'number' => $number,
                 'client' => trim($client),
                 'seller' => $seller,
+                'seller_id' => $sellerId,
                 'articles' => json_encode($articles, JSON_UNESCAPED_UNICODE),
                 'total' => $total,
                 'enterprise_id' => $enterpriseId,
             ]);
+            foreach ($articles as $article) {
+                $this->repository->createSaleLine($saleId, $article);
+            }
             $invoiceId = $this->repository->createInvoice($saleId, $number, $total, $enterpriseId);
             // Logistique en attente (cf. includes/roles.php) : pas d'entrée créée tant que la
             // fonctionnalité est désactivée.

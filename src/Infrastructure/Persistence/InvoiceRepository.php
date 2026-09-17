@@ -51,15 +51,27 @@ final class InvoiceRepository
     {
         $statement = $this->pdo->prepare(
             "INSERT INTO Vente
-                (Numero_Vente, Nom_Client, Nom_Vendeur, Articles_JSON, Montant_Total, Type_Vente, Id_Entreprise, Date_Vente)
-             VALUES (?, ?, ?, ?, ?, 'directe', ?, NOW())"
+                (Numero_Vente, Nom_Client, Nom_Vendeur, Id_Vendeur, Articles_JSON, Montant_Total, Type_Vente, Id_Entreprise, Date_Vente)
+             VALUES (?, ?, ?, ?, ?, ?, 'directe', ?, NOW())"
         );
         $statement->execute([
-            $sale['number'], $sale['client'], $sale['seller'], $sale['articles'],
+            $sale['number'], $sale['client'], $sale['seller'], $sale['seller_id'] ?: null, $sale['articles'],
             $sale['total'], $sale['enterprise_id'],
         ]);
 
         return (int) $this->pdo->lastInsertId();
+    }
+
+    /** Ligne relationnelle de vente — miroir de OrderRepository::createLine() pour Ligne_Commande_B2B. */
+    public function createSaleLine(int $saleId, array $line): void
+    {
+        $statement = $this->pdo->prepare(
+            'INSERT INTO Ligne_Vente (Id_Vente, Id_Produit, Nom_Produit, Quantite, Prix_Unitaire)
+             VALUES (?, ?, ?, ?, ?)'
+        );
+        $statement->execute([
+            $saleId, $line['id_produit'], $line['nom'], $line['quantite_unites'], $line['prix_unitaire'],
+        ]);
     }
 
     public function createInvoice(int $saleId, string $number, float $total, int $enterpriseId): int
