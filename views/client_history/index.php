@@ -431,7 +431,7 @@
             <div class="ch-timeline-view" id="viewTimeline">
                 <div class="ch-timeline">
                     <?php foreach ($history as $i => $item):
-                        $etat = $item['Etat'] ?? 'N/A';
+                        $etat = $item['Etat'] ?? '—';
                         $badge = 'secondary';
                         $dot_color = 'var(--zinc-300)';
                         if (in_array($etat, ['livree', 'Validée'])) { $badge = 'success'; $dot_color = 'var(--success)'; }
@@ -484,7 +484,7 @@
                         </thead>
                         <tbody>
                             <?php foreach ($history as $item):
-                                $etat = $item['Etat'] ?? 'N/A';
+                                $etat = $item['Etat'] ?? '—';
                                 $badge = 'secondary';
                                 if (in_array($etat, ['livree', 'Validée'])) $badge = 'success';
                                 if ($etat === 'annulee') $badge = 'danger';

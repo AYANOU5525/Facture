@@ -111,7 +111,7 @@ code {
                     ?>
                     <tr data-statut="<?= $statut_affichage ?>">
                         <td><code><?= htmlspecialchars($f['Numero_Facture']) ?></code></td>
-                        <td class="fw-semibold"><?= htmlspecialchars($f['Nom_Client'] ?? 'N/A') ?></td>
+                        <td class="fw-semibold"><?= htmlspecialchars($f['Nom_Client'] ?? '—') ?></td>
                         <td class="small text-body-secondary">
                             <?= $f['Date_Echeance'] ? date('d/m/Y', strtotime($f['Date_Echeance'])) : '—' ?>
                         </td>
