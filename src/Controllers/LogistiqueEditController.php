@@ -43,75 +43,80 @@ class LogistiqueEditController extends Controller
         $error = '';
         $success = '';
 
-        // NOTE : ce bloc s'exécute que la requête soit GET ou POST (comportement
-        // préexistant conservé tel quel lors de la migration MVC — pas de garde
-        // "if POST" ici dans la version originale de la page).
-        $transporteur = trim($_POST['transporteur'] ?? '');
-        $numero_suivi = trim($_POST['numero_suivi'] ?? '');
-        $statut = $_POST['statut'] ?? 'traitement';
-        $statuts_valides = ['traitement', 'en_attente', 'expediee', 'livree', 'annulee'];
-        $date_exp = $_POST['date_expedition'] ?? null;
-        $date_prevue = $_POST['date_prevue'] ?? null;
-        $date_livree = $_POST['date_livraison'] ?? null;
-        $notes = $_POST['notes'] ?? '';
-        $adresse_livraison = $_POST['adresse_livraison'] ?? '';
-        $lat_livraison = !empty($_POST['lat_livraison']) ? floatval($_POST['lat_livraison']) : null;
-        $lng_livraison = !empty($_POST['lng_livraison']) ? floatval($_POST['lng_livraison']) : null;
+        // Important : ne traiter/écrire qu'en POST. Un simple GET (ouvrir la page pour
+        // consulter ou cliquer "Carte"/"Traiter") ne doit jamais modifier l'entrée — sans
+        // cette garde, $_POST est vide sur GET et statut retombe sur 'traitement' par
+        // défaut, écrasant silencieusement le transporteur/suivi déjà enregistrés.
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $transporteur = trim($_POST['transporteur'] ?? '');
+            $numero_suivi = trim($_POST['numero_suivi'] ?? '');
+            $statut = $_POST['statut'] ?? 'traitement';
+            $statuts_valides = ['traitement', 'en_attente', 'expediee', 'livree', 'annulee'];
+            // Les champs date laissés vides arrivent en '' (pas absents) : les normaliser en
+            // null ici, sinon MySQL rejette '' comme valeur DATETIME (SQLSTATE 22007).
+            $date_exp = trim($_POST['date_expedition'] ?? '') ?: null;
+            $date_prevue = trim($_POST['date_prevue'] ?? '') ?: null;
+            $date_livree = trim($_POST['date_livraison'] ?? '') ?: null;
+            $notes = $_POST['notes'] ?? '';
+            $adresse_livraison = $_POST['adresse_livraison'] ?? '';
+            $lat_livraison = !empty($_POST['lat_livraison']) ? floatval($_POST['lat_livraison']) : null;
+            $lng_livraison = !empty($_POST['lng_livraison']) ? floatval($_POST['lng_livraison']) : null;
 
-        try {
-            if (!in_array($statut, $statuts_valides, true)) {
-                throw new \InvalidArgumentException('Statut de livraison invalide.');
-            }
-
-            if ($statut === 'expediee') {
-                if ($transporteur === '' || $numero_suivi === '') {
-                    throw new \InvalidArgumentException('Le transporteur et le numéro de suivi sont requis pour une expédition.');
+            try {
+                if (!in_array($statut, $statuts_valides, true)) {
+                    throw new \InvalidArgumentException('Statut de livraison invalide.');
                 }
-                $date_exp = $date_exp ?: date('Y-m-d H:i:s');
-            }
 
-            if ($statut === 'livree') {
-                $date_livree = $date_livree ?: date('Y-m-d H:i:s');
-            }
-
-            $event = $this->logistics->update($id_logistique, (int) $entreprise_id, [
-                'carrier' => $transporteur,
-                'tracking' => $numero_suivi,
-                'status' => $statut,
-                'date_expedition' => $date_exp,
-                'date_prevue' => $date_prevue,
-                'date_livraison' => $date_livree,
-                'notes' => $notes,
-                'address' => $adresse_livraison,
-                'latitude' => $lat_livraison,
-                'longitude' => $lng_livraison,
-                'command_id' => (int) ($log['Id_Commande_B2B'] ?? 0),
-            ]);
-
-            if ($event) {
-                require_once __DIR__ . '/../../includes/b2b_helpers.php';
-                $cmd = $event['command'];
-                $id_cmd = (int) $log['Id_Commande_B2B'];
-                $note = $event['new_status'] === 'expediee'
-                    ? "Mis en livraison (N° Suivi: $numero_suivi)"
-                    : 'Livrée par le transporteur';
-                enregistrerHistoriqueCommande($this->pdo, $id_cmd, $event['old_status'], $event['new_status'], $note, $entreprise_id);
-                if ($event['new_status'] === 'expediee') {
-                    creerNotificationB2b($this->pdo, (int) $cmd['Id_Entreprise_Acheteuse'], 'expedition', "🚚 Commande {$cmd['Numero_Commande']} en livraison", "Votre commande {$cmd['Numero_Commande']} a été expédiée via $transporteur (N° de suivi : $numero_suivi).", $id_cmd);
-                } else {
-                    creerNotificationB2b($this->pdo, (int) $cmd['Id_Entreprise_Acheteuse'], 'livraison', "✅ Commande {$cmd['Numero_Commande']} livrée", "La livraison de votre commande {$cmd['Numero_Commande']} est arrivée.", $id_cmd);
-                    creerNotificationB2b($this->pdo, (int) $cmd['Id_Entreprise_Vendeuse'], 'reception', "🏆 Commande {$cmd['Numero_Commande']} livrée", "La livraison de votre commande {$cmd['Numero_Commande']} a été complétée.", $id_cmd);
+                if ($statut === 'expediee') {
+                    if ($transporteur === '' || $numero_suivi === '') {
+                        throw new \InvalidArgumentException('Le transporteur et le numéro de suivi sont requis pour une expédition.');
+                    }
+                    $date_exp = $date_exp ?: date('Y-m-d H:i:s');
                 }
-            }
 
-            $success = "Le suivi logistique a été mis à jour.";
-            // Rafraîchir les données
-            $log = $this->logistics->find($id_logistique, (int) $entreprise_id);
-        } catch (\Exception $e) {
-            if ($this->pdo->inTransaction()) {
-                $this->pdo->rollBack();
+                if ($statut === 'livree') {
+                    $date_livree = $date_livree ?: date('Y-m-d H:i:s');
+                }
+
+                $event = $this->logistics->update($id_logistique, (int) $entreprise_id, [
+                    'carrier' => $transporteur,
+                    'tracking' => $numero_suivi,
+                    'status' => $statut,
+                    'date_expedition' => $date_exp,
+                    'date_prevue' => $date_prevue,
+                    'date_livraison' => $date_livree,
+                    'notes' => $notes,
+                    'address' => $adresse_livraison,
+                    'latitude' => $lat_livraison,
+                    'longitude' => $lng_livraison,
+                    'command_id' => (int) ($log['Id_Commande_B2B'] ?? 0),
+                ]);
+
+                if ($event) {
+                    require_once __DIR__ . '/../../includes/b2b_helpers.php';
+                    $cmd = $event['command'];
+                    $id_cmd = (int) $log['Id_Commande_B2B'];
+                    $note = $event['new_status'] === 'expediee'
+                        ? "Mis en livraison (N° Suivi: $numero_suivi)"
+                        : 'Livrée par le transporteur';
+                    enregistrerHistoriqueCommande($this->pdo, $id_cmd, $event['old_status'], $event['new_status'], $note, $entreprise_id);
+                    if ($event['new_status'] === 'expediee') {
+                        creerNotificationB2b($this->pdo, (int) $cmd['Id_Entreprise_Acheteuse'], 'expedition', "🚚 Commande {$cmd['Numero_Commande']} en livraison", "Votre commande {$cmd['Numero_Commande']} a été expédiée via $transporteur (N° de suivi : $numero_suivi).", $id_cmd);
+                    } else {
+                        creerNotificationB2b($this->pdo, (int) $cmd['Id_Entreprise_Acheteuse'], 'livraison', "✅ Commande {$cmd['Numero_Commande']} livrée", "La livraison de votre commande {$cmd['Numero_Commande']} est arrivée.", $id_cmd);
+                        creerNotificationB2b($this->pdo, (int) $cmd['Id_Entreprise_Vendeuse'], 'reception', "🏆 Commande {$cmd['Numero_Commande']} livrée", "La livraison de votre commande {$cmd['Numero_Commande']} a été complétée.", $id_cmd);
+                    }
+                }
+
+                $success = "Le suivi logistique a été mis à jour.";
+                // Rafraîchir les données
+                $log = $this->logistics->find($id_logistique, (int) $entreprise_id);
+            } catch (\Exception $e) {
+                if ($this->pdo->inTransaction()) {
+                    $this->pdo->rollBack();
+                }
+                $error = "Erreur lors de la mise à jour : " . $e->getMessage();
             }
-            $error = "Erreur lors de la mise à jour : " . $e->getMessage();
         }
 
         if (aRole(ROLE_LIVREUR)) {

@@ -14,12 +14,10 @@ const ROLE_VENDEUR = 'vendeur';
 const ROLE_LIVREUR = 'livreur';
 
 /**
- * Interrupteur temporaire : gestion des livraisons mise en attente (demande du 2026-09-05).
- * Repasser à true pour réactiver — c'est le seul endroit à changer, toutes les permissions
- * et la navigation logistique en dépendent. Le rôle livreur n'ayant plus aucune page
- * accessible tant que c'est désactivé, son dashboard reste vide (voir DashboardController).
+ * Interrupteur central : active la gestion des livraisons (logistique). Toutes les
+ * permissions et la navigation logistique en dépendent — c'est le seul endroit à changer.
  */
-const FEATURE_LOGISTIQUE_ACTIVE = false;
+const FEATURE_LOGISTIQUE_ACTIVE = true;
 
 /** Vérifie si le rôle de la session est parmi ceux passés. */
 function aRole(string ...$roles): bool

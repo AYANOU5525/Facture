@@ -39,7 +39,7 @@ code {
         <div class="card-header bg-transparent d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
                 <h2 class="fs-6 mb-0">Expéditions &amp; Livraisons</h2>
-                <p class="text-body-secondary small mb-0"><?= count($logistique) ?> expédition<?= count($logistique) > 1 ? 's' : '' ?></p>
+                <p class="text-body-secondary small mb-0"><?= $nb_resultats ?> expédition<?= $nb_resultats > 1 ? 's' : '' ?></p>
             </div>
 
             <form method="GET" class="d-flex align-items-center gap-2 flex-wrap">
@@ -136,7 +136,7 @@ code {
                                         <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-success" title="Confirmer la livraison">
                                             <i class="fas fa-check-circle"></i> Livré
                                         </a>
-                                    <?php elseif (aRole(ROLE_LIVREUR)): ?>
+                                    <?php elseif (aRole(ROLE_LIVREUR) && in_array($l['Statut_Livraison'], ['traitement', 'en_attente'], true)): ?>
                                         <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-primary" title="Traiter cette livraison">
                                             <i class="fas fa-arrow-right"></i> Traiter
                                         </a>
@@ -161,6 +161,20 @@ code {
             </div>
         <?php endif; ?>
     </div>
+
+    <?php if ($total_pages > 1):
+        $qs = array_filter(['q' => $recherche, 'statut' => $statut_filtre]);
+    ?>
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                    <li class="page-item <?= $i === $page ? 'active' : '' ?>">
+                        <a class="page-link" href="?<?= http_build_query($qs + ['p' => $i]) ?>"><?= $i ?></a>
+                    </li>
+                <?php endfor; ?>
+            </ul>
+        </nav>
+    <?php endif; ?>
 </div>
 
 </body>
