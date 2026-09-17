@@ -185,6 +185,10 @@ class ReseauB2BController extends Controller
             ORDER BY Region
         ")->fetchAll(\PDO::FETCH_COLUMN);
 
+        $non_lues = $this->pdo->prepare("SELECT COUNT(*) FROM Notification_B2B WHERE Id_Entreprise_Destinataire = ? AND Est_Lue = FALSE");
+        $non_lues->execute([$entreprise_id]);
+        $nb_non_lues = (int) $non_lues->fetchColumn();
+
         $this->render('reseau_b2b/index', [
             'entreprises'      => $entreprises,
             'secteurs'         => $secteurs,
@@ -196,6 +200,7 @@ class ReseauB2BController extends Controller
             'distance_max'     => $distance_max,
             'tri_distance'     => $tri_distance,
             'j_ai_coords'      => $j_ai_coords,
+            'nb_non_lues'      => $nb_non_lues,
         ], 'Réseau B2B');
     }
 }

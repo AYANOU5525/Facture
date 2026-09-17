@@ -10,6 +10,10 @@ class DashboardController extends Controller
         $entreprise_id = $_SESSION['entreprise_id'];
 
         if (aRole(ROLE_LIVREUR)) {
+            if (!FEATURE_LOGISTIQUE_ACTIVE) {
+                $this->showLogistiqueEnPause();
+                return;
+            }
             $this->showLivreur($entreprise_id);
             return;
         }
@@ -68,6 +72,13 @@ class DashboardController extends Controller
             'en_route'            => $en_route,
             'livrees_jour'        => $livrees_jour,
             'livraisons_actives'  => $livraisons_actives,
+        ], 'Tableau de bord');
+    }
+
+    private function showLogistiqueEnPause(): void
+    {
+        $this->render('dashboard/en_pause', [
+            'salutation' => $this->salutation(),
         ], 'Tableau de bord');
     }
 
@@ -142,30 +153,7 @@ class DashboardController extends Controller
         $stmt->execute([$entreprise_id]);
         $nb_ventes = (int) $stmt->fetchColumn();
 
-        // 3. CA par mois sur les 6 derniers mois (alimente le graphique d'activité)
-        $stmt = $this->pdo->prepare("
-            SELECT DATE_FORMAT(Date_Vente, '%Y-%m') AS mois, SUM(Montant_Total) AS ca
-            FROM Vente
-            WHERE Id_Entreprise = ?
-              AND Date_Vente >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-            GROUP BY mois
-            ORDER BY mois ASC
-        ");
-        $stmt->execute([$entreprise_id]);
-        $ca_mensuel_raw = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
-
-        // Construire un tableau des 6 derniers mois (même si aucune vente ce mois-là)
-        $mois_abreges_fr = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
-        $mois_labels = [];
-        $ca_data     = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $ts  = strtotime("-$i month");
-            $key = date('Y-m', $ts);
-            $mois_labels[] = $mois_abreges_fr[(int) date('n', $ts) - 1] . ' ' . date('Y', $ts);
-            $ca_data[]     = (float) ($ca_mensuel_raw[$key] ?? 0);
-        }
-
-        // 4. Produits en alerte stock (stock <= seuil)
+        // 3. Produits en alerte stock (stock <= seuil)
         $stmt = $this->pdo->prepare("
             SELECT Nom_Produit, Quantite_En_Stock,
                    COALESCE(Seuil_Alerte_Stock, 5) AS Seuil_Alerte_Stock
@@ -178,7 +166,7 @@ class DashboardController extends Controller
         $stmt->execute([$entreprise_id]);
         $produits_alerte = $stmt->fetchAll();
 
-        // 5. Commandes B2B en attente (managers seulement)
+        // 4. Commandes B2B en attente (managers seulement)
         $b2b = [];
         if (estProprietaire()) {
             $stmt = $this->pdo->prepare("SELECT c.*, e.Nom_Entreprise FROM Commande_B2B c JOIN Entreprise e ON c.Id_Entreprise_Acheteuse = e.Id_Entreprise WHERE c.Id_Entreprise_Vendeuse = ? AND c.Statut = 'en_attente' ORDER BY c.Date_Commande DESC LIMIT 5");
@@ -186,7 +174,7 @@ class DashboardController extends Controller
             $b2b = $stmt->fetchAll();
         }
 
-        // 6. Activité récente — dernières ventes
+        // 5. Activité récente — dernières ventes
         $stmt = $this->pdo->prepare("SELECT Id_Vente, Numero_Vente, Nom_Client, Date_Vente, Montant_Total FROM Vente WHERE Id_Entreprise = ? ORDER BY Date_Vente DESC LIMIT 5");
         $stmt->execute([$entreprise_id]);
         $ventes_recentes = $stmt->fetchAll();
@@ -195,8 +183,6 @@ class DashboardController extends Controller
             'salutation'          => $this->salutation(),
             'total_ca'            => $total_ca,
             'nb_ventes'           => $nb_ventes,
-            'mois_labels'         => $mois_labels,
-            'ca_data'             => $ca_data,
             'produits_alerte'     => $produits_alerte,
             'b2b'                 => $b2b,
             'ventes_recentes'     => $ventes_recentes,

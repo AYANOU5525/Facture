@@ -22,16 +22,6 @@
         </div>
     </div>
 
-    <!-- GRAPHIQUE D'ACTIVITÉ -->
-    <div class="card mb-3">
-        <div class="card-header">
-            <h2 class="h6 mb-0"><i class="fas fa-chart-column text-primary me-2"></i> Activité — chiffre d'affaires sur 6 mois</h2>
-        </div>
-        <div class="card-body">
-            <canvas id="caChart" height="90"></canvas>
-        </div>
-    </div>
-
     <!-- ALERTES STOCK -->
     <?php if (!empty($produits_alerte)): ?>
         <div class="card mb-3">
@@ -124,72 +114,6 @@
         <?php endif; ?>
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-<script>
-    (function() {
-        const labels = <?= json_encode($mois_labels) ?>;
-        const data = <?= json_encode($ca_data) ?>;
-
-        const dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
-        const gridColor = dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)';
-        const textColor = dark ? '#8a8f9a' : '#6b7076';
-
-        const ctx = document.getElementById('caChart');
-        if (!ctx) return;
-
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels,
-                datasets: [{
-                    label: 'Chiffre d\'Affaires (F)',
-                    data,
-                    backgroundColor: 'rgba(0, 70, 255, 0.15)',
-                    borderColor: '#0046ff',
-                    borderWidth: 2,
-                    borderRadius: 4,
-                    fill: true,
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: ctx => new Intl.NumberFormat('fr-FR').format(ctx.parsed.y) + ' F'
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            color: textColor
-                        }
-                    },
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: gridColor
-                        },
-                        ticks: {
-                            color: textColor,
-                            callback: v => new Intl.NumberFormat('fr-FR', {
-                                notation: 'compact'
-                            }).format(v)
-                        }
-                    }
-                }
-            }
-        });
-    })();
-</script>
 
 </body>
 

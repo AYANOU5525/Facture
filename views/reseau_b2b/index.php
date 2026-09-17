@@ -3,6 +3,23 @@
         <p class="text-body-secondary mb-0">Annuaire des entreprises partenaires du réseau B2B</p>
     </div>
 
+    <!-- Navigation B2B -->
+    <div class="d-flex gap-2 flex-wrap mb-3">
+        <a href="reseau_b2b.php" class="btn btn-sm <?= $current === 'reseau_b2b.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
+            <i class="fas fa-building"></i> Annuaire
+        </a>
+        <a href="annonces.php" class="btn btn-sm <?= $current === 'annonces.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
+            <i class="fas fa-bullhorn"></i> Annonces
+        </a>
+        <a href="commandes_b2b.php" class="btn btn-sm <?= $current === 'commandes_b2b.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
+            <i class="fas fa-shipping-fast"></i> Commandes
+        </a>
+        <a href="notifications_b2b.php" class="btn btn-sm <?= $current === 'notifications_b2b.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
+            <i class="fas fa-bell"></i> Notifications
+            <?php if (!empty($nb_non_lues)): ?><span class="badge rounded-pill text-bg-danger ms-1"><?= $nb_non_lues ?></span><?php endif; ?>
+        </a>
+    </div>
+
     <div class="card mb-4">
         <div class="card-body">
         <form method="GET" id="filtres-form">

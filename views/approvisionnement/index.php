@@ -1,16 +1,122 @@
 <style>
     .appro-stock-after { font-size: 0.8rem; }
     .appro-stock-after .val { font-weight: 700; color: var(--bs-success); }
+    .appro-manuel-row {
+        display: grid;
+        grid-template-columns: 1fr 100px 100px 40px;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 8px;
+        background: var(--bs-tertiary-bg);
+        border: 1px solid var(--bs-border-color);
+        border-radius: 8px;
+        padding: 10px 12px;
+    }
+    @media (max-width: 576px) {
+        .appro-manuel-row { grid-template-columns: 1fr 70px 70px 36px; }
+    }
 </style>
 
 <div class="container fade-in py-4">
     <div class="mb-4">
         <h1 class="fs-4 fw-bold mb-1"><i class="fas fa-truck-loading text-primary me-2"></i> Entrée en stock</h1>
-        <p class="text-body-secondary mb-0">Vous ajoutez ici les produits de vos commandes B2B livrées à votre inventaire.</p>
+        <p class="text-body-secondary mb-0">Réceptionnez vos commandes B2B livrées ou ajoutez manuellement des produits à votre inventaire.</p>
     </div>
 
     <?php if ($error): ?> <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div> <?php endif; ?>
     <?php if ($success): ?> <div class="alert alert-success"><?= htmlspecialchars($success) ?></div> <?php endif; ?>
+
+    <!-- AJOUT MANUEL AU STOCK -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h2 class="h6 mb-0"><i class="fas fa-box-open text-primary me-2"></i> Ajouter un produit à mon stock</h2>
+            <button type="button" onclick="addApproItem()" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-plus"></i> Ajouter
+            </button>
+        </div>
+        <div class="card-body">
+            <form method="POST" id="approManuelForm">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
+                <input type="hidden" name="action" value="approvisionnement">
+
+                <div class="appro-manuel-row" style="background:none; border:none; padding:0 12px; margin-bottom:4px; font-size:0.72rem; font-weight:700; color:var(--bs-secondary-color); text-transform:uppercase;">
+                    <span>Produit</span>
+                    <span>Cartons</span>
+                    <span>Unités</span>
+                    <span></span>
+                </div>
+                <div id="appro-items-container"></div>
+
+                <div id="appro-empty-items" class="text-center text-body-secondary py-3">
+                    <i class="fas fa-boxes fs-2 opacity-25 d-block mb-2"></i>
+                    Cliquez sur « Ajouter » pour choisir un produit à approvisionner
+                </div>
+
+                <div class="text-end mt-3">
+                    <button type="submit" id="appro-submit-btn" class="btn btn-primary" disabled>
+                        <i class="fas fa-check"></i> Ajouter le produit au stock
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const approProducts = <?= json_encode($produits) ?>;
+        let approItemCount = 0;
+
+        function approEscHtml(str) {
+            return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function approRenderOptions(selectedValue) {
+            let opts = '<option value="">— Sélectionner un produit —</option>';
+            approProducts.forEach(p => {
+                opts += `<option value="${p.Id_Produit}" ${p.Id_Produit == selectedValue ? 'selected' : ''}>${approEscHtml(p.Nom_Produit)}</option>`;
+            });
+            return opts;
+        }
+
+        function addApproItem() {
+            const container = document.getElementById('appro-items-container');
+            const empty = document.getElementById('appro-empty-items');
+            if (empty) empty.style.display = 'none';
+
+            const div = document.createElement('div');
+            div.className = 'appro-manuel-row';
+
+            div.innerHTML = `
+                <select name="items[${approItemCount}][produit]" class="form-control form-control-sm" required onchange="updateApproSubmitState()">
+                    ${approRenderOptions(null)}
+                </select>
+                <input type="number" name="items[${approItemCount}][qte_carton]" class="form-control form-control-sm"
+                       min="0" value="0" placeholder="Cartons" oninput="updateApproSubmitState()">
+                <input type="number" name="items[${approItemCount}][qte_unite]" class="form-control form-control-sm"
+                       min="0" value="1" placeholder="Unités" oninput="updateApproSubmitState()">
+                <button type="button" onclick="removeApproItem(this)" class="btn btn-danger btn-sm" title="Supprimer">
+                    <i class="fas fa-trash"></i>
+                </button>
+            `;
+            container.appendChild(div);
+            approItemCount++;
+            updateApproSubmitState();
+        }
+
+        function removeApproItem(btn) {
+            btn.closest('.appro-manuel-row').remove();
+            const rows = document.querySelectorAll('#appro-items-container .appro-manuel-row');
+            if (rows.length === 0) {
+                const empty = document.getElementById('appro-empty-items');
+                if (empty) empty.style.display = '';
+            }
+            updateApproSubmitState();
+        }
+
+        function updateApproSubmitState() {
+            const rows = document.querySelectorAll('#appro-items-container .appro-manuel-row');
+            document.getElementById('appro-submit-btn').disabled = rows.length === 0;
+        }
+    </script>
 
     <?php if (!empty($receptions_b2b)): ?>
         <div class="card">

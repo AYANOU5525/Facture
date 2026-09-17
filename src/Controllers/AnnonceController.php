@@ -47,6 +47,10 @@ class AnnonceController extends Controller
         $stmt->execute($params);
         $annonces = $stmt->fetchAll();
 
+        $non_lues = $this->pdo->prepare("SELECT COUNT(*) FROM Notification_B2B WHERE Id_Entreprise_Destinataire = ? AND Est_Lue = FALSE");
+        $non_lues->execute([$mon_entreprise_id]);
+        $nb_non_lues = (int) $non_lues->fetchColumn();
+
         $this->render('annonces/index', [
             'success'            => $success,
             'error'              => $error,
@@ -55,6 +59,7 @@ class AnnonceController extends Controller
             'j_ai_coords'        => $j_ai_coords,
             'mon_ent'            => $mon_ent,
             'mon_entreprise_id'  => $mon_entreprise_id,
+            'nb_non_lues'        => $nb_non_lues,
         ], 'Annonces B2B');
     }
 

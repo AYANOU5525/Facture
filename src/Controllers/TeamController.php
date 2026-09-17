@@ -48,7 +48,7 @@ class TeamController extends Controller
         $password = $_POST['password'];
         $role = $_POST['role'] ?? '';
         $email = trim($_POST['email']);
-        $assignable_roles = ['proprio', 'vendeur', 'livreur'];
+        $assignable_roles = FEATURE_LOGISTIQUE_ACTIVE ? ['proprio', 'vendeur', 'livreur'] : ['proprio', 'vendeur'];
 
         if (empty($username) || empty($password) || empty($email)) {
             return ['', "Tous les champs sont requis."];
@@ -224,7 +224,7 @@ HTML;
         }
 
         $new_role = $_POST['new_role'] ?? null;
-        $allowed_roles = ['proprio', 'vendeur', 'livreur'];
+        $allowed_roles = FEATURE_LOGISTIQUE_ACTIVE ? ['proprio', 'vendeur', 'livreur'] : ['proprio', 'vendeur'];
         if (!in_array($new_role, $allowed_roles, true)) {
             return ['', "Rôle invalide."];
         }

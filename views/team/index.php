@@ -38,7 +38,9 @@
                             <label class="form-label">Rôle</label>
                             <select name="role" class="form-select">
                                 <option value="vendeur">Vendeur — ventes, clients, factures, stocks (lecture)</option>
+                                <?php if (FEATURE_LOGISTIQUE_ACTIVE): ?>
                                 <option value="livreur">Livreur — logistique uniquement</option>
+                                <?php endif; ?>
                                 <option value="proprio">Propriétaire — accès complet à l'entreprise</option>
                             </select>
                         </div>
@@ -119,7 +121,9 @@
                         <label class="form-label">Nouveau rôle</label>
                         <select name="new_role" class="form-select">
                             <option value="vendeur">Vendeur — ventes, clients, factures, stocks (lecture)</option>
+                            <?php if (FEATURE_LOGISTIQUE_ACTIVE): ?>
                             <option value="livreur">Livreur — logistique uniquement</option>
+                            <?php endif; ?>
                             <option value="proprio">Propriétaire — accès complet à l'entreprise</option>
                         </select>
                     </div>

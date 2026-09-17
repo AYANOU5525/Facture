@@ -6,10 +6,10 @@ code {
 }
 </style>
 
-<div class="container fade-in">
+<div class="container fade-in py-4">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
         <div>
-            <h1><i class="fas fa-receipt"></i> Historique des Ventes</h1>
+            <h1 class="fs-4 fw-bold mb-1"><i class="fas fa-receipt"></i> Historique des Ventes</h1>
             <p class="text-body-secondary mb-0">Toutes les transactions de votre entreprise</p>
         </div>
         <a href="invoice_add.php" class="btn btn-primary">
@@ -21,34 +21,25 @@ code {
     <div class="row g-3 mb-4">
         <div class="col-md-4">
             <div class="card h-100">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="btn-icon bg-primary-subtle text-primary fs-5"><i class="fas fa-chart-line"></i></div>
-                    <div>
-                        <h3 class="h6 text-body-secondary mb-1">Chiffre d'affaires</h3>
-                        <div class="fs-5 fw-bold"><?= number_format((float)$total_ca, 0, ',', ' ') ?> F</div>
-                    </div>
+                <div class="card-body">
+                    <h3 class="h6 text-body-secondary mb-1">Chiffre d'affaires</h3>
+                    <div class="fs-5 fw-bold"><?= number_format((float)$total_ca, 0, ',', ' ') ?> F</div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card h-100">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="btn-icon bg-success-subtle text-success fs-5"><i class="fas fa-receipt"></i></div>
-                    <div>
-                        <h3 class="h6 text-body-secondary mb-1">Total ventes</h3>
-                        <div class="fs-5 fw-bold"><?= number_format($total_ventes) ?></div>
-                    </div>
+                <div class="card-body">
+                    <h3 class="h6 text-body-secondary mb-1">Total ventes</h3>
+                    <div class="fs-5 fw-bold"><?= number_format($total_ventes) ?></div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card h-100">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="btn-icon bg-warning-subtle text-warning fs-5"><i class="fas fa-sun"></i></div>
-                    <div>
-                        <h3 class="h6 text-body-secondary mb-1">CA aujourd'hui</h3>
-                        <div class="fs-5 fw-bold"><?= number_format($ca_jour, 0, ',', ' ') ?> F</div>
-                    </div>
+                <div class="card-body">
+                    <h3 class="h6 text-body-secondary mb-1">CA aujourd'hui</h3>
+                    <div class="fs-5 fw-bold"><?= number_format($ca_jour, 0, ',', ' ') ?> F</div>
                 </div>
             </div>
         </div>
@@ -103,7 +94,7 @@ code {
                             <?php $articles = json_decode($v['Articles_JSON'], true); ?>
                             <span class="small text-body-secondary">
                                 <?php if ($articles): ?>
-                                    <span class="badge text-bg-secondary me-1"><?= count($articles) ?> art.</span>
+                                    <span class="fw-semibold me-1"><?= count($articles) ?> art. —</span>
                                     <?php foreach (array_slice($articles, 0, 2) as $art): ?>
                                         <?= htmlspecialchars($art['nom'] ?? '') ?><?= count($articles) > 1 ? ', ' : '' ?>
                                     <?php endforeach; ?>
@@ -112,7 +103,7 @@ code {
                             </span>
                         </td>
                         <td>
-                            <span class="badge <?= $v['Type_Vente'] === 'b2b' ? 'text-bg-primary' : 'text-bg-success' ?>">
+                            <span class="fw-semibold <?= $v['Type_Vente'] === 'b2b' ? 'text-primary' : 'text-success' ?>">
                                 <?= strtoupper($v['Type_Vente']) ?>
                             </span>
                         </td>

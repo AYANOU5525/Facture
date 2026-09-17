@@ -141,8 +141,8 @@ final class OrderRepository
     {
         $statement = $this->pdo->prepare(
             'INSERT INTO Facture
-                (Id_Vente, Id_Commande_B2B, Numero_Facture, Date_Echeance, Montant_HT, Montant_TTC, Id_Entreprise)
-             VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY), ?, ?, ?)'
+                (Id_Vente, Id_Commande_B2B, Numero_Facture, Date_Echeance, Montant_HT, Montant_TTC, Date_Archivage, Id_Entreprise)
+             VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY), ?, ?, DATE_ADD(NOW(), INTERVAL 10 YEAR), ?)'
         );
         $statement->execute([$saleId, $orderId, $number, $total * 0.8, $total, $enterpriseId]);
 

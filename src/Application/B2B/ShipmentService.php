@@ -41,7 +41,11 @@ final class ShipmentService
                 (float) $order['Montant_Total'],
                 $sellerId
             );
-            $this->repository->createB2BLogistics($saleId, $orderId, $invoiceId, $sellerId);
+            // Logistique en attente (cf. includes/roles.php) : pas d'entrée créée tant que la
+            // fonctionnalité est désactivée.
+            if (FEATURE_LOGISTIQUE_ACTIVE) {
+                $this->repository->createB2BLogistics($saleId, $orderId, $invoiceId, $sellerId);
+            }
             $this->repository->markShipped($orderId);
             $this->repository->recordHistory(
                 $orderId,

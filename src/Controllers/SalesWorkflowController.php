@@ -41,7 +41,10 @@ class SalesWorkflowController extends Controller
         $etape = $_GET['etape'] ?? '1';
 
         $mode = in_array($_GET['mode'] ?? '', ['livraison', 'retrait']) ? $_GET['mode'] : 'livraison';
-        $avec_livraison = ($mode === 'livraison');
+        // Logistique en attente (cf. includes/roles.php) : on force le parcours "retrait sur
+        // place" tant que la fonctionnalité est désactivée, pour ne pas proposer une étape qui
+        // mène à des pages bloquées.
+        $avec_livraison = FEATURE_LOGISTIQUE_ACTIVE && ($mode === 'livraison');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['valider_paiement'])) {
             exigerCsrf();
@@ -52,7 +55,7 @@ class SalesWorkflowController extends Controller
             $etape = $avec_livraison ? '2' : '3';
         }
 
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['creer_logistique'])) {
+        if (FEATURE_LOGISTIQUE_ACTIVE && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['creer_logistique'])) {
             exigerCsrf();
             $transporteur = trim($_POST['transporteur'] ?? '');
             $numero_suivi = trim($_POST['numero_suivi'] ?? '');

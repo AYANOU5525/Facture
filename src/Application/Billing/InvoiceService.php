@@ -94,7 +94,11 @@ final class InvoiceService
                 'enterprise_id' => $enterpriseId,
             ]);
             $invoiceId = $this->repository->createInvoice($saleId, $number, $total, $enterpriseId);
-            $this->repository->createLogistics($saleId, $invoiceId, $enterpriseId);
+            // Logistique en attente (cf. includes/roles.php) : pas d'entrée créée tant que la
+            // fonctionnalité est désactivée.
+            if (FEATURE_LOGISTIQUE_ACTIVE) {
+                $this->repository->createLogistics($saleId, $invoiceId, $enterpriseId);
+            }
             $this->pdo->commit();
 
             return $number;

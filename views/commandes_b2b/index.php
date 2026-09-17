@@ -18,6 +18,23 @@
         </div>
     <?php endif; ?>
 
+    <!-- Navigation B2B -->
+    <div class="d-flex gap-2 flex-wrap mb-3">
+        <a href="reseau_b2b.php" class="btn btn-sm <?= $current === 'reseau_b2b.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
+            <i class="fas fa-building"></i> Annuaire
+        </a>
+        <a href="annonces.php" class="btn btn-sm <?= $current === 'annonces.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
+            <i class="fas fa-bullhorn"></i> Annonces
+        </a>
+        <a href="commandes_b2b.php" class="btn btn-sm <?= $current === 'commandes_b2b.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
+            <i class="fas fa-shipping-fast"></i> Commandes
+        </a>
+        <a href="notifications_b2b.php" class="btn btn-sm <?= $current === 'notifications_b2b.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
+            <i class="fas fa-bell"></i> Notifications
+            <?php if (!empty($nb_non_lues)): ?><span class="badge rounded-pill text-bg-danger ms-1"><?= $nb_non_lues ?></span><?php endif; ?>
+        </a>
+    </div>
+
     <!-- Onglets -->
     <ul class="nav nav-pills b2b-tabs mb-4">
         <li class="nav-item flex-fill">
@@ -257,7 +274,7 @@
                                     <td class="small text-body-secondary"><?= date('d/m/y H:i', strtotime($c['Date_Commande'])) ?></td>
                                     <td>
                                         <?php if ($urgent_actif): ?>
-                                            <span class="badge text-bg-danger">⚡ Urgent</span>
+                                            <span class="text-danger fw-semibold">⚡ Urgent</span>
                                         <?php else: ?>
                                             <span class="text-body-secondary">—</span>
                                         <?php endif; ?>
@@ -299,7 +316,7 @@
                                                         </button>
                                                     </form>
                                                 <?php elseif ($c['Statut'] === 'prete'): ?>
-                                                    <form method="POST" class="d-inline" onsubmit="return confirm('Expédier cette commande ? Une facture et une expédition logistique seront créées.')">
+                                                    <form method="POST" class="d-inline" onsubmit="return confirm('Expédier cette commande ? <?= FEATURE_LOGISTIQUE_ACTIVE ? 'Une facture et une expédition logistique seront créées.' : 'Une facture sera créée.' ?>')">
                                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                                                         <input type="hidden" name="action" value="expedier">
                                                         <input type="hidden" name="id_commande" value="<?= $c['Id_Commande_B2B'] ?>">

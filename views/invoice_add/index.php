@@ -202,6 +202,7 @@
                     <span>Total</span>
                     <span class="text-success" id="grand-total">0 F</span>
                 </div>
+                <?php if (FEATURE_LOGISTIQUE_ACTIVE): ?>
                 <!-- Mode de remise -->
                 <div class="mb-3 mt-3">
                     <div class="fw-semibold small text-body-secondary text-uppercase mb-2" style="letter-spacing:0.04em;">
@@ -231,6 +232,9 @@
                         <i class="fas fa-info-circle"></i> L'étape logistique sera incluse dans la finalisation.
                     </p>
                 </div>
+                <?php else: ?>
+                <input type="hidden" name="mode_remise" value="retrait">
+                <?php endif; ?>
 
                 <div class="d-flex flex-column gap-2">
                     <button type="submit" class="btn btn-success" id="btn-submit" disabled>

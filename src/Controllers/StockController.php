@@ -2,18 +2,22 @@
 
 namespace App\Controllers;
 
+use App\Application\Inventory\ProductService;
 use App\Application\Inventory\StockService;
+use App\Infrastructure\Persistence\ProductRepository;
 use App\Infrastructure\Persistence\StockRepository;
 
 /** Contrôleur de pages/approvisionnement.php — réception des commandes B2B livrées. */
 class StockController extends Controller
 {
     private StockService $stock;
+    private ProductService $products;
 
     public function __construct(\PDO $pdo)
     {
         parent::__construct($pdo);
         $this->stock = new StockService($pdo, new StockRepository($pdo));
+        $this->products = new ProductService(new ProductRepository($pdo));
     }
 
     public function index(): void
@@ -33,16 +37,33 @@ class StockController extends Controller
 
             if ($action === 'recevoir_b2b') {
                 [$success, $error] = $this->handleRecevoirB2b((int) $entreprise_id);
+            } elseif ($action === 'approvisionnement') {
+                [$success, $error] = $this->handleApprovisionnementManuel((int) $entreprise_id);
             }
         }
 
         $receptions_b2b = $this->fetchReceptionsEnAttente($entreprise_id);
+        $produits = $this->products->list((int) $entreprise_id);
 
         $this->render('approvisionnement/index', [
             'error'           => $error,
             'success'         => $success,
             'receptions_b2b'  => $receptions_b2b,
+            'produits'        => $produits,
         ], 'Approvisionnement');
+    }
+
+    /** @return array{0:string,1:string} [$success, $error] */
+    private function handleApprovisionnementManuel(int $entreprise_id): array
+    {
+        try {
+            $received = $this->stock->receiveManual($_POST['items'] ?? [], $entreprise_id);
+            return $received > 0
+                ? ["$received unité(s) ajoutée(s) au stock.", '']
+                : ['', 'Aucune quantité valide saisie.'];
+        } catch (\Throwable $e) {
+            return ['', 'Erreur lors de l\'entrée en stock : ' . $e->getMessage()];
+        }
     }
 
     /** @return array{0:string,1:string} [$success, $error] */

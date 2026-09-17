@@ -114,6 +114,10 @@ class CommandeB2BController extends Controller
         $stmt->execute([$mon_entreprise_id]);
         $commandes = $stmt->fetchAll();
 
+        $non_lues = $this->pdo->prepare("SELECT COUNT(*) FROM Notification_B2B WHERE Id_Entreprise_Destinataire = ? AND Est_Lue = FALSE");
+        $non_lues->execute([$mon_entreprise_id]);
+        $nb_non_lues = (int) $non_lues->fetchColumn();
+
         $this->render('commandes_b2b/index', [
             'pdo'               => $this->pdo,
             'mon_entreprise_id' => $mon_entreprise_id,
@@ -124,6 +128,7 @@ class CommandeB2BController extends Controller
             'fournisseurs'      => $fournisseurs,
             'onglet'            => $onglet,
             'commandes'         => $commandes,
+            'nb_non_lues'       => $nb_non_lues,
         ], 'Commandes B2B');
     }
 

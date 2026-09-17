@@ -1,9 +1,14 @@
+<?php
+$vente = $vente ?? [];
+$articles = $articles ?? [];
+$label_conservation = $label_conservation ?? '';
+?>
 <!DOCTYPE html>
 <html lang="fr">
 
 <head>
     <meta charset="UTF-8">
-    <title>Facture <?= htmlspecialchars($vente['Numero_Vente']) ?></title>
+    <title>Facture <?= htmlspecialchars($vente['Numero_Vente'] ?? '') ?></title>
     <!-- Utilisation de la même police pour cohérence, mais style print spécifique -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
@@ -137,28 +142,28 @@
     <div class="invoice-box">
         <div class="header">
             <div class="company-info">
-                <h1><?= htmlspecialchars($vente['Nom_Entreprise']) ?></h1>
-                <p><?= nl2br(htmlspecialchars($vente['Adresse_Entreprise'])) ?></p>
-                <p>Tel: <?= htmlspecialchars($vente['Tel_Entreprise']) ?></p>
-                <p>Email: <?= htmlspecialchars($vente['Email_Entreprise']) ?></p>
-                <?php if ($vente['NIF_Entreprise']): ?>
-                    <p>NIF: <?= htmlspecialchars($vente['NIF_Entreprise']) ?></p>
+                <h1><?= htmlspecialchars($vente['Nom_Entreprise'] ?? '') ?></h1>
+                <p><?= nl2br(htmlspecialchars($vente['Adresse_Entreprise'] ?? '')) ?></p>
+                <p>Tel: <?= htmlspecialchars($vente['Tel_Entreprise'] ?? '') ?></p>
+                <p>Email: <?= htmlspecialchars($vente['Email_Entreprise'] ?? '') ?></p>
+                <?php if (!empty($vente['NIF_Entreprise'] ?? null)): ?>
+                    <p>NIF: <?= htmlspecialchars($vente['NIF_Entreprise'] ?? '') ?></p>
                 <?php endif; ?>
             </div>
 
             <div class="invoice-details">
                 <h2>FACTURE</h2>
-                <p>N° <?= htmlspecialchars($vente['Numero_Vente']) ?></p>
-                <p>Date : <?= date('d/m/Y', strtotime($vente['Date_Vente'])) ?></p>
+                <p>N° <?= htmlspecialchars($vente['Numero_Vente'] ?? '') ?></p>
+                <p>Date : <?= date('d/m/Y', strtotime($vente['Date_Vente'] ?? 'now')) ?></p>
             </div>
         </div>
 
         <div class="client-info">
             <h3>Facturé à :</h3>
-            <div class="client-name"><?= htmlspecialchars($vente['Nom_Client']) ?></div>
-            <?php if (!empty($vente['Nom_Vendeur'])): ?>
+            <div class="client-name"><?= htmlspecialchars($vente['Nom_Client'] ?? '') ?></div>
+            <?php if (!empty($vente['Nom_Vendeur'] ?? null)): ?>
                 <div style="margin-top: 10px; font-size: 0.9em; color: #666;">
-                    <strong>Vendeur:</strong> <?= htmlspecialchars($vente['Nom_Vendeur']) ?>
+                    <strong>Vendeur:</strong> <?= htmlspecialchars($vente['Nom_Vendeur'] ?? '') ?>
                 </div>
             <?php endif; ?>
         </div>
@@ -173,7 +178,7 @@
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($articles as $art):
+                <?php foreach (($articles ?? []) as $art):
                     // Articles_JSON a eu plusieurs formats historiques (seed, ancien facteur_conversion,
                     // nouveau format carton+unité) — on reste tolérant aux trois pour l'affichage.
                     $qte_carton = (int) ($art['quantite_carton'] ?? 0);
@@ -201,7 +206,7 @@
 
                 <tr class="total-row">
                     <td colspan="3" style="text-align: right;">TOTAL NET À PAYER</td>
-                    <td style="text-align: right;"><?= number_format($vente['Montant_Total'], 0, ',', ' ') ?> FCFA</td>
+                    <td style="text-align: right;"><?= number_format((float) ($vente['Montant_Total'] ?? 0), 0, ',', ' ') ?> FCFA</td>
                 </tr>
             </tbody>
         </table>
