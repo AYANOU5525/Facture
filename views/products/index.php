@@ -54,6 +54,9 @@
             <a href="approvisionnement.php" class="btn btn-outline-secondary btn-sm">
                 <i class="fas fa-truck-loading"></i> Approvisionner
             </a>
+            <button class="btn btn-outline-secondary btn-sm" onclick="bootstrap.Modal.getOrCreateInstance(document.getElementById('categoryModal')).show()">
+                <i class="fas fa-tags"></i> Catégories
+            </button>
             <button class="btn btn-outline-secondary btn-sm" onclick="openProductModal(); openScanChooser('modal_code_barre_unite');">
                 <i class="fas fa-camera"></i> Scanner
             </button>
@@ -97,6 +100,12 @@
                     <option value="alerte">En alerte de stock</option>
                     <option value="b2b">En déstockage B2B</option>
                 </select>
+                <select id="filterCategory" class="form-select form-select-sm" style="width:auto;" onchange="filterProducts()">
+                    <option value="">Toutes les catégories</option>
+                    <?php foreach ($categories as $cat): ?>
+                        <option value="<?= $cat['Id_Ligne_Produit'] ?>"><?= htmlspecialchars($cat['Libelle']) ?></option>
+                    <?php endforeach; ?>
+                </select>
                 <div class="input-group input-group-sm" style="max-width:220px;">
                     <span class="input-group-text"><i class="fas fa-search"></i></span>
                     <input type="text" id="searchProduct" class="form-control" placeholder="Rechercher par nom..." onkeyup="filterProducts()">
@@ -123,11 +132,24 @@
                         $qte   = (int) $p['Quantite_En_Stock'];
                         $is_low = ($qte <= $seuil);
                     ?>
-                        <tr style="animation: fadeInUp 0.3s <?= $i * 20 ?>ms both;" data-alert="<?= $is_low ? '1' : '0' ?>" data-b2b="<?= $p['En_Destockage_B2B'] ? '1' : '0' ?>">
+                        <tr style="animation: fadeInUp 0.3s <?= $i * 20 ?>ms both;" data-alert="<?= $is_low ? '1' : '0' ?>" data-b2b="<?= $p['En_Destockage_B2B'] ? '1' : '0' ?>" data-categories="<?= htmlspecialchars(implode(',', $p['Categories'] ?? []), ENT_QUOTES) ?>">
                             <td>
                                 <div class="fw-bold"><?= htmlspecialchars($p['Nom_Produit'] ?? '') ?></div>
                                 <?php if (!empty($p['Description_Produit'])): ?>
                                     <div class="small text-body-secondary"><?= htmlspecialchars($p['Description_Produit']) ?></div>
+                                <?php endif; ?>
+                                <?php if (!empty($p['Categories'])): ?>
+                                    <div class="mt-1">
+                                        <?php foreach ($p['Categories'] as $catId):
+                                            $catLabel = null;
+                                            foreach ($categories as $cat) {
+                                                if ((int) $cat['Id_Ligne_Produit'] === (int) $catId) { $catLabel = $cat['Libelle']; break; }
+                                            }
+                                            if ($catLabel === null) continue;
+                                        ?>
+                                            <span class="badge text-bg-light border me-1"><?= htmlspecialchars($catLabel) ?></span>
+                                        <?php endforeach; ?>
+                                    </div>
                                 <?php endif; ?>
                             </td>
                             <td class="pr-barcode text-body-secondary">
@@ -140,7 +162,13 @@
                                 <?= number_format($p['Prix_Unitaire_Produit'], 0, ',', ' ') ?> F
                             </td>
                             <td class="text-center">
-                                <?php if ($is_low): ?>
+                                <?php if ($is_low && !$readonly): ?>
+                                    <button type="button" class="pr-stock-alert btn btn-link p-0 border-0"
+                                            title="Stock sous le seuil d'alerte (<?= $seuil ?>) — cliquer pour réapprovisionner"
+                                            onclick="openProductModal(<?= htmlspecialchars(json_encode($p), ENT_QUOTES) ?>); focusStockField();">
+                                        <i class="fas fa-triangle-exclamation"></i> <?= $qte ?>
+                                    </button>
+                                <?php elseif ($is_low): ?>
                                     <span class="pr-stock-alert" title="Seuil d'alerte configuré à <?= $seuil ?>">
                                         <i class="fas fa-triangle-exclamation"></i> <?= $qte ?>
                                     </span>
@@ -216,6 +244,44 @@
             <div class="modal-footer border-0 pt-0 justify-content-center">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
                 <button type="button" class="btn btn-danger" id="deleteProductConfirmBtn">Supprimer</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODALE GESTION DES CATÉGORIES -->
+<div class="modal fade" id="categoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title fs-5"><i class="fas fa-tags"></i> Catégories de produits</h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <?php if (empty($categories)): ?>
+                    <p class="text-body-secondary small mb-3">Aucune catégorie pour le moment.</p>
+                <?php else: ?>
+                    <ul class="list-group mb-3">
+                        <?php foreach ($categories as $cat): ?>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <?= htmlspecialchars($cat['Libelle']) ?>
+                                <form method="POST" action="products.php" onsubmit="return confirm('Supprimer cette catégorie ?');">
+                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
+                                    <input type="hidden" name="action" value="delete_category">
+                                    <input type="hidden" name="id_ligne_produit" value="<?= $cat['Id_Ligne_Produit'] ?>">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+
+                <form method="POST" action="products.php" class="d-flex gap-2">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="hidden" name="action" value="add_category">
+                    <input type="text" name="libelle" class="form-control" placeholder="Nouvelle catégorie..." required maxlength="100">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i></button>
+                </form>
             </div>
         </div>
     </div>
@@ -308,6 +374,21 @@
                 </div>
             </div>
 
+            <?php if (!empty($categories)): ?>
+            <div class="mt-3">
+                <label class="form-label">Catégories</label>
+                <div class="d-flex flex-wrap gap-3">
+                    <?php foreach ($categories as $cat): ?>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input modal-category-check" name="categories[]"
+                                   value="<?= $cat['Id_Ligne_Produit'] ?>" id="modal_cat_<?= $cat['Id_Ligne_Produit'] ?>">
+                            <label class="form-check-label" for="modal_cat_<?= $cat['Id_Ligne_Produit'] ?>"><?= htmlspecialchars($cat['Libelle']) ?></label>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <div class="form-check mt-3">
                 <input type="checkbox" class="form-check-input" name="en_destockage_b2b" value="1" id="modal_check_b2b" onchange="toggleModalB2B()">
                 <label class="form-check-label fw-bold" for="modal_check_b2b">Mettre en Déstockage B2B</label>
@@ -361,6 +442,10 @@
             const chk = document.getElementById('modal_check_b2b');
             chk.checked = !!parseInt(product.En_Destockage_B2B);
             document.getElementById('modal_b2b_fields').style.display = chk.checked ? 'block' : 'none';
+            const productCategories = (product.Categories || []).map(String);
+            document.querySelectorAll('.modal-category-check').forEach(box => {
+                box.checked = productCategories.includes(box.value);
+            });
         } else {
             title.innerHTML = '<i class="fas fa-plus"></i> Nouveau produit';
             submitBtn.innerHTML = '<i class="fas fa-save"></i> Ajouter le produit';
@@ -377,6 +462,7 @@
             document.getElementById('modal_qte_carton').value        = '1';
             document.getElementById('modal_check_b2b').checked  = false;
             document.getElementById('modal_b2b_fields').style.display = 'none';
+            document.querySelectorAll('.modal-category-check').forEach(box => { box.checked = false; });
         }
 
         bootstrap.Modal.getOrCreateInstance(modal).show();
@@ -388,6 +474,18 @@
         if (instance) instance.hide();
     }
 
+    /* Amène le focus sur le champ stock une fois le modal ouvert — utilisé quand on arrive
+       depuis une alerte de stock (dashboard ou badge d'alerte) pour réapprovisionner vite. */
+    function focusStockField() {
+        const modal = document.getElementById('productModal');
+        modal.addEventListener('shown.bs.modal', function onShown() {
+            const stockInput = document.getElementById('modal_stock');
+            stockInput.focus();
+            stockInput.select();
+            modal.removeEventListener('shown.bs.modal', onShown);
+        });
+    }
+
     function toggleModalB2B() {
         const chk = document.getElementById('modal_check_b2b');
         document.getElementById('modal_b2b_fields').style.display = chk.checked ? 'block' : 'none';
@@ -397,6 +495,8 @@
         const search = document.getElementById('searchProduct').value.toUpperCase();
         const filterSelect = document.getElementById('filterProduct');
         const filterVal = filterSelect ? filterSelect.value : '';
+        const categorySelect = document.getElementById('filterCategory');
+        const categoryVal = categorySelect ? categorySelect.value : '';
         const rows = document.querySelectorAll('.pr-table tbody tr');
         let visibleCount = 0;
 
@@ -407,7 +507,13 @@
             if (filterVal === 'alerte') matchesFilter = row.dataset.alert === '1';
             else if (filterVal === 'b2b') matchesFilter = row.dataset.b2b === '1';
 
-            const visible = matchesSearch && matchesFilter;
+            let matchesCategory = true;
+            if (categoryVal) {
+                const rowCategories = (row.dataset.categories || '').split(',').filter(Boolean);
+                matchesCategory = rowCategories.includes(categoryVal);
+            }
+
+            const visible = matchesSearch && matchesFilter && matchesCategory;
             row.style.display = visible ? '' : 'none';
             if (visible) visibleCount++;
         });
@@ -425,12 +531,20 @@
     }
 
     document.getElementById('deleteProductConfirmBtn').addEventListener('click', function() {
-        if (productFormToDelete) productFormToDelete.submit();
+        if (!productFormToDelete) return;
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Suppression…';
+        // requestSubmit() (et non submit()) déclenche l'évènement 'submit' natif, repris par
+        // le gestionnaire générique de chargement dans includes/header.php.
+        productFormToDelete.requestSubmit();
     });
 
     <?php if ($edit_mode): ?>
     window.addEventListener('DOMContentLoaded', function() {
         openProductModal(<?= json_encode($product_data) ?>);
+        <?php if (($_GET['focus'] ?? '') === 'stock'): ?>
+        focusStockField();
+        <?php endif; ?>
     });
     <?php endif; ?>
 

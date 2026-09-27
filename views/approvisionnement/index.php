@@ -35,6 +35,22 @@
             </button>
         </div>
         <div class="card-body">
+            <!-- SCANNER CODE BARRE (carton ou unité) -->
+            <div class="scanner-box mb-3" style="background: var(--bs-tertiary-bg); border: 1px solid var(--bs-border-color); border-left: 4px solid var(--bs-primary); padding: 14px; border-radius: 8px;">
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <i class="fas fa-barcode text-primary flex-shrink-0" style="font-size:1.3rem;"></i>
+                    <input type="text" id="appro_barcode_input" class="form-control" style="max-width:260px; flex:1;"
+                           placeholder="Scanner ou saisir le code du carton/unité..." autocomplete="off">
+                    <button type="button" id="appro-btn-lookup-barcode" class="btn btn-outline-secondary btn-sm" onclick="approLookupBarcode()">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+                <span id="appro_barcode_feedback" class="d-block small mt-2"></span>
+                <p class="small text-body-secondary mt-2 mb-0">
+                    <i class="fas fa-circle-info"></i> Un produit scanné (carton ou unité) est ajouté ou incrémenté automatiquement ci-dessous.
+                </p>
+            </div>
+
             <form method="POST" id="approManuelForm">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="action" value="approvisionnement">
@@ -77,22 +93,24 @@
             return opts;
         }
 
-        function addApproItem() {
+        function addApproItem(selectedId = null, qteCarton = 0, qteUnite = 1) {
             const container = document.getElementById('appro-items-container');
             const empty = document.getElementById('appro-empty-items');
             if (empty) empty.style.display = 'none';
 
             const div = document.createElement('div');
             div.className = 'appro-manuel-row';
+            div.setAttribute('data-produit-id', selectedId ?? '');
 
             div.innerHTML = `
-                <select name="items[${approItemCount}][produit]" class="form-control form-control-sm" required onchange="updateApproSubmitState()">
-                    ${approRenderOptions(null)}
+                <select name="items[${approItemCount}][produit]" class="form-control form-control-sm" required
+                        onchange="this.closest('.appro-manuel-row').dataset.produitId = this.value; updateApproSubmitState()">
+                    ${approRenderOptions(selectedId)}
                 </select>
                 <input type="number" name="items[${approItemCount}][qte_carton]" class="form-control form-control-sm"
-                       min="0" value="0" placeholder="Cartons" oninput="updateApproSubmitState()">
+                       min="0" value="${qteCarton}" placeholder="Cartons" oninput="updateApproSubmitState()">
                 <input type="number" name="items[${approItemCount}][qte_unite]" class="form-control form-control-sm"
-                       min="0" value="1" placeholder="Unités" oninput="updateApproSubmitState()">
+                       min="0" value="${qteUnite}" placeholder="Unités" oninput="updateApproSubmitState()">
                 <button type="button" onclick="removeApproItem(this)" class="btn btn-danger btn-sm" title="Supprimer">
                     <i class="fas fa-trash"></i>
                 </button>
@@ -100,6 +118,7 @@
             container.appendChild(div);
             approItemCount++;
             updateApproSubmitState();
+            return div;
         }
 
         function removeApproItem(btn) {
@@ -116,7 +135,159 @@
             const rows = document.querySelectorAll('#appro-items-container .appro-manuel-row');
             document.getElementById('appro-submit-btn').disabled = rows.length === 0;
         }
+
+        /* ── SCAN CODE-BARRE (carton ou unité) ── réutilise le même point de résolution que la vente
+           (api/lookup_product.php) : le serveur seul décide du conditionnement et du coefficient. */
+        function approLookupBarcode() {
+            const input    = document.getElementById('appro_barcode_input');
+            const feedback = document.getElementById('appro_barcode_feedback');
+            const btn      = document.getElementById('appro-btn-lookup-barcode');
+            const barcode  = input.value.trim();
+            if (!barcode) return;
+
+            feedback.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Recherche...';
+            feedback.style.color = '#666';
+            btn.disabled = true;
+
+            fetch('../api/lookup_product.php?barcode=' + encodeURIComponent(barcode))
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.found) {
+                        feedback.innerHTML = '⚠ ' + approEscHtml(data.message || 'Produit introuvable')
+                            + ' — <a href="#" onclick="openApproAssociateModal(' + JSON.stringify(barcode) + '); return false;">Associer ce code à un produit existant</a>';
+                        feedback.style.color = 'var(--bs-danger)';
+                        return;
+                    }
+                    applyApproScannedProduct(data);
+                    input.value = '';
+                    input.focus();
+                })
+                .catch(() => {
+                    feedback.textContent = 'Erreur de connexion';
+                    feedback.style.color = 'var(--bs-danger)';
+                })
+                .finally(() => { btn.disabled = false; });
+        }
+
+        // Même logique de fusion que la vente (applyScannedProduct dans invoice_add) : un produit
+        // déjà présent dans la liste voit sa quantité incrémentée au lieu de dupliquer une ligne.
+        function applyApproScannedProduct(data) {
+            const feedback = document.getElementById('appro_barcode_feedback');
+            const isCarton = data.type_conditionnement === 'carton';
+
+            const existingRow = document.querySelector(`.appro-manuel-row[data-produit-id="${data.id_produit}"]`);
+
+            if (existingRow) {
+                const targetInput = existingRow.querySelector(isCarton ? '[name*="[qte_carton]"]' : '[name*="[qte_unite]"]');
+                targetInput.value = (parseInt(targetInput.value) || 0) + 1;
+                updateApproSubmitState();
+                feedback.textContent = '✔ Quantité mise à jour : ' + data.nom_produit;
+            } else {
+                addApproItem(data.id_produit, isCarton ? 1 : 0, isCarton ? 0 : 1);
+                feedback.textContent = '✔ Ajouté : ' + data.nom_produit + (isCarton
+                    ? ` — conditionnement Carton (1 = ${data.coefficient} unités)`
+                    : ' — conditionnement Unité');
+            }
+            feedback.style.color = 'var(--bs-success)';
+        }
+
+        window.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('appro_barcode_input').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') { e.preventDefault(); approLookupBarcode(); }
+            });
+        });
+
+        /* ── ASSOCIATION D'UN CODE-BARRES INCONNU À UN PRODUIT EXISTANT ──
+           Même règle qu'à la vente : jamais de correspondance automatique, toujours une confirmation
+           explicite de l'utilisateur avant d'enregistrer le code sur la fiche produit. */
+        let approAssociateCsrfToken = <?= json_encode(jetonCsrf()) ?>;
+
+        function openApproAssociateModal(barcode) {
+            document.getElementById('appro_associate_barcode_value').textContent = barcode;
+            document.getElementById('appro_associate_barcode_select').innerHTML = approRenderOptions(null);
+            document.getElementById('appro_associate_barcode_type').value = 'carton';
+            document.getElementById('appro_associate_barcode_error').textContent = '';
+            document.getElementById('approAssociateModal').style.display = 'flex';
+        }
+
+        function closeApproAssociateModal() {
+            document.getElementById('approAssociateModal').style.display = 'none';
+        }
+
+        function submitApproAssociateBarcode() {
+            const barcode = document.getElementById('appro_associate_barcode_value').textContent;
+            const idProduit = document.getElementById('appro_associate_barcode_select').value;
+            const type = document.getElementById('appro_associate_barcode_type').value;
+            const errorEl = document.getElementById('appro_associate_barcode_error');
+            const btn = document.getElementById('appro_associate_barcode_submit_btn');
+
+            if (!idProduit) {
+                errorEl.textContent = 'Sélectionnez un produit.';
+                return;
+            }
+
+            const body = new URLSearchParams({
+                id_produit: idProduit,
+                type: type,
+                code: barcode,
+                csrf_token: approAssociateCsrfToken,
+            });
+
+            btn.disabled = true;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Association…';
+
+            fetch('../api/associate_barcode.php', { method: 'POST', body })
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) {
+                        errorEl.textContent = data.message || "Échec de l'association.";
+                        return;
+                    }
+                    closeApproAssociateModal();
+                    applyApproScannedProduct(data);
+                    document.getElementById('appro_barcode_input').value = '';
+                    document.getElementById('appro_barcode_input').focus();
+                })
+                .catch(() => { errorEl.textContent = 'Erreur de connexion.'; })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                });
+        }
     </script>
+
+    <!-- MODAL ASSOCIATION D'UN CODE-BARRES INCONNU (réception) -->
+    <div id="approAssociateModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.85);
+         z-index:9000; flex-direction:column; align-items:center; justify-content:center; padding:20px; overflow-y:auto;">
+        <div style="background:#1a1a2e; border-radius:16px; width:100%; max-width:380px; box-shadow:0 8px 32px rgba(0,0,0,.6); margin:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #2d2d44;">
+                <span style="color:#fff; font-weight:600; font-size:1rem;">
+                    <i class="fas fa-link" style="color:#17a2b8; margin-right:8px;"></i>Associer ce code
+                </span>
+                <button onclick="closeApproAssociateModal()" style="background:none; border:none; color:#aaa; font-size:1.3rem; cursor:pointer; line-height:1;">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div style="padding:20px;">
+                <p style="color:#ddd; font-size:0.88rem; margin:0 0 12px;">
+                    Code scanné : <code id="appro_associate_barcode_value" style="color:#17a2b8;"></code> — inconnu du catalogue.
+                    À quel produit correspond-il ?
+                </p>
+                <label class="form-label small" style="color:#aaa;">Produit</label>
+                <select id="appro_associate_barcode_select" class="form-control form-control-sm mb-3"></select>
+                <label class="form-label small" style="color:#aaa;">Ce code correspond à</label>
+                <select id="appro_associate_barcode_type" class="form-control form-control-sm mb-3">
+                    <option value="carton">Un carton</option>
+                    <option value="unite">Une unité</option>
+                </select>
+                <div id="appro_associate_barcode_error" class="small text-danger mb-2"></div>
+                <button type="button" id="appro_associate_barcode_submit_btn" class="btn btn-primary w-100" onclick="submitApproAssociateBarcode()">
+                    <i class="fas fa-check"></i> Associer et ajouter à la réception
+                </button>
+            </div>
+        </div>
+    </div>
 
     <?php if (!empty($receptions_b2b)): ?>
         <div class="card">

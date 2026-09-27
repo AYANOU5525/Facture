@@ -55,4 +55,23 @@ abstract class Controller
         echo json_encode($data);
         exit;
     }
+
+    /**
+     * Trace un évènement sensible dans Audit_Log (table déjà en place, cf. database/facturation.sql).
+     * Id_Utilisateur/Id_Entreprise sont NOT NULL en base : n'appeler qu'avec un utilisateur
+     * réellement résolu (pas d'entrée loggée pour une tentative sur un identifiant inconnu).
+     */
+    protected function audit(
+        int $userId,
+        int $entrepriseId,
+        string $action,
+        ?string $tableCible = null,
+        ?int $idCible = null,
+        ?string $details = null
+    ): void {
+        $this->pdo->prepare(
+            'INSERT INTO Audit_Log (Id_Utilisateur, Id_Entreprise, Action, Table_Cible, Id_Cible, Details, IP_Address)
+             VALUES (?, ?, ?, ?, ?, ?, ?)'
+        )->execute([$userId, $entrepriseId, $action, $tableCible, $idCible, $details, $_SERVER['REMOTE_ADDR'] ?? null]);
+    }
 }

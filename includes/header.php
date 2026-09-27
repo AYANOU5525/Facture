@@ -14,15 +14,14 @@ if (session_status() === PHP_SESSION_NONE) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= isset($page_title) ? $page_title : 'FactuPro' ?></title>
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Fonts (auto-hébergées, hors ligne) -->
+    <link rel="stylesheet" href="../assets/vendor/fonts/fonts.css">
 
-    <!-- Préchauffe les connexions vers les services de carte (Leaflet, tuiles OSM, géocodage,
+    <!-- Préchauffe les connexions vers les services de carte (tuiles OSM, géocodage,
          itinéraire) dès qu'une page est chargée après connexion, pour que la carte parte plus
-         vite quand l'utilisateur atteint réellement une page qui l'affiche (Logistique, Paramètres). -->
-    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+         vite quand l'utilisateur atteint réellement une page qui l'affiche (Logistique, Paramètres).
+         Leaflet lui-même est auto-hébergé (assets/vendor/leaflet), seuls les services de tuiles/
+         géocodage/itinéraire restent distants. -->
     <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
     <link rel="dns-prefetch" href="https://a.tile.openstreetmap.org">
     <link rel="dns-prefetch" href="https://b.tile.openstreetmap.org">
@@ -32,10 +31,10 @@ if (session_status() === PHP_SESSION_NONE) {
     <link rel="dns-prefetch" href="https://raw.githubusercontent.com">
 
     <!-- Styles -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../assets/vendor/bootstrap/bootstrap.min.css">
     <link rel="stylesheet" href="../assets/css/theme.css">
     <link rel="stylesheet" href="../assets/css/animations.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../assets/vendor/fontawesome/css/all.min.css">
 </head>
 
 <body>
@@ -189,6 +188,11 @@ if (session_status() === PHP_SESSION_NONE) {
                                         <i class="fas fa-cog"></i> Paramètres
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href="audit_log.php" class="nav-link <?= $current === 'audit_log.php' ? 'active' : '' ?>">
+                                        <i class="fas fa-shield-halved"></i> Journal d'audit
+                                    </a>
+                                </li>
                             <?php endif; ?>
                         </ul>
                     </div>
@@ -245,7 +249,7 @@ if (session_status() === PHP_SESSION_NONE) {
             </div>
         </header>
 
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="../assets/vendor/bootstrap/bootstrap.bundle.min.js"></script>
         <script>
             (function() {
                 /* ── Dark Mode Pill Toggle ── */
@@ -272,6 +276,30 @@ if (session_status() === PHP_SESSION_NONE) {
                     });
                 }
             })();
+        </script>
+
+        <script>
+            /* ── Indicateur de chargement générique sur tous les formulaires ──
+               À la soumission (rechargement de page ou POST classique), désactive le(s)
+               bouton(s) submit et affiche un spinner, pour que l'interface ne paraisse pas
+               figée pendant l'attente serveur et éviter les double-soumissions. Écoute en
+               phase de bulle (comportement par défaut) : si un onsubmit inline a déjà annulé
+               l'envoi (ex. confirm() refusé), e.defaultPrevented est déjà vrai et on ne touche
+               à rien. */
+            document.addEventListener('submit', function(e) {
+                if (e.defaultPrevented) return;
+                const form = e.target;
+                if (!(form instanceof HTMLFormElement)) return;
+
+                form.querySelectorAll('button[type="submit"], input[type="submit"], button:not([type])').forEach(function(btn) {
+                    if (btn.disabled) return;
+                    btn.dataset.loadingOriginalHtml = btn.innerHTML;
+                    btn.disabled = true;
+                    if (btn.tagName === 'BUTTON') {
+                        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> ' + (btn.dataset.loadingText || 'Chargement…');
+                    }
+                });
+            });
         </script>
     <?php endif; ?>
 

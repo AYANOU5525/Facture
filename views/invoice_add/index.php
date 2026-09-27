@@ -119,9 +119,14 @@
                         <label class="form-label fw-semibold">
                             <i class="fas fa-user text-primary"></i> Nom du client
                         </label>
-                        <input type="text" name="client" class="form-control"
+                        <input type="text" name="client" class="form-control" list="clientsConnusList"
                                placeholder="Ex : Client Comptant, Dupont Marie..."
                                required autofocus>
+                        <datalist id="clientsConnusList">
+                            <?php foreach ($clients_connus ?? [] as $nom): ?>
+                                <option value="<?= htmlspecialchars($nom) ?>">
+                            <?php endforeach; ?>
+                        </datalist>
                     </div>
                 </div>
 
@@ -149,7 +154,7 @@
                                    placeholder="Scanner ou saisir un code barre..."
                                    style="max-width:260px; flex:1;"
                                    autocomplete="off">
-                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="lookupBarcode()">
+                            <button type="button" id="btn-lookup-barcode" class="btn btn-outline-secondary btn-sm" onclick="lookupBarcode()">
                                 <i class="fas fa-search"></i>
                             </button>
                             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="openScanChooser()" id="btn-scan-chooser" title="Scanner un code-barre">
@@ -491,18 +496,21 @@
     function lookupBarcode() {
         const input    = document.getElementById('barcode_input');
         const feedback = document.getElementById('barcode_feedback');
+        const btn      = document.getElementById('btn-lookup-barcode');
         const barcode  = input.value.trim();
 
         if (!barcode) return;
 
-        feedback.textContent = 'Recherche...';
+        feedback.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Recherche...';
         feedback.style.color = '#666';
+        btn.disabled = true;
 
         fetch('../api/lookup_product.php?barcode=' + encodeURIComponent(barcode))
             .then(r => r.json())
             .then(data => {
                 if (!data.found) {
-                    feedback.textContent = '⚠ ' + (data.message || 'Produit introuvable');
+                    feedback.innerHTML = '⚠ ' + escHtml(data.message || 'Produit introuvable')
+                        + ' — <a href="#" onclick="openAssociateModal(' + JSON.stringify(barcode) + '); return false;">Associer ce code à un produit existant</a>';
                     feedback.style.color = 'var(--danger)';
                     return;
                 }
@@ -513,6 +521,66 @@
             .catch(() => {
                 feedback.textContent = 'Erreur de connexion';
                 feedback.style.color = 'var(--danger)';
+            })
+            .finally(() => { btn.disabled = false; });
+    }
+
+    /* ── ASSOCIATION D'UN CODE-BARRES INCONNU À UN PRODUIT EXISTANT ──
+       Un code scanné qui ne correspond à aucun produit n'est jamais rattaché tout seul :
+       l'utilisateur choisit explicitement le produit et confirme avant tout enregistrement. */
+    let associateBarcodeCsrfToken = <?= json_encode(jetonCsrf()) ?>;
+
+    function openAssociateModal(barcode) {
+        document.getElementById('associate_barcode_value').textContent = barcode;
+        document.getElementById('associate_barcode_select').innerHTML = renderOptions(null);
+        document.getElementById('associate_barcode_type').value = 'unite';
+        document.getElementById('associate_barcode_error').textContent = '';
+        document.getElementById('associateModal').style.display = 'flex';
+    }
+
+    function closeAssociateModal() {
+        document.getElementById('associateModal').style.display = 'none';
+    }
+
+    function submitAssociateBarcode() {
+        const barcode = document.getElementById('associate_barcode_value').textContent;
+        const idProduit = document.getElementById('associate_barcode_select').value;
+        const type = document.getElementById('associate_barcode_type').value;
+        const errorEl = document.getElementById('associate_barcode_error');
+        const btn = document.getElementById('associate_barcode_submit_btn');
+
+        if (!idProduit) {
+            errorEl.textContent = 'Sélectionnez un produit.';
+            return;
+        }
+
+        const body = new URLSearchParams({
+            id_produit: idProduit,
+            type: type,
+            code: barcode,
+            csrf_token: associateBarcodeCsrfToken,
+        });
+
+        btn.disabled = true;
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Association…';
+
+        fetch('../api/associate_barcode.php', { method: 'POST', body })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) {
+                    errorEl.textContent = data.message || "Échec de l'association.";
+                    return;
+                }
+                closeAssociateModal();
+                applyScannedProduct(data, false);
+                document.getElementById('barcode_input').value = '';
+                document.getElementById('barcode_input').focus();
+            })
+            .catch(() => { errorEl.textContent = 'Erreur de connexion.'; })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
             });
     }
 
@@ -651,6 +719,7 @@
                 <i class="fas fa-circle-notch fa-spin" style="color:#333; font-size:1.6rem;"></i>
             </div>
             <p id="phone-modal-status" style="color:#ddd; font-size:0.9rem; margin:16px 0 4px;">Génération du QR Code…</p>
+            <p id="phone-modal-warning" style="display:none; color:var(--warning,#d97706); font-size:0.8rem; margin:0 0 10px; text-align:left; background:rgba(217,119,6,.12); border-radius:8px; padding:8px 10px;"></p>
             <p style="color:#888; font-size:0.78rem; margin:0;">
                 Scannez ce QR Code avec l'appareil photo de votre téléphone (même réseau Wi-Fi que ce PC), puis scannez vos produits — ils s'ajoutent automatiquement à cette vente.
             </p>
@@ -659,6 +728,45 @@
         <div style="padding:0 20px 20px;">
             <button onclick="closePhoneModal()" class="btn btn-secondary" style="width:100%;">
                 <i class="fas fa-times-circle"></i> Fermer (le téléphone reste connecté)
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL ASSOCIATION D'UN CODE-BARRES INCONNU -->
+<div id="associateModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.85);
+     z-index:9000; flex-direction:column; align-items:center; justify-content:center; padding:20px; overflow-y:auto;">
+
+    <div style="background:#1a1a2e; border-radius:16px; width:100%; max-width:380px; box-shadow:0 8px 32px rgba(0,0,0,.6); margin:auto;">
+
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #2d2d44;">
+            <span style="color:#fff; font-weight:600; font-size:1rem;">
+                <i class="fas fa-link" style="color:#17a2b8; margin-right:8px;"></i>Associer ce code
+            </span>
+            <button onclick="closeAssociateModal()" style="background:none; border:none; color:#aaa; font-size:1.3rem; cursor:pointer; line-height:1;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div style="padding:20px;">
+            <p style="color:#ddd; font-size:0.88rem; margin:0 0 12px;">
+                Code scanné : <code id="associate_barcode_value" style="color:#17a2b8;"></code> — inconnu du catalogue.
+                À quel produit correspond-il ?
+            </p>
+
+            <label class="form-label small" style="color:#aaa;">Produit</label>
+            <select id="associate_barcode_select" class="form-control form-control-sm mb-3"></select>
+
+            <label class="form-label small" style="color:#aaa;">Ce code correspond à</label>
+            <select id="associate_barcode_type" class="form-control form-control-sm mb-3">
+                <option value="unite">Une unité</option>
+                <option value="carton">Un carton</option>
+            </select>
+
+            <div id="associate_barcode_error" class="small text-danger mb-2"></div>
+
+            <button type="button" id="associate_barcode_submit_btn" class="btn btn-primary w-100" onclick="submitAssociateBarcode()">
+                <i class="fas fa-check"></i> Associer et ajouter au panier
             </button>
         </div>
     </div>
@@ -708,6 +816,14 @@ function openPhoneScanner() {
                 height: 220,
             });
             document.getElementById('phone-modal-status').textContent = 'En attente du téléphone…';
+
+            const warningEl = document.getElementById('phone-modal-warning');
+            if (data.warning) {
+                warningEl.textContent = '⚠ ' + data.warning;
+                warningEl.style.display = 'block';
+            } else {
+                warningEl.style.display = 'none';
+            }
 
             document.getElementById('phone-status-row').style.display = 'flex';
             setPhoneStatus('en_attente');

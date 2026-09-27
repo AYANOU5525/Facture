@@ -2,14 +2,31 @@
 
 namespace App\Controllers;
 
+use App\Infrastructure\Persistence\ClientRepository;
+
 /** Contrôleur de pages/clients.php — liste des clients B2B et directs. */
 class ClientController extends Controller
 {
+    private ClientRepository $clients;
+
+    public function __construct(\PDO $pdo)
+    {
+        parent::__construct($pdo);
+        $this->clients = new ClientRepository($pdo);
+    }
+
     public function index(): void
     {
         exigerPermission(peutVoirClients());
 
         $entreprise_id = $_SESSION['entreprise_id'];
+        $success = '';
+        $error = '';
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_contact') {
+            exigerCsrf();
+            [$success, $error] = $this->handleUpdateContact((int) $entreprise_id);
+        }
 
         $per_page    = 20;
         $page_direct = max(1, (int) ($_GET['page'] ?? 1));
@@ -34,6 +51,12 @@ class ClientController extends Controller
         ");
         $stmt->execute([$entreprise_id, $per_page, $offset_d]);
         $clients_directs = $stmt->fetchAll();
+
+        $fiches = $this->clients->byNameForEnterprise((int) $entreprise_id);
+        foreach ($clients_directs as &$c) {
+            $c['fiche'] = $fiches[$c['Nom_Client']] ?? null;
+        }
+        unset($c);
 
         $stmt = $this->pdo->prepare("
             SELECT
@@ -69,6 +92,28 @@ class ClientController extends Controller
             'total_directs'     => $total_directs,
             'pages_directs'     => $pages_directs,
             'page_direct'       => $page_direct,
+            'success'           => $success,
+            'error'             => $error,
         ], 'Clients Uniques');
+    }
+
+    /** @return array{0:string,1:string} [$success, $error] */
+    private function handleUpdateContact(int $entreprise_id): array
+    {
+        $clientId = (int) ($_POST['id_client'] ?? 0);
+
+        try {
+            $this->clients->updateContact($clientId, $entreprise_id, [
+                'telephone' => trim((string) ($_POST['telephone'] ?? '')),
+                'email'     => trim((string) ($_POST['email'] ?? '')),
+                'adresse'   => trim((string) ($_POST['adresse'] ?? '')),
+                'nif'       => trim((string) ($_POST['nif'] ?? '')),
+                'statut'    => in_array($_POST['statut'] ?? '', ['actif', 'inactif'], true) ? $_POST['statut'] : 'actif',
+            ]);
+
+            return ['Fiche client mise à jour.', ''];
+        } catch (\Throwable $e) {
+            return ['', 'Erreur lors de la mise à jour : ' . $e->getMessage()];
+        }
     }
 }

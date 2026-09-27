@@ -87,18 +87,35 @@ class ScanSessionController extends Controller
         ");
         $stmt->execute([$token, $user_id, $entreprise_id, $mode]);
         $idScanSession = (int) $this->pdo->lastInsertId();
-        $this->audit($user_id, $entreprise_id, 'scan_session_create', $idScanSession);
+        $this->audit($user_id, $entreprise_id, 'scan_session_create', 'Scan_Session', $idScanSession);
 
-        $scheme  = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $isHttps = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+        $scheme  = $isHttps ? 'https' : 'http';
         $host    = $_SERVER['HTTP_HOST'] ?? 'localhost';
         $appRoot = rtrim(str_replace('\\', '/', dirname(dirname($_SERVER['SCRIPT_NAME']))), '/');
         $joinUrl = $scheme . '://' . $host . $appRoot . '/pages/scanner_mobile.php?token=' . urlencode($token);
+
+        // Le téléphone ne peut PAS joindre "localhost"/"127.0.0.1" (ça pointerait vers le
+        // téléphone lui-même) : il faut l'adresse réseau locale du PC. Et sans HTTPS, la
+        // caméra du téléphone est bloquée par le navigateur (contexte non sécurisé) — seule
+        // la saisie manuelle du code reste utilisable sur scanner_mobile.php dans ce cas.
+        $hostWithoutPort = explode(':', $host)[0];
+        $isLoopback = in_array($hostWithoutPort, ['localhost', '127.0.0.1', '::1'], true);
+        $warning = null;
+        if ($isLoopback) {
+            $warning = "Ce PC est ouvert en local (« $hostWithoutPort ») : un téléphone ne peut pas joindre cette adresse. "
+                . "Ouvrez FactuPro sur ce PC depuis son adresse réseau locale (ex. http://192.168.x.x/…) puis régénérez le QR.";
+        } elseif (!$isHttps) {
+            $warning = "Connexion non sécurisée (HTTP) : la caméra du téléphone sera probablement bloquée par son navigateur. "
+                . "Le téléphone pourra quand même saisir les codes manuellement, ou activez HTTPS (SSL) dans Laragon pour la caméra.";
+        }
 
         $this->jsonResponse([
             'success'         => true,
             'id_scan_session' => $idScanSession,
             'join_url'        => $joinUrl,
             'expires_in'      => self::TTL_SECONDS,
+            'warning'         => $warning,
         ]);
     }
 
@@ -113,7 +130,7 @@ class ScanSessionController extends Controller
         $stmt = $this->pdo->prepare("UPDATE Scan_Session SET Statut = 'revoque' WHERE Id_Scan_Session = ? AND Id_Utilisateur = ?");
         $stmt->execute([$id, $user_id]);
         if ($stmt->rowCount() > 0) {
-            $this->audit($user_id, $entreprise_id, 'scan_session_revoke', $id);
+            $this->audit($user_id, $entreprise_id, 'scan_session_revoke', 'Scan_Session', $id);
         }
 
         $this->jsonResponse(['success' => true]);
@@ -138,7 +155,7 @@ class ScanSessionController extends Controller
         if ($session['Statut'] !== 'expire' && strtotime($session['Expires_At']) < time()) {
             $this->pdo->prepare("UPDATE Scan_Session SET Statut = 'expire' WHERE Id_Scan_Session = ?")->execute([$id]);
             $session['Statut'] = 'expire';
-            $this->audit($user_id, $entreprise_id, 'scan_session_expire', $id);
+            $this->audit($user_id, $entreprise_id, 'scan_session_expire', 'Scan_Session', $id);
         }
 
         $scans = [];
@@ -212,7 +229,7 @@ class ScanSessionController extends Controller
             $deviceToken = bin2hex(random_bytes(16));
             $this->pdo->prepare("UPDATE Scan_Session SET Statut = 'connecte', Phone_Device_Token = ?, Last_Activity = NOW() WHERE Id_Scan_Session = ?")
                 ->execute([$deviceToken, $session['Id_Scan_Session']]);
-            $this->audit((int) $session['Id_Utilisateur'], (int) $session['Id_Entreprise'], 'scan_session_phone_join', (int) $session['Id_Scan_Session']);
+            $this->audit((int) $session['Id_Utilisateur'], (int) $session['Id_Entreprise'], 'scan_session_phone_join', 'Scan_Session', (int) $session['Id_Scan_Session']);
         }
 
         $stmt = $this->pdo->prepare("SELECT Nom_Entreprise FROM Entreprise WHERE Id_Entreprise = ?");
@@ -274,7 +291,7 @@ class ScanSessionController extends Controller
             if (!$isDuplicate) {
                 $this->pdo->prepare("INSERT INTO Scan_Session_Scan (Id_Scan_Session, Code_Barre, Id_Produit) VALUES (?, ?, NULL)")
                     ->execute([$session['Id_Scan_Session'], $barcode]);
-                $this->audit((int) $session['Id_Utilisateur'], (int) $session['Id_Entreprise'], 'scan_session_scan', null, $barcode);
+                $this->audit((int) $session['Id_Utilisateur'], (int) $session['Id_Entreprise'], 'scan_session_scan', 'Scan_Session', null, $barcode);
             }
             $this->jsonResponse(['success' => true, 'barcode' => $barcode]);
         }
@@ -292,6 +309,7 @@ class ScanSessionController extends Controller
                 (int) $session['Id_Utilisateur'],
                 (int) $session['Id_Entreprise'],
                 'scan_session_scan',
+                'Scan_Session',
                 $product['id_produit'],
                 $barcode
             );
@@ -318,14 +336,5 @@ class ScanSessionController extends Controller
         }
 
         file_put_contents($key, json_encode($data), LOCK_EX);
-    }
-
-    /** Table Audit_Log déjà présente en base — trace les événements sensibles du scanner distant sans stocker de donnée sensible. */
-    private function audit(int $userId, int $entrepriseId, string $action, ?int $idCible, ?string $details = null): void
-    {
-        $this->pdo->prepare("
-            INSERT INTO Audit_Log (Id_Utilisateur, Id_Entreprise, Action, Table_Cible, Id_Cible, Details, IP_Address)
-            VALUES (?, ?, ?, 'Scan_Session', ?, ?, ?)
-        ")->execute([$userId, $entrepriseId, $action, $idCible, $details, $_SERVER['REMOTE_ADDR'] ?? null]);
     }
 }

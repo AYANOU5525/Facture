@@ -66,10 +66,19 @@ class LogistiqueEditController extends Controller
                 }
 
                 if ($statut === 'expediee') {
-                    if ($transporteur === '' || $numero_suivi === '') {
-                        throw new \InvalidArgumentException('Le transporteur et le numéro de suivi sont requis pour une expédition.');
-                    }
                     $date_exp = $date_exp ?: date('Y-m-d H:i:s');
+                    // Champs prédéfinis quand ils ne sont pas renseignés : évite de bloquer
+                    // l'expédition sur des informations que le livreur/proprio n'a pas toujours
+                    // sous la main (numéro de suivi transporteur externe, date d'arrivée estimée).
+                    if ($transporteur === '') {
+                        $transporteur = 'Livraison directe';
+                    }
+                    if ($numero_suivi === '') {
+                        $numero_suivi = 'LIV-' . $id_logistique . '-' . date('Ymd');
+                    }
+                    if (!$date_prevue) {
+                        $date_prevue = date('Y-m-d', strtotime($date_exp . ' +3 days'));
+                    }
                 }
 
                 if ($statut === 'livree') {

@@ -3,17 +3,20 @@
 namespace App\Controllers;
 
 use App\Application\Inventory\ProductService;
+use App\Infrastructure\Persistence\CategoryRepository;
 use App\Infrastructure\Persistence\ProductRepository;
 
-/** Contrôleur de pages/products.php — catalogue produits, déstockage B2B. */
+/** Contrôleur de pages/products.php — catalogue produits, déstockage B2B, catégories. */
 class ProductController extends Controller
 {
     private ProductService $products;
+    private CategoryRepository $categories;
 
     public function __construct(\PDO $pdo)
     {
         parent::__construct($pdo);
         $this->products = new ProductService(new ProductRepository($pdo));
+        $this->categories = new CategoryRepository($pdo);
     }
 
     public function index(): void
@@ -67,6 +70,17 @@ class ProductController extends Controller
             }
         }
 
+        // === CATÉGORIES (Ligne_Produit / Contenir) ===
+        $categories = $this->categories->listByEnterprise((int) $entreprise_id);
+        $categoriesParProduit = $this->categories->categoryIdsByProduct((int) $entreprise_id);
+        foreach ($produits as &$p) {
+            $p['Categories'] = $categoriesParProduit[(int) $p['Id_Produit']] ?? [];
+        }
+        unset($p);
+        if ($product_data !== null) {
+            $product_data['Categories'] = $categoriesParProduit[(int) $product_data['Id_Produit']] ?? [];
+        }
+
         $this->render('products/index', [
             'readonly'         => $readonly,
             'success'          => $success,
@@ -77,7 +91,49 @@ class ProductController extends Controller
             'total_produits'   => $total_produits,
             'total_stock_val'  => $total_stock_val,
             'produits_alerte'  => $produits_alerte,
+            'categories'       => $categories,
         ], 'Gestion des Produits');
+    }
+
+    /**
+     * Point d'entrée api/associate_barcode.php — associe un code-barres scanné mais inconnu
+     * à un produit existant, après confirmation explicite de l'utilisateur côté vente/réception.
+     * Réponse JSON (même forme que LookupProductController::lookup) pour rebrancher immédiatement
+     * le produit dans le panier/la réception en cours sans recharger la page.
+     */
+    public function associateBarcode(): void
+    {
+        if (!peutVendre()) {
+            $this->jsonResponse(['success' => false, 'message' => 'Accès refusé.'], 403);
+        }
+        exigerCsrf();
+
+        $entreprise_id = (int) ($_SESSION['entreprise_id'] ?? 0);
+        $productId = (int) ($_POST['id_produit'] ?? 0);
+        $type = (string) ($_POST['type'] ?? 'unite');
+        $code = trim((string) ($_POST['code'] ?? ''));
+
+        try {
+            $this->products->associateBarcode($productId, $entreprise_id, $type, $code);
+            $this->audit(
+                (int) ($_SESSION['user_id'] ?? 0),
+                $entreprise_id,
+                'product_barcode_associated',
+                'Produit',
+                $productId,
+                "$type : $code"
+            );
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'message' => $e->getMessage()]);
+        }
+
+        $product = \App\Application\Inventory\ProductLookupService::findByBarcode($this->pdo, $code, $entreprise_id);
+        if ($product === null) {
+            // Ne devrait pas arriver (on vient de l'associer) — filet de sécurité.
+            $this->jsonResponse(['success' => false, 'message' => "Associé, mais impossible de relire le produit."]);
+        }
+
+        $this->jsonResponse(['success' => true, 'found' => true] + $product);
     }
 
     /** @return array{0:string,1:string} [$success, $error] */
@@ -99,7 +155,42 @@ class ProductController extends Controller
             return $this->handleToggleB2b($entreprise_id);
         }
 
+        if ($action === 'add_category') {
+            return $this->handleAddCategory($entreprise_id);
+        }
+
+        if ($action === 'delete_category') {
+            return $this->handleDeleteCategory($entreprise_id);
+        }
+
         return $this->handleSave($entreprise_id);
+    }
+
+    /** @return array{0:string,1:string} [$success, $error] */
+    private function handleAddCategory(int $entreprise_id): array
+    {
+        $libelle = trim((string) ($_POST['libelle'] ?? ''));
+        if ($libelle === '') {
+            return ['', 'Le nom de la catégorie ne peut pas être vide.'];
+        }
+
+        try {
+            $this->categories->create($libelle, $entreprise_id);
+            return ['Catégorie « ' . $libelle . ' » ajoutée.', ''];
+        } catch (\Throwable $e) {
+            return ['', 'Erreur lors de la création de la catégorie : ' . $e->getMessage()];
+        }
+    }
+
+    /** @return array{0:string,1:string} [$success, $error] */
+    private function handleDeleteCategory(int $entreprise_id): array
+    {
+        try {
+            $this->categories->delete((int) ($_POST['id_ligne_produit'] ?? 0), $entreprise_id);
+            return ['Catégorie supprimée.', ''];
+        } catch (\Throwable $e) {
+            return ['', 'Erreur lors de la suppression de la catégorie : ' . $e->getMessage()];
+        }
     }
 
     private function handleDelete(int $entreprise_id): array
@@ -131,14 +222,17 @@ class ProductController extends Controller
     private function handleSave(int $entreprise_id): array
     {
         $id_produit = $_POST['id_produit'] ?? null;
+        $categoryIds = array_map('intval', (array) ($_POST['categories'] ?? []));
 
         try {
             if ($id_produit) {
-                $this->products->save($_POST, $entreprise_id, (int) $id_produit);
+                $productId = $this->products->save($_POST, $entreprise_id, (int) $id_produit);
+                $this->categories->assignToProduct($productId, $categoryIds, $entreprise_id);
                 return ['Produit modifié avec succès.', ''];
             }
 
-            $this->products->save($_POST, $entreprise_id);
+            $productId = $this->products->save($_POST, $entreprise_id);
+            $this->categories->assignToProduct($productId, $categoryIds, $entreprise_id);
             return ['Produit ajouté avec succès.', ''];
         } catch (\Throwable $e) {
             $verbe = $id_produit ? 'la modification' : "l'ajout";

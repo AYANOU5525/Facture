@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nouveau mot de passe - FactuPro</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../assets/vendor/bootstrap/bootstrap.min.css">
     <link rel="stylesheet" href="../assets/css/theme.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/vendor/fontawesome/css/all.min.css">
 </head>
 <body class="login-body fade-in">
 
@@ -98,7 +98,7 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../assets/vendor/bootstrap/bootstrap.bundle.min.js"></script>
 <script>
 function togglePassword(id, btn) {
     const input = document.getElementById(id);
@@ -148,6 +148,23 @@ function checkMatch() {
         label.style.color = '#dc3545';
     }
 }
+</script>
+
+<script>
+    /* Désactive le bouton submit + affiche un spinner à l'envoi, pour ne pas laisser le
+       formulaire paraître figé pendant l'attente serveur (page standalone, pas de header.php). */
+    document.addEventListener('submit', function(e) {
+        if (e.defaultPrevented) return;
+        var form = e.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        form.querySelectorAll('button[type="submit"], input[type="submit"], button:not([type])').forEach(function(btn) {
+            if (btn.disabled) return;
+            btn.disabled = true;
+            if (btn.tagName === 'BUTTON') {
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> ' + (btn.dataset.loadingText || 'Chargement…');
+            }
+        });
+    });
 </script>
 
 </body>

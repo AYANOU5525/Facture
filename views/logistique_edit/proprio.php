@@ -1,5 +1,5 @@
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<link rel="stylesheet" href="../assets/vendor/leaflet/leaflet.css">
+<script src="../assets/vendor/leaflet/leaflet.js"></script>
 
 <div class="container fade-in py-2">
     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -25,11 +25,11 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Transporteur</label>
-                    <input type="text" name="transporteur" class="form-control" value="<?= htmlspecialchars($log['Transporteur'] ?? '') ?>" placeholder="ex: DHL, Fedex, GP...">
+                    <input type="text" name="transporteur" class="form-control" value="<?= htmlspecialchars($log['Transporteur'] ?? '') ?>" placeholder="DHL, FedEx... (vide = Livraison directe à l'expédition)">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Numéro de Suivi</label>
-                    <input type="text" name="numero_suivi" class="form-control" value="<?= htmlspecialchars($log['Numero_Suivi'] ?? '') ?>">
+                    <input type="text" name="numero_suivi" class="form-control" value="<?= htmlspecialchars($log['Numero_Suivi'] ?? '') ?>" placeholder="Vide = généré automatiquement à l'expédition">
                 </div>
 
                 <div class="col-md-6">
@@ -50,7 +50,7 @@
 
                 <div class="col-md-6">
                     <label class="form-label">Date de Livraison Prévue</label>
-                    <input type="date" name="date_prevue" class="form-control" value="<?= $log['Date_Livraison_Prevue'] ? date('Y-m-d', strtotime($log['Date_Livraison_Prevue'])) : '' ?>">
+                    <input type="date" name="date_prevue" class="form-control" value="<?= $log['Date_Livraison_Prevue'] ? date('Y-m-d', strtotime($log['Date_Livraison_Prevue'])) : '' ?>" placeholder="Vide = expédition + 3 jours">
                 </div>
 
                 <div class="col-md-6">

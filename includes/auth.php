@@ -19,10 +19,10 @@ header("Permissions-Policy: camera=(self), microphone=(), geolocation=()");
 header(
     "Content-Security-Policy: " .
     "default-src 'self'; " .
-    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; " .
-    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com https://unpkg.com; " .
-    "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; " .
-    "img-src 'self' data: https://*.tile.openstreetmap.org https://raw.githubusercontent.com https://cdnjs.cloudflare.com https://unpkg.com; " .
+    "script-src 'self' 'unsafe-inline'; " .
+    "style-src 'self' 'unsafe-inline'; " .
+    "font-src 'self' data:; " .
+    "img-src 'self' data: https://*.tile.openstreetmap.org https://raw.githubusercontent.com; " .
     "connect-src 'self' https://router.project-osrm.org https://nominatim.openstreetmap.org; " .
     "frame-ancestors 'none'"
 );

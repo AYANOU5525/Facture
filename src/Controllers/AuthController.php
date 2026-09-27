@@ -5,8 +5,12 @@ namespace App\Controllers;
 /** Contrôleur des pages d'authentification (connexion, inscription, mot de passe). */
 class AuthController extends Controller
 {
-    private const LOGIN_MAX_ATTEMPTS = 5;
-    private const LOGIN_LOCK_SECONDS = 900;
+    // Verrouillage progressif : 3 échecs -> 15s, puis 3 échecs de plus -> 30s, 60s, 120s...
+    private const LOGIN_LOCK_THRESHOLD = 3;
+    private const LOGIN_LOCK_BASE_SECONDS = 15;
+
+    private const EMAIL_CONFIRMATION_CODE_TTL = 900; // 15 minutes
+    private const EMAIL_CONFIRMATION_RESEND_COOLDOWN = 60;
 
     public function login(): void
     {
@@ -15,6 +19,8 @@ class AuthController extends Controller
         }
 
         $error = '';
+        $locked_seconds = 0;
+        $unverified_email = null;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exigerCsrf();
@@ -26,39 +32,68 @@ class AuthController extends Controller
             } else {
                 $state = $this->loginAttemptState($username);
                 if (($state['locked_until'] ?? 0) > time()) {
-                    $minutes = max(1, (int) ceil(($state['locked_until'] - time()) / 60));
-                    $error = "Trop de tentatives. Réessayez dans {$minutes} minute(s).";
+                    $locked_seconds = $state['locked_until'] - time();
+                    $error = "Trop de tentatives. Compte temporairement bloqué.";
                 } else {
-                    if (($state['locked_until'] ?? 0) > 0) {
-                        $state = ['attempts' => 0, 'locked_until' => 0];
-                    }
-
-                    $stmt = $this->pdo->prepare("SELECT Id_Utilisateur, Nom_Utilisateur, Role_Utilisateur, Id_Entreprise, Mot_De_Passe_Utilisateur FROM Utilisateur WHERE Nom_Utilisateur = ? OR Email_Utilisateur = ?");
+                    $stmt = $this->pdo->prepare("SELECT Id_Utilisateur, Nom_Utilisateur, Email_Utilisateur, Email_Verifie, Role_Utilisateur, Id_Entreprise, Mot_De_Passe_Utilisateur FROM Utilisateur WHERE Nom_Utilisateur = ? OR Email_Utilisateur = ?");
                     $stmt->execute([$username, $username]);
                     $user = $stmt->fetch();
 
                     if ($user && password_verify($password, $user['Mot_De_Passe_Utilisateur'])) {
-                        $this->clearLoginAttemptState($username);
-                        session_regenerate_id(true);
-                        $_SESSION['user_id'] = $user['Id_Utilisateur'];
-                        $_SESSION['username'] = $user['Nom_Utilisateur'];
-                        $_SESSION['role'] = $user['Role_Utilisateur'];
-                        $_SESSION['entreprise_id'] = $user['Id_Entreprise'];
-                        $this->redirect('dashboard.php');
-                    }
+                        if (!(int) $user['Email_Verifie']) {
+                            $unverified_email = $user['Email_Utilisateur'];
+                            $error = "Votre email n'est pas encore confirmé. Vérifiez votre boîte de réception.";
+                        } else {
+                            $this->clearLoginAttemptState($username);
+                            session_regenerate_id(true);
+                            $_SESSION['user_id'] = $user['Id_Utilisateur'];
+                            $_SESSION['username'] = $user['Nom_Utilisateur'];
+                            $_SESSION['role'] = $user['Role_Utilisateur'];
+                            $_SESSION['entreprise_id'] = $user['Id_Entreprise'];
+                            $this->audit((int) $user['Id_Utilisateur'], (int) $user['Id_Entreprise'], 'login_success', 'Utilisateur', (int) $user['Id_Utilisateur']);
+                            $this->redirect('dashboard.php');
+                        }
+                    } else {
+                        $attempts = (int) ($state['attempts'] ?? 0) + 1;
+                        $lock_count = (int) ($state['lock_count'] ?? 0);
+                        $new_state = ['attempts' => $attempts, 'lock_count' => $lock_count, 'locked_until' => 0];
 
-                    $attempts = (int) ($state['attempts'] ?? 0) + 1;
-                    $new_state = ['attempts' => $attempts, 'locked_until' => 0];
-                    if ($attempts >= self::LOGIN_MAX_ATTEMPTS) {
-                        $new_state['locked_until'] = time() + self::LOGIN_LOCK_SECONDS;
+                        if ($attempts >= self::LOGIN_LOCK_THRESHOLD) {
+                            $duration = self::LOGIN_LOCK_BASE_SECONDS * (2 ** $lock_count);
+                            $new_state['locked_until'] = time() + $duration;
+                            $new_state['lock_count'] = $lock_count + 1;
+                            $new_state['attempts'] = 0;
+                            $locked_seconds = $duration;
+                        }
+
+                        $this->saveLoginAttemptState($username, $new_state);
+                        $error = $locked_seconds > 0
+                            ? 'Trop de tentatives. Compte temporairement bloqué.'
+                            : 'Nom d\'utilisateur ou mot de passe incorrect';
+
+                        // Tracé uniquement quand l'identifiant correspond à un compte réel : Audit_Log
+                        // exige un Id_Utilisateur valide (NOT NULL), donc une tentative sur un nom
+                        // d'utilisateur inexistant n'est pas journalisée ici (mais reste bloquée par
+                        // le verrouillage progressif ci-dessus, qui clé sur username+IP quoi qu'il arrive).
+                        if ($user) {
+                            $this->audit(
+                                (int) $user['Id_Utilisateur'],
+                                (int) $user['Id_Entreprise'],
+                                $locked_seconds > 0 ? 'login_lockout_triggered' : 'login_failed',
+                                'Utilisateur',
+                                (int) $user['Id_Utilisateur']
+                            );
+                        }
                     }
-                    $this->saveLoginAttemptState($username, $new_state);
-                    $error = 'Nom d\'utilisateur ou mot de passe incorrect';
                 }
             }
         }
 
-        $this->renderStandalone('auth/login', ['error' => $error]);
+        $this->renderStandalone('auth/login', [
+            'error' => $error,
+            'locked_seconds' => $locked_seconds,
+            'unverified_email' => $unverified_email,
+        ]);
     }
 
     public function register(): void
@@ -89,13 +124,15 @@ class AuthController extends Controller
                     $entreprise_id = $this->pdo->lastInsertId();
 
                     $password_hash = password_hash($password, PASSWORD_DEFAULT);
-                    $stmt = $this->pdo->prepare("INSERT INTO Utilisateur (Nom_Utilisateur, Email_Utilisateur, Mot_De_Passe_Utilisateur, Role_Utilisateur, Id_Entreprise) VALUES (?, ?, ?, 'proprio', ?)");
+                    $stmt = $this->pdo->prepare("INSERT INTO Utilisateur (Nom_Utilisateur, Email_Utilisateur, Email_Verifie, Mot_De_Passe_Utilisateur, Role_Utilisateur, Id_Entreprise) VALUES (?, ?, 0, ?, 'proprio', ?)");
                     $stmt->execute([$username, $email, $password_hash, $entreprise_id]);
+                    $user_id = (int) $this->pdo->lastInsertId();
+
+                    $this->issueConfirmationCode($user_id, $username, $email);
 
                     $this->pdo->commit();
 
-                    $success = 'Compte créé avec succès ! Redirection vers la connexion...';
-                    header('Refresh: 2; url=login.php');
+                    $this->redirect('confirm_email.php?email=' . urlencode($email));
                 } catch (\PDOException $e) {
                     $this->pdo->rollBack();
                     $error = $e->getCode() == 23000
@@ -106,6 +143,116 @@ class AuthController extends Controller
         }
 
         $this->renderStandalone('auth/register', ['error' => $error, 'success' => $success]);
+    }
+
+    /** Confirmation de l'email par code à 6 chiffres, envoyé à l'inscription. */
+    public function confirmEmail(): void
+    {
+        if (isset($_SESSION['user_id'])) {
+            $this->redirect('dashboard.php');
+        }
+
+        $email = trim($_GET['email'] ?? $_POST['email'] ?? '');
+        $error = '';
+        $success = '';
+        $resent = false;
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            exigerCsrf();
+            $action = $_POST['action'] ?? 'confirm';
+            $email = trim($_POST['email'] ?? '');
+
+            $stmt = $this->pdo->prepare("SELECT Id_Utilisateur, Nom_Utilisateur, Email_Verifie FROM Utilisateur WHERE Email_Utilisateur = ?");
+            $stmt->execute([$email]);
+            $user = $stmt->fetch();
+
+            if (!$user) {
+                $error = "Aucun compte associé à cet email.";
+            } elseif ((int) $user['Email_Verifie']) {
+                $success = "Cet email est déjà confirmé. Vous pouvez vous connecter.";
+            } elseif ($action === 'resend') {
+                $wait = $this->confirmationResendWait((int) $user['Id_Utilisateur']);
+                if ($wait > 0) {
+                    $error = "Merci de patienter {$wait} seconde(s) avant de redemander un code.";
+                } else {
+                    $this->issueConfirmationCode((int) $user['Id_Utilisateur'], $user['Nom_Utilisateur'], $email);
+                    $success = "Un nouveau code vous a été envoyé par email.";
+                    $resent = true;
+                }
+            } else {
+                $code = trim((string) ($_POST['code'] ?? ''));
+
+                $stmt = $this->pdo->prepare("
+                    SELECT Id_Confirmation FROM Email_Confirmation
+                    WHERE Id_Utilisateur = ? AND Code = ? AND Utilise = 0 AND Expire_At > NOW()
+                    ORDER BY Id_Confirmation DESC LIMIT 1
+                ");
+                $stmt->execute([$user['Id_Utilisateur'], $code]);
+                $confirmation = $stmt->fetch();
+
+                if (!$confirmation) {
+                    $error = "Code invalide ou expiré. Vous pouvez en redemander un.";
+                } else {
+                    $this->pdo->prepare("UPDATE Utilisateur SET Email_Verifie = 1 WHERE Id_Utilisateur = ?")
+                        ->execute([$user['Id_Utilisateur']]);
+                    $this->pdo->prepare("UPDATE Email_Confirmation SET Utilise = 1 WHERE Id_Confirmation = ?")
+                        ->execute([$confirmation['Id_Confirmation']]);
+
+                    $success = "Email confirmé avec succès ! Vous pouvez maintenant vous connecter.";
+                }
+            }
+        }
+
+        $this->renderStandalone('auth/confirm_email', [
+            'email' => $email,
+            'error' => $error,
+            'success' => $success,
+            'resent' => $resent,
+        ]);
+    }
+
+    /** Génère un code à 6 chiffres, invalide les précédents, l'enregistre et l'envoie par email. */
+    private function issueConfirmationCode(int $userId, string $username, string $email): void
+    {
+        $this->pdo->prepare("UPDATE Email_Confirmation SET Utilise = 1 WHERE Id_Utilisateur = ? AND Utilise = 0")
+            ->execute([$userId]);
+
+        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $expire_at = date('Y-m-d H:i:s', time() + self::EMAIL_CONFIRMATION_CODE_TTL);
+
+        $this->pdo->prepare("INSERT INTO Email_Confirmation (Id_Utilisateur, Code, Expire_At) VALUES (?, ?, ?)")
+            ->execute([$userId, $code, $expire_at]);
+
+        $minutes = (int) (self::EMAIL_CONFIRMATION_CODE_TTL / 60);
+        $corps = "Bonjour {$username},\n\n"
+               . "Merci de votre inscription sur FactuPro ! Voici votre code de confirmation :\n\n"
+               . "    {$code}\n\n"
+               . "Saisissez ce code sur la page de confirmation pour activer votre compte. "
+               . "Il est valable {$minutes} minutes.\n\n"
+               . "Si vous n'êtes pas à l'origine de cette inscription, ignorez cet email.\n\n"
+               . "Cordialement,\nFactuPro";
+
+        envoyerEmailB2b($email, "[FactuPro] Votre code de confirmation", $corps);
+    }
+
+    /** Secondes à attendre avant un nouveau renvoi de code (anti-spam), 0 si autorisé immédiatement. */
+    private function confirmationResendWait(int $userId): int
+    {
+        $stmt = $this->pdo->prepare("
+            SELECT Created_At FROM Email_Confirmation
+            WHERE Id_Utilisateur = ? ORDER BY Id_Confirmation DESC LIMIT 1
+        ");
+        $stmt->execute([$userId]);
+        $lastCreatedAt = $stmt->fetchColumn();
+
+        if (!$lastCreatedAt) {
+            return 0;
+        }
+
+        $elapsed = time() - strtotime($lastCreatedAt);
+        $remaining = self::EMAIL_CONFIRMATION_RESEND_COOLDOWN - $elapsed;
+
+        return $remaining > 0 ? $remaining : 0;
     }
 
     public function forgotPassword(): void

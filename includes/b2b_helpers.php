@@ -47,20 +47,24 @@ function envoyerEmailB2b(string $to, string $subject, string $body, string $altB
     $port     = (int) ($_ENV['MAIL_PORT'] ?? 587);
     $encrypt  = $_ENV['MAIL_ENCRYPTION'] ?? 'tls';
 
-    // Si SMTP configuré, utiliser PHPMailer
-    if (!empty($host) && !empty($username) && !empty($password)
-        && $username !== 'votre.email@gmail.com') {
+    // Si un hôte SMTP est configuré, utiliser PHPMailer (identifiants optionnels : un
+    // attrape-mails local de dev comme Mailpit/Mailhog n'exige souvent aucune authentification).
+    if (!empty($host) && $username !== 'votre.email@gmail.com') {
 
         try {
             $mail = new PHPMailer\PHPMailer\PHPMailer(true);
             $mail->isSMTP();
-            $mail->Host       = $host;
-            $mail->SMTPAuth   = true;
-            $mail->Username   = $username;
-            $mail->Password   = $password;
-            $mail->SMTPSecure = $encrypt === 'ssl'
-                ? PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS
-                : PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Host     = $host;
+            $mail->SMTPAuth = $username !== '' && $password !== '';
+            if ($mail->SMTPAuth) {
+                $mail->Username = $username;
+                $mail->Password = $password;
+            }
+            $mail->SMTPSecure = match ($encrypt) {
+                'ssl' => PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS,
+                'tls' => PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS,
+                default => '', // '' ou 'none' : pas de chiffrement (attrape-mails local de dev)
+            };
             $mail->Port       = $port;
             $mail->CharSet    = 'UTF-8';
 

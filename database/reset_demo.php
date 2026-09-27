@@ -31,9 +31,13 @@ $tables = [
     'Annonce',
     'Audit_Log',
     'Password_Reset',
+    'Contenir',
+    'Ligne_Produit',
     'Ligne_Vente',
     'Vente',
+    'Client',
     'Produit',
+    'Email_Confirmation',
     'Utilisateur',
     'Entreprise',
 ];
@@ -128,6 +132,33 @@ VALUES
 echo "✓ 10 produits créés\n";
 
 // ============================================================
+// CATÉGORIES DE PRODUITS (Ligne_Produit + Contenir)
+// ============================================================
+$pdo->exec("
+INSERT INTO Ligne_Produit (Id_Ligne_Produit, Id_Entreprise, Libelle)
+VALUES
+    (1,1,'Périphériques'),
+    (2,1,'Accessoires'),
+    (3,2,'Céréales & Farineux'),
+    (4,2,'Épicerie')
+");
+$pdo->exec("
+INSERT INTO Contenir (Id_Produit, Id_Ligne_Produit)
+VALUES
+    (1,1),
+    (2,1),(2,2),
+    (3,1),(3,2),
+    (4,2),
+    (5,2),
+    (6,3),
+    (7,4),
+    (8,4),
+    (9,4),
+    (10,3)
+");
+echo "✓ 4 catégories de produits créées\n";
+
+// ============================================================
 // VENTES
 // ============================================================
 $pdo->exec("
@@ -162,6 +193,20 @@ VALUES
      46500.00,'directe',2)
 ");
 echo "✓ 9 ventes créées\n";
+
+// ============================================================
+// CLIENTS DIRECTS (backfill depuis les ventes, cf. database/migrations.sql section 5)
+// ============================================================
+$pdo->exec("
+INSERT INTO Client (Id_Entreprise, Nom_Client, Type_Client)
+SELECT DISTINCT Id_Entreprise, Nom_Client, 'direct' FROM Vente
+");
+$pdo->exec("
+UPDATE Vente v
+JOIN Client c ON c.Id_Entreprise = v.Id_Entreprise AND c.Nom_Client = v.Nom_Client
+SET v.Id_Client = c.Id_Client
+");
+echo "✓ Clients directs créés à partir des ventes\n";
 
 // ============================================================
 // COMMANDES B2B
@@ -220,6 +265,12 @@ VALUES
     (9,9,NULL,'FAC-2026-0009','2026-08-19 10:20:00','2026-09-18 23:59:59','non_payee',46500.00,0.00,46500.00,2,'2036-08-19 00:00:00'),
     (10,NULL,1,'FAC-2026-B001','2026-08-02 09:00:00','2026-09-01 23:59:59','payee',265000.00,0.00,265000.00,1,'2036-08-02 00:00:00'),
     (11,NULL,3,'FAC-2026-B002','2026-08-13 07:30:00','2026-09-12 23:59:59','non_payee',278000.00,0.00,278000.00,2,'2036-08-13 00:00:00')
+");
+$pdo->exec("
+UPDATE Facture f
+JOIN Vente v ON v.Id_Vente = f.Id_Vente
+SET f.Id_Client = v.Id_Client
+WHERE v.Id_Client IS NOT NULL
 ");
 echo "✓ 11 factures créées\n";
 

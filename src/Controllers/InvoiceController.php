@@ -3,17 +3,20 @@
 namespace App\Controllers;
 
 use App\Application\Billing\InvoiceService;
+use App\Infrastructure\Persistence\ClientRepository;
 use App\Infrastructure\Persistence\InvoiceRepository;
 
 /** Contrôleur de pages/invoice_add.php — création d'une vente directe (panier + scanner). */
 class InvoiceController extends Controller
 {
     private InvoiceService $invoices;
+    private ClientRepository $clients;
 
     public function __construct(\PDO $pdo)
     {
         parent::__construct($pdo);
         $this->invoices = new InvoiceService($pdo, new InvoiceRepository($pdo));
+        $this->clients = new ClientRepository($pdo);
     }
 
     public function add(): void
@@ -48,10 +51,11 @@ class InvoiceController extends Controller
         }
 
         $this->render('invoice_add/index', [
-            'nom_vendeur'  => $nom_vendeur,
-            'produits'     => $produits,
-            'error'        => $error,
-            'success'      => $success,
+            'nom_vendeur'    => $nom_vendeur,
+            'produits'       => $produits,
+            'clients_connus' => $this->clients->namesByEnterprise((int) $entreprise_id),
+            'error'          => $error,
+            'success'        => $success,
         ], 'Nouvelle Vente / Facture');
     }
 }

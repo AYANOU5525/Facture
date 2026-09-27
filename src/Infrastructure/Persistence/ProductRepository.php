@@ -103,7 +103,16 @@ final class ProductRepository
         $statement->execute([$enabled ? 1 : 0, $enabled ? 1 : 0, $productId, $enterpriseId]);
     }
 
-    public function save(array $data, int $enterpriseId, ?int $productId = null): void
+    /** Renseigne un seul des deux codes-barres (association a posteriori) sans toucher au reste de la fiche. */
+    public function associateBarcode(int $productId, int $enterpriseId, string $column, string $code): void
+    {
+        $statement = $this->pdo->prepare(
+            "UPDATE Produit SET {$column} = ? WHERE Id_Produit = ? AND Id_Entreprise = ?"
+        );
+        $statement->execute([$code, $productId, $enterpriseId]);
+    }
+
+    public function save(array $data, int $enterpriseId, ?int $productId = null): int
     {
         if ($productId !== null) {
             $statement = $this->pdo->prepare(
@@ -122,7 +131,7 @@ final class ProductRepository
                 $productId, $enterpriseId,
             ]);
 
-            return;
+            return $productId;
         }
 
         $statement = $this->pdo->prepare(
@@ -139,5 +148,7 @@ final class ProductRepository
             $data['code_barre_unite'], $data['code_barre_carton'], $data['quantite_par_carton'],
             $enterpriseId,
         ]);
+
+        return (int) $this->pdo->lastInsertId();
     }
 }

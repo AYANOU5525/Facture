@@ -5,6 +5,7 @@ services:
     container_name: facturation_app
     ports:
       - "8080:80"
+      - "8443:443" # HTTPS auto-signé — nécessaire pour la caméra du scanner mobile sur un téléphone (cf. Dockerfile)
     volumes:
       - .:/var/www/html
     environment:
@@ -12,8 +13,28 @@ services:
       - DB_NAME=${DOCKER_DB_NAME}
       - DB_USER=${DOCKER_DB_USER}
       - DB_PASS=${DOCKER_DB_PASS}
+      # Surchargent le MAIL_HOST/MAIL_PORT du .env (mêmes variables que pour Laragon natif)
+      # pour joindre le conteneur mailpit ci-dessous par son nom de service sur le réseau
+      # Docker interne — Dotenv ne réécrit jamais une variable déjà présente dans l'environnement.
+      - MAIL_HOST=mailpit
+      - MAIL_PORT=1025
+      - MAIL_ENCRYPTION=none
     depends_on:
       - db
+      - mailpit
+
+  # Attrape-mails de développement — capture tous les emails envoyés par l'appli (confirmation
+  # d'inscription, réinitialisation de mot de passe...) sans les envoyer réellement : interface web
+  # sur http://localhost:8025 pour les consulter, pratique pour une démo sans dépendre d'Internet.
+  # Pour un vrai envoi (production ou démo avec réception sur un vrai téléphone), configurer un
+  # compte SMTP réel dans .env (ex. Gmail + mot de passe d'application) à la place.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: facturation_mailpit
+    restart: always
+    ports:
+      - "8025:8025" # Interface web de consultation des emails
+      - "1025:1025" # Port SMTP (utilisé aussi par Laragon natif via 127.0.0.1:1025, cf. .env)
 
   # Service de la base de données MySQL
   db:

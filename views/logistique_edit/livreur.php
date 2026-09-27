@@ -1,5 +1,5 @@
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<link rel="stylesheet" href="../assets/vendor/leaflet/leaflet.css">
+<script src="../assets/vendor/leaflet/leaflet.js"></script>
 
 <style>
 .lv-wrap { max-width:640px; margin:0 auto; display:flex; flex-direction:column; gap:16px; }
@@ -166,17 +166,17 @@
                         <input type="hidden" name="lng_livraison" value="<?= htmlspecialchars($log['Adresse_Livraison_Lng'] ?? $log['Lng_Acheteur'] ?? '') ?>">
                         <div class="lv-fields-grid">
                             <div class="mb-3">
-                                <label class="form-label">Transporteur <span class="text-danger">*</span></label>
-                                <input type="text" name="transporteur" class="form-control" required placeholder="DHL, FedEx..." value="<?= htmlspecialchars($log['Transporteur'] ?? '') ?>">
+                                <label class="form-label">Transporteur</label>
+                                <input type="text" name="transporteur" class="form-control" placeholder="DHL, FedEx... (vide = Livraison directe)" value="<?= htmlspecialchars($log['Transporteur'] ?? '') ?>">
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">N° de suivi <span class="text-danger">*</span></label>
-                                <input type="text" name="numero_suivi" class="form-control" required placeholder="Code de suivi" value="<?= htmlspecialchars($log['Numero_Suivi'] ?? '') ?>">
+                                <label class="form-label">N° de suivi</label>
+                                <input type="text" name="numero_suivi" class="form-control" placeholder="Vide = généré automatiquement" value="<?= htmlspecialchars($log['Numero_Suivi'] ?? '') ?>">
                             </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Date de livraison prévue</label>
-                            <input type="date" name="date_prevue" class="form-control" value="<?= $log['Date_Livraison_Prevue'] ? date('Y-m-d', strtotime($log['Date_Livraison_Prevue'])) : '' ?>">
+                            <input type="date" name="date_prevue" class="form-control" placeholder="Vide = +3 jours" value="<?= $log['Date_Livraison_Prevue'] ? date('Y-m-d', strtotime($log['Date_Livraison_Prevue'])) : '' ?>">
                         </div>
                         <div class="mb-3">
                             <label class="form-label small text-body-secondary">Note</label>

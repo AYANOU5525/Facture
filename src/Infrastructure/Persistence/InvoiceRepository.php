@@ -51,11 +51,11 @@ final class InvoiceRepository
     {
         $statement = $this->pdo->prepare(
             "INSERT INTO Vente
-                (Numero_Vente, Nom_Client, Nom_Vendeur, Id_Vendeur, Articles_JSON, Montant_Total, Type_Vente, Id_Entreprise, Date_Vente)
-             VALUES (?, ?, ?, ?, ?, ?, 'directe', ?, NOW())"
+                (Numero_Vente, Nom_Client, Id_Client, Nom_Vendeur, Id_Vendeur, Articles_JSON, Montant_Total, Type_Vente, Id_Entreprise, Date_Vente)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 'directe', ?, NOW())"
         );
         $statement->execute([
-            $sale['number'], $sale['client'], $sale['seller'], $sale['seller_id'] ?: null, $sale['articles'],
+            $sale['number'], $sale['client'], $sale['client_id'] ?? null, $sale['seller'], $sale['seller_id'] ?: null, $sale['articles'],
             $sale['total'], $sale['enterprise_id'],
         ]);
 
@@ -74,14 +74,14 @@ final class InvoiceRepository
         ]);
     }
 
-    public function createInvoice(int $saleId, string $number, float $total, int $enterpriseId): int
+    public function createInvoice(int $saleId, string $number, float $total, int $enterpriseId, ?int $clientId = null): int
     {
         $statement = $this->pdo->prepare(
             'INSERT INTO Facture
-                (Id_Vente, Numero_Facture, Date_Echeance, Montant_HT, Montant_TTC, Date_Archivage, Id_Entreprise)
-             VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY), ?, ?, DATE_ADD(NOW(), INTERVAL 10 YEAR), ?)'
+                (Id_Vente, Id_Client, Numero_Facture, Date_Echeance, Montant_HT, Montant_TTC, Date_Archivage, Id_Entreprise)
+             VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY), ?, ?, DATE_ADD(NOW(), INTERVAL 10 YEAR), ?)'
         );
-        $statement->execute([$saleId, $number, $total * 0.8, $total, $enterpriseId]);
+        $statement->execute([$saleId, $clientId, $number, $total * 0.8, $total, $enterpriseId]);
 
         return (int) $this->pdo->lastInsertId();
     }

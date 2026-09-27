@@ -28,9 +28,6 @@ final class LogisticsService
         if (!in_array($data['status'], self::VALID_STATUSES, true)) {
             throw new InvalidArgumentException('Statut de livraison invalide.');
         }
-        if ($data['status'] === 'expediee' && ($data['carrier'] === '' || $data['tracking'] === '')) {
-            throw new InvalidArgumentException('Le transporteur et le numéro de suivi sont requis pour une expédition.');
-        }
 
         $this->pdo->beginTransaction();
         try {

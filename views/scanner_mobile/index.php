@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <title>Scanner FactuPro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="../assets/vendor/fonts/fonts.css">
+    <link rel="stylesheet" href="../assets/vendor/fontawesome/css/all.min.css">
     <style>
         :root {
             --primary: #4f46e5;
@@ -198,13 +198,42 @@ function joinSession() {
 }
 
 function renderScanUI() {
+    // Champ manuel toujours disponible : la caméra (getUserMedia) exige un contexte sécurisé
+    // (HTTPS, ou littéralement "localhost") — sur un réseau local en HTTP, le navigateur du
+    // téléphone la bloque silencieusement. La saisie manuelle garantit que le relais reste
+    // utilisable même sans HTTPS configuré.
     mainArea.innerHTML = `
         <div class="status-badge ok"><i class="fas fa-check-circle"></i> Session connectée</div>
         <div id="scan-reader"></div>
         <button class="btn-scan" id="btn-scan"><i class="fas fa-camera"></i> Scanner un code-barre</button>
+        <p id="camera-error" style="display:none; color:var(--warning); font-size:0.82rem; max-width:340px; margin:-8px 0 0;"></p>
+        <div style="width:100%; max-width:340px; display:flex; gap:8px;">
+            <input type="text" id="manual-barcode-input" placeholder="Ou saisir le code manuellement…"
+                   style="flex:1; padding:12px 14px; border-radius:10px; border:1px solid #2d2d44; background:#1a1a2e; color:#fff; font-size:0.95rem;">
+            <button class="btn-scan" id="btn-manual-send" style="width:auto; max-width:none; padding:12px 18px;"><i class="fas fa-paper-plane"></i></button>
+        </div>
         <div class="result-card" id="result-card"></div>
     `;
     document.getElementById('btn-scan').addEventListener('click', toggleCamera);
+    document.getElementById('btn-manual-send').addEventListener('click', sendManualBarcode);
+    document.getElementById('manual-barcode-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); sendManualBarcode(); }
+    });
+}
+
+function sendManualBarcode() {
+    const input = document.getElementById('manual-barcode-input');
+    const barcode = input.value.trim();
+    if (!barcode) return;
+    input.value = '';
+    onBarcodeDetected(barcode);
+}
+
+function showCameraError(message) {
+    const el = document.getElementById('camera-error');
+    if (!el) return;
+    el.textContent = '⚠ ' + message;
+    el.style.display = 'block';
 }
 
 function toggleCamera() {
@@ -216,6 +245,10 @@ function toggleCamera() {
         btn.innerHTML = '<i class="fas fa-camera"></i> Scanner un produit';
         return;
     }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showCameraError("Caméra indisponible sur cette connexion (HTTP non sécurisé). Utilisez le champ de saisie manuelle ci-dessous, ou demandez au propriétaire d'activer HTTPS.");
+        return;
+    }
     reader.style.display = 'block';
     btn.innerHTML = '<i class="fas fa-stop"></i> Arrêter';
     scanner = new Html5Qrcode('scan-reader');
@@ -225,7 +258,9 @@ function toggleCamera() {
         (decodedText) => onBarcodeDetected(decodedText),
         () => {}
     ).catch(() => {
-        fail("Impossible d'accéder à la caméra. Vérifiez les autorisations du navigateur.");
+        reader.style.display = 'none';
+        btn.innerHTML = '<i class="fas fa-camera"></i> Scanner un code-barre';
+        showCameraError("Impossible d'accéder à la caméra. Vérifiez les autorisations du navigateur, ou utilisez le champ de saisie manuelle.");
     });
 }
 

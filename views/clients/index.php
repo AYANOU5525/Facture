@@ -20,6 +20,13 @@
         <p class="text-body-secondary mb-0">Base de clients B2B et directs — volumes d'achat</p>
     </div>
 
+    <?php if (!empty($success)): ?>
+        <div class="alert alert-success d-flex align-items-center gap-2"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($success) ?></div>
+    <?php endif; ?>
+    <?php if (!empty($error)): ?>
+        <div class="alert alert-danger d-flex align-items-center gap-2"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($error) ?></div>
+    <?php endif; ?>
+
     <!-- KPI STRIP -->
     <div class="dash-kpi-row">
         <div class="dash-kpi">
@@ -136,6 +143,8 @@
                 <thead>
                     <tr>
                         <th>Nom Client</th>
+                        <th>Contact</th>
+                        <th class="text-center">Statut</th>
                         <th class="text-center">Ventes</th>
                         <th class="text-end">Volume d'achat</th>
                         <th class="text-end">Dernier achat</th>
@@ -145,6 +154,7 @@
                 <tbody>
                     <?php foreach ($clients_directs as $c):
                         $initiales = implode('', array_map(fn($w) => strtoupper($w[0]), array_slice(explode(' ', $c['Nom_Client']), 0, 2)));
+                        $fiche = $c['fiche'] ?? null;
                     ?>
                     <tr>
                         <td>
@@ -155,6 +165,25 @@
                                 <div class="fw-bold" style="font-size:0.9rem;"><?= htmlspecialchars($c['Nom_Client'] ?? '') ?></div>
                             </div>
                         </td>
+                        <td class="small text-body-secondary">
+                            <?php if ($fiche && (!empty($fiche['Telephone_Client']) || !empty($fiche['Email_Client']))): ?>
+                                <?= !empty($fiche['Telephone_Client']) ? htmlspecialchars($fiche['Telephone_Client']) : '—' ?>
+                                <?php if (!empty($fiche['Email_Client'])): ?>
+                                    <div><?= htmlspecialchars($fiche['Email_Client']) ?></div>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                —
+                            <?php endif; ?>
+                        </td>
+                        <td class="text-center">
+                            <?php if ($fiche): ?>
+                                <span class="badge <?= $fiche['Statut_Client'] === 'actif' ? 'text-bg-success' : 'text-bg-secondary' ?>">
+                                    <?= $fiche['Statut_Client'] === 'actif' ? 'Actif' : 'Inactif' ?>
+                                </span>
+                            <?php else: ?>
+                                <span class="text-body-tertiary">—</span>
+                            <?php endif; ?>
+                        </td>
                         <td class="text-center">
                             <span class="badge text-bg-secondary"><?= $c['Nb_Commandes'] ?> vente<?= $c['Nb_Commandes'] > 1 ? 's' : '' ?></span>
                         </td>
@@ -164,11 +193,17 @@
                         <td class="text-end small text-body-secondary">
                             <?= !empty($c['Derniere_Commande']) ? date('d/m/Y', strtotime($c['Derniere_Commande'])) : '—' ?>
                         </td>
-                        <td class="text-center">
+                        <td class="text-center text-nowrap">
                             <a href="client_history.php?type=direct&name=<?= urlencode($c['Nom_Client'] ?? '') ?>"
-                               class="btn btn-sm btn-outline-secondary">
-                                <i class="fas fa-history"></i> Historique
+                               class="btn btn-sm btn-outline-secondary" title="Historique">
+                                <i class="fas fa-history"></i>
                             </a>
+                            <?php if ($fiche): ?>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" title="Modifier la fiche"
+                                    onclick='openClientModal(<?= json_encode($fiche, JSON_UNESCAPED_UNICODE | JSON_HEX_APOS | JSON_HEX_QUOT) ?>)'>
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <?php endif; ?>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -210,7 +245,71 @@
     </div>
 </div>
 
+<!-- MODALE FICHE CLIENT -->
+<div class="modal fade" id="clientModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="clients.php">
+                <div class="modal-header">
+                    <h3 class="modal-title fs-5"><i class="fas fa-user-edit"></i> Fiche client</h3>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
+                    <input type="hidden" name="action" value="update_contact">
+                    <input type="hidden" name="id_client" id="cl_id_client" value="">
+
+                    <p class="fw-bold mb-3" id="cl_nom_client"></p>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Téléphone</label>
+                            <input type="text" name="telephone" id="cl_telephone" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Email</label>
+                            <input type="email" name="email" id="cl_email" class="form-control">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label">Adresse</label>
+                        <input type="text" name="adresse" id="cl_adresse" class="form-control">
+                    </div>
+                    <div class="row g-3 mt-0">
+                        <div class="col-md-6">
+                            <label class="form-label">NIF</label>
+                            <input type="text" name="nif" id="cl_nif" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Statut</label>
+                            <select name="statut" id="cl_statut" class="form-select">
+                                <option value="actif">Actif</option>
+                                <option value="inactif">Inactif</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+function openClientModal(fiche) {
+    document.getElementById('cl_id_client').value = fiche.Id_Client || '';
+    document.getElementById('cl_nom_client').textContent = fiche.Nom_Client || '';
+    document.getElementById('cl_telephone').value = fiche.Telephone_Client || '';
+    document.getElementById('cl_email').value = fiche.Email_Client || '';
+    document.getElementById('cl_adresse').value = fiche.Adresse_Client || '';
+    document.getElementById('cl_nif').value = fiche.NIF_Client || '';
+    document.getElementById('cl_statut').value = fiche.Statut_Client || 'actif';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('clientModal')).show();
+}
+
 function filterB2B() {
     var filter = document.getElementById('searchB2B').value.toUpperCase();
     document.querySelectorAll('#tableB2B tbody tr').forEach(function(tr) {

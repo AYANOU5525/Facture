@@ -45,6 +45,23 @@ function exigerCsrf(): void
 {
     if (!verifierCsrf((string) ($_POST['csrf_token'] ?? ''))) {
         http_response_code(403);
-        exit('Requête refusée. Veuillez actualiser la page et réessayer.');
+        $retour = '/pages/login.php';
+        $referer = $_SERVER['HTTP_REFERER'] ?? '';
+        $hote_courant = $_SERVER['HTTP_HOST'] ?? '';
+        if ($referer !== '' && $hote_courant !== '' && parse_url($referer, PHP_URL_HOST) === $hote_courant) {
+            $retour = $referer;
+        }
+        $retour = htmlspecialchars($retour, ENT_QUOTES, 'UTF-8');
+        exit(
+            '<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">'
+            . '<meta http-equiv="refresh" content="3;url=' . $retour . '">'
+            . '<title>Session expirée - FactuPro</title></head>'
+            . '<body style="font-family:sans-serif;max-width:480px;margin:15vh auto;text-align:center;color:#333;">'
+            . '<h1 style="font-size:1.25rem;">Session expirée</h1>'
+            . '<p>Cette page a été ouverte trop longtemps ou le formulaire a déjà été envoyé. '
+            . 'Vous allez être redirigé automatiquement dans 3 secondes.</p>'
+            . '<p><a href="' . $retour . '">Cliquez ici si rien ne se passe</a></p>'
+            . '</body></html>'
+        );
     }
 }

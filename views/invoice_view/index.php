@@ -10,8 +10,8 @@ $label_conservation = $label_conservation ?? '';
     <meta charset="UTF-8">
     <title>Facture <?= htmlspecialchars($vente['Numero_Vente'] ?? '') ?></title>
     <!-- Utilisation de la même police pour cohérence, mais style print spécifique -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../assets/vendor/fonts/fonts.css">
+    <link rel="stylesheet" href="../assets/vendor/bootstrap/bootstrap.min.css">
     <style>
         body {
             font-family: 'Inter', sans-serif;

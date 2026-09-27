@@ -31,10 +31,15 @@
             </div>
             <div class="list-group list-group-flush">
                 <?php foreach ($produits_alerte as $pa): ?>
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <a href="products.php?edit=<?= (int) $pa['Id_Produit'] ?>&focus=stock"
+                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                       title="Cliquer pour réapprovisionner ce produit">
                         <span><?= htmlspecialchars($pa['Nom_Produit']) ?></span>
-                        <span class="badge text-bg-warning"><?= (int) $pa['Quantite_En_Stock'] ?> restant(s)</span>
-                    </div>
+                        <span>
+                            <span class="badge text-bg-warning"><?= (int) $pa['Quantite_En_Stock'] ?> restant(s)</span>
+                            <i class="fas fa-plus-circle text-primary ms-2" title="Réapprovisionner"></i>
+                        </span>
+                    </a>
                 <?php endforeach; ?>
             </div>
         </div>

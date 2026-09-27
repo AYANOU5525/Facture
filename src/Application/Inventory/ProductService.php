@@ -33,7 +33,47 @@ final class ProductService
         $this->repository->toggleDestockage($productId, $enterpriseId, $enabled);
     }
 
-    public function save(array $input, int $enterpriseId, ?int $productId = null): void
+    /**
+     * Associe un code-barres scanné mais encore inconnu à un produit EXISTANT — jamais de création
+     * de fiche ni de modification d'un code déjà renseigné par cette voie (cf. AssociateBarcodeController-like
+     * usage : édition complète du produit reste le seul moyen de remplacer un code déjà présent).
+     * @param string $type 'unite' ou 'carton'
+     */
+    public function associateBarcode(int $productId, int $enterpriseId, string $type, string $code): void
+    {
+        $code = trim($code);
+        if ($code === '') {
+            throw new InvalidArgumentException('Code-barres vide.');
+        }
+        if (!in_array($type, ['unite', 'carton'], true)) {
+            throw new InvalidArgumentException('Type de conditionnement invalide.');
+        }
+
+        $product = $this->repository->findByIdAndEnterprise($productId, $enterpriseId);
+        if ($product === null) {
+            throw new InvalidArgumentException('Produit introuvable.');
+        }
+
+        $column = $type === 'carton' ? 'Code_Barre_Carton' : 'Code_Barre_Unite';
+        if (!empty($product[$column])) {
+            throw new InvalidArgumentException(
+                'Ce produit a déjà un code ' . ($type === 'carton' ? 'carton' : 'unité') . ' enregistré — modifiez-le depuis la fiche produit si besoin.'
+            );
+        }
+
+        $conflict = $this->repository->findConflictingProduct(
+            $type === 'unite' ? $code : null,
+            $type === 'carton' ? $code : null,
+            $enterpriseId
+        );
+        if ($conflict !== null) {
+            throw new InvalidArgumentException('Ce code-barres est déjà utilisé par « ' . $conflict['Nom_Produit'] . ' ».');
+        }
+
+        $this->repository->associateBarcode($productId, $enterpriseId, $column, $code);
+    }
+
+    public function save(array $input, int $enterpriseId, ?int $productId = null): int
     {
         $name = trim((string) ($input['nom'] ?? ''));
         $price = filter_var($input['prix'] ?? null, FILTER_VALIDATE_FLOAT);
@@ -70,7 +110,7 @@ final class ProductService
             );
         }
 
-        $this->repository->save([
+        return $this->repository->save([
             'nom' => $name,
             'description' => trim((string) ($input['description'] ?? '')),
             'prix' => $price,

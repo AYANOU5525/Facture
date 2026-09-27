@@ -1,8 +1,8 @@
 <!-- ============================================================
      VUE — Interface Commandes B2B v2
      ============================================================ -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<link rel="stylesheet" href="../assets/vendor/leaflet/leaflet.css">
+<script src="../assets/vendor/leaflet/leaflet.js"></script>
 <div class="container fade-in py-4">
     <div class="mb-3">
         <p class="text-body-secondary mb-0">Gérez vos achats et ventes inter-entreprises</p>

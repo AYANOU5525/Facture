@@ -160,7 +160,7 @@ class DashboardController extends Controller
 
         // 3. Produits en alerte stock (stock <= seuil)
         $stmt = $this->pdo->prepare("
-            SELECT Nom_Produit, Quantite_En_Stock,
+            SELECT Id_Produit, Nom_Produit, Quantite_En_Stock,
                    COALESCE(Seuil_Alerte_Stock, 5) AS Seuil_Alerte_Stock
             FROM Produit
             WHERE Id_Entreprise = ?

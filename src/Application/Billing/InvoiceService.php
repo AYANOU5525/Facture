@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Application\Billing;
 
 use App\Application\Inventory\PackagingConverter;
+use App\Infrastructure\Persistence\ClientRepository;
 use App\Infrastructure\Persistence\InvoiceRepository;
 use InvalidArgumentException;
 use PDO;
@@ -12,10 +13,13 @@ use RuntimeException;
 
 final class InvoiceService
 {
+    private ClientRepository $clients;
+
     public function __construct(
         private PDO $pdo,
         private InvoiceRepository $repository
     ) {
+        $this->clients = new ClientRepository($pdo);
     }
 
     public function availableProducts(int $enterpriseId): array
@@ -85,10 +89,13 @@ final class InvoiceService
                 throw new InvalidArgumentException('Aucun article valide.');
             }
 
+            $clientId = $this->clients->findOrCreate($client, $enterpriseId);
+
             $number = 'FAC-' . date('Ymd') . '-' . random_int(1000, 9999);
             $saleId = $this->repository->createSale([
                 'number' => $number,
                 'client' => trim($client),
+                'client_id' => $clientId,
                 'seller' => $seller,
                 'seller_id' => $sellerId,
                 'articles' => json_encode($articles, JSON_UNESCAPED_UNICODE),
@@ -98,7 +105,7 @@ final class InvoiceService
             foreach ($articles as $article) {
                 $this->repository->createSaleLine($saleId, $article);
             }
-            $invoiceId = $this->repository->createInvoice($saleId, $number, $total, $enterpriseId);
+            $invoiceId = $this->repository->createInvoice($saleId, $number, $total, $enterpriseId, $clientId);
             // Logistique en attente (cf. includes/roles.php) : pas d'entrée créée tant que la
             // fonctionnalité est désactivée.
             if (FEATURE_LOGISTIQUE_ACTIVE) {
