@@ -57,6 +57,45 @@ abstract class Controller
     }
 
     /**
+     * URL racine de l'appli pour les liens envoyés par email (reset mot de passe, invitation...).
+     *
+     * Reprend l'adresse par laquelle la requête est arrivée (ngrok, Docker localhost:8080,
+     * vhost Laragon...) pour que le lien fonctionne là où l'utilisateur l'ouvre — mais
+     * seulement si cet hôte est de confiance : l'en-tête Host est contrôlé par le client, et
+     * l'utiliser tel quel permettrait d'envoyer à une victime un lien de reset pointant vers
+     * un site tiers qui capterait son token (« password reset poisoning »). Hôtes de confiance :
+     * celui d'APP_URL, ceux listés dans APP_TRUSTED_HOSTS (séparés par des virgules), et le
+     * loopback. Sinon, repli sur APP_URL.
+     */
+    protected function appBaseUrl(): string
+    {
+        $fallback = rtrim($_ENV['APP_URL'] ?? 'http://localhost/facturation', '/');
+        $host     = strtolower($_SERVER['HTTP_HOST'] ?? '');
+        if ($host === '') {
+            return $fallback;
+        }
+
+        $trusted = array_filter(array_map(
+            fn($h) => strtolower(trim($h)),
+            explode(',', $_ENV['APP_TRUSTED_HOSTS'] ?? '')
+        ));
+        $trusted[] = strtolower((string) parse_url($fallback, PHP_URL_HOST));
+
+        $hostWithoutPort = preg_replace('/:\d+$/', '', $host);
+        $isLoopback = in_array($hostWithoutPort, ['localhost', '127.0.0.1', '[::1]'], true);
+        if (!$isLoopback && !in_array($hostWithoutPort, $trusted, true)) {
+            return $fallback;
+        }
+
+        // Derrière ngrok, Apache ne voit que du HTTP : le schéma d'origine est dans X-Forwarded-Proto.
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || strtolower($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
+        $appRoot = rtrim(str_replace('\\', '/', dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '/pages/x.php'))), '/');
+
+        return ($isHttps ? 'https' : 'http') . '://' . $host . $appRoot;
+    }
+
+    /**
      * Trace un évènement sensible dans Audit_Log (table déjà en place, cf. database/facturation.sql).
      * Id_Utilisateur/Id_Entreprise sont NOT NULL en base : n'appeler qu'avec un utilisateur
      * réellement résolu (pas d'entrée loggée pour une tentative sur un identifiant inconnu).

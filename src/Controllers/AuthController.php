@@ -290,7 +290,7 @@ class AuthController extends Controller
                     $this->pdo->prepare("INSERT INTO Password_Reset (Id_Utilisateur, Token, Expire_At) VALUES (?, ?, ?)")
                         ->execute([$user['Id_Utilisateur'], $token, $expire_at]);
 
-                    $app_url = rtrim($_ENV['APP_URL'] ?? 'http://localhost/facturation', '/');
+                    $app_url = $this->appBaseUrl();
                     $link    = $app_url . '/pages/reset_password.php?token=' . urlencode($token);
 
                     $corps = "Bonjour {$user['Nom_Utilisateur']},\n\n"

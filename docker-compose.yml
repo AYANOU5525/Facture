@@ -14,11 +14,12 @@ services:
       - DB_USER=${DOCKER_DB_USER}
       - DB_PASS=${DOCKER_DB_PASS}
       # Surchargent le MAIL_HOST/MAIL_PORT du .env (mêmes variables que pour Laragon natif)
-      # pour joindre le conteneur mailpit ci-dessous par son nom de service sur le réseau
-      # Docker interne — Dotenv ne réécrit jamais une variable déjà présente dans l'environnement.
-      - MAIL_HOST=mailpit
-      - MAIL_PORT=1025
-      - MAIL_ENCRYPTION=none
+      # pour joindre par défaut le conteneur mailpit ci-dessous par son nom de service sur le
+      # réseau Docker interne — Dotenv ne réécrit jamais une variable déjà présente dans
+      # l'environnement. Définir DOCKER_MAIL_* dans .env pour un vrai SMTP (ex. Gmail).
+      - MAIL_HOST=${DOCKER_MAIL_HOST:-mailpit}
+      - MAIL_PORT=${DOCKER_MAIL_PORT:-1025}
+      - MAIL_ENCRYPTION=${DOCKER_MAIL_ENCRYPTION:-none}
     depends_on:
       - db
       - mailpit

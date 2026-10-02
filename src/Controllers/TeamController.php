@@ -74,7 +74,7 @@ class TeamController extends Controller
 
         $success = "Utilisateur ajouté avec succès ! Un email de bienvenue a été envoyé à $email.";
         $role_label  = $role === 'admin' ? 'Administrateur' : 'Employé';
-        $app_url     = rtrim($_ENV['APP_URL'] ?? 'http://localhost/facturation', '/');
+        $app_url     = $this->appBaseUrl();
         $login_url   = $app_url . '/pages/login.php';
         $from_name   = htmlspecialchars($_ENV['MAIL_FROM_NAME'] ?? 'FactuPro', ENT_QUOTES);
 
