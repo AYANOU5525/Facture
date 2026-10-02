@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-bs-theme="light">
 
 <head>
     <meta charset="UTF-8">
@@ -19,6 +19,11 @@
             <h1 class="fs-3 mb-1">Créer un compte</h1>
             <p class="text-body-secondary mb-0">Rejoignez FactuPro et gérez votre entreprise</p>
         </div>
+
+        <?php
+        $error = $error ?? '';
+        $success = $success ?? '';
+        ?>
 
         <?php if ($error): ?>
             <div class="alert alert-danger d-flex align-items-center gap-2">
@@ -56,7 +61,7 @@
                            id="reg-password"
                            name="password"
                            class="form-control"
-                           placeholder="Minimum 6 caractères"
+                           placeholder="Minimum 8 caractères"
                            required
                            oninput="checkRegStrength(this.value); checkRegMatch()">
                     <button type="button"

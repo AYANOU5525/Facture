@@ -1,8 +1,24 @@
--- MySQL dump 10.13  Distrib 8.4.3, for Win64 (x86_64)
+-- ============================================================================
+-- FactuPro — Base de données complète (fichier unique)
 --
--- Host: 127.0.0.1    Database: facturation
+-- Schéma complet de la base `facturation` : 21 tables, index, clés étrangères
+-- et triggers (recalcul de Montant_Total sur Vente / Commande_B2B).
+-- Aucune donnée : la base démarre vide, le premier compte se crée depuis la
+-- page d'inscription.
+--
+-- ATTENTION : ce fichier crée la base `facturation` et contient des
+-- DROP TABLE IF EXISTS — l'importer sur une base existante EFFACE toutes ses
+-- données. À n'utiliser que pour une installation neuve.
+--
+-- Import : mysql -u root --default-character-set=utf8mb4 < database/facturation.sql
+-- Docker : chargé automatiquement au premier démarrage du conteneur MySQL.
+-- ============================================================================
+
+-- MySQL dump 10.13  Distrib 8.0.46, for Linux (x86_64)
+--
+-- Host: localhost    Database: facturation
 -- ------------------------------------------------------
--- Server version	8.0.45
+-- Server version	8.0.46
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -41,18 +57,8 @@ CREATE TABLE `Annonce` (
   PRIMARY KEY (`Id_Annonce`),
   KEY `Id_Entreprise` (`Id_Entreprise`),
   CONSTRAINT `annonce_ibfk_1` FOREIGN KEY (`Id_Entreprise`) REFERENCES `Entreprise` (`Id_Entreprise`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `Annonce`
---
-
-LOCK TABLES `Annonce` WRITE;
-/*!40000 ALTER TABLE `Annonce` DISABLE KEYS */;
-INSERT INTO `Annonce` VALUES (1,1,'appel_offre','Recherche fournisseur accessoires PC — 500 unités/mois','TechVision Sarl recherche un fournisseur régulier pour des accessoires informatiques.','2026-08-10 08:00:00','active'),(2,2,'partenariat','Partenariat distribution produits alimentaires — Région Maritime','FourniBien SA propose un partenariat de distribution exclusive.','2026-08-05 10:00:00','active'),(3,1,'partenariat','Offre équipement bureautique — PME et administrations','Offres groupées pour PME et organismes publics.','2026-08-14 09:30:00','active');
-/*!40000 ALTER TABLE `Annonce` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Table structure for table `Audit_Log`
@@ -75,18 +81,8 @@ CREATE TABLE `Audit_Log` (
   KEY `idx_log_user` (`Id_Utilisateur`),
   KEY `idx_log_entreprise` (`Id_Entreprise`),
   KEY `idx_log_created` (`Created_At`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `Audit_Log`
---
-
-LOCK TABLES `Audit_Log` WRITE;
-/*!40000 ALTER TABLE `Audit_Log` DISABLE KEYS */;
-INSERT INTO `Audit_Log` VALUES (5,2,1,'scan_session_create','Scan_Session',3,NULL,'172.18.0.1','2026-08-25 15:51:33'),(6,2,1,'scan_session_create','Scan_Session',4,NULL,'172.18.0.1','2026-08-25 15:52:56'),(7,2,1,'scan_session_phone_join','Scan_Session',4,NULL,'172.18.0.1','2026-08-25 15:53:05'),(8,1,1,'scan_session_create','Scan_Session',5,NULL,'172.18.0.1','2026-08-25 16:00:18'),(9,1,1,'scan_session_phone_join','Scan_Session',5,NULL,'172.18.0.1','2026-08-25 16:00:19'),(10,1,1,'scan_session_scan','Scan_Session',NULL,'9999999999999','172.18.0.1','2026-08-25 16:00:20'),(11,1,1,'scan_session_revoke','Scan_Session',5,NULL,'172.18.0.1','2026-08-25 16:00:21');
-/*!40000 ALTER TABLE `Audit_Log` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Table structure for table `Chat_B2B`
@@ -111,18 +107,32 @@ CREATE TABLE `Chat_B2B` (
   KEY `Id_Entreprise_Emetteur` (`Id_Entreprise_Emetteur`),
   CONSTRAINT `chat_b2b_ibfk_1` FOREIGN KEY (`Id_Commande_B2B`) REFERENCES `Commande_B2B` (`Id_Commande_B2B`) ON DELETE CASCADE,
   CONSTRAINT `chat_b2b_ibfk_2` FOREIGN KEY (`Id_Entreprise_Emetteur`) REFERENCES `Entreprise` (`Id_Entreprise`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `Chat_B2B`
+-- Table structure for table `Client`
 --
 
-LOCK TABLES `Chat_B2B` WRITE;
-/*!40000 ALTER TABLE `Chat_B2B` DISABLE KEYS */;
-INSERT INTO `Chat_B2B` VALUES (1,1,2,'Bonjour, pouvez-vous confirmer la disponibilité des 10 souris ?','texte',NULL,NULL,1,1,'2026-07-30 08:30:00'),(2,1,1,'Oui, tout est disponible. Livraison sous 48h confirmée.','texte',NULL,NULL,1,1,'2026-07-30 09:00:00'),(3,1,2,'Parfait, merci. On attend la livraison.','texte',NULL,NULL,1,1,'2026-07-30 09:10:00'),(4,3,1,'Commande urgente — besoin du riz et de l\'huile avant vendredi.','texte',NULL,NULL,1,1,'2026-08-10 10:10:00'),(5,3,2,'Reçu. Stock disponible. Nous expédions demain matin.','texte',NULL,NULL,1,1,'2026-08-10 11:00:00'),(6,3,1,'Super, merci beaucoup !','texte',NULL,NULL,0,1,'2026-08-10 11:05:00'),(7,4,1,'Bonjour, seriez-vous disponible pour 2 cartons de savon et 2 sacs de farine ?','texte',NULL,NULL,1,0,'2026-08-19 09:02:00'),(8,4,1,'On reste flexible sur la date de livraison si besoin.','negociation_delai',NULL,NULL,1,0,'2026-08-19 09:03:00');
-/*!40000 ALTER TABLE `Chat_B2B` ENABLE KEYS */;
-UNLOCK TABLES;
+DROP TABLE IF EXISTS `Client`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Client` (
+  `Id_Client` int NOT NULL AUTO_INCREMENT,
+  `Id_Entreprise` int NOT NULL COMMENT 'Ã‰cart assumÃ© vs MLD : isolation multi-entreprise',
+  `Nom_Client` varchar(100) NOT NULL,
+  `Telephone_Client` varchar(20) DEFAULT NULL,
+  `Email_Client` varchar(100) DEFAULT NULL,
+  `Adresse_Client` varchar(200) DEFAULT NULL,
+  `Type_Client` enum('direct','entreprise') NOT NULL DEFAULT 'direct',
+  `NIF_Client` varchar(50) DEFAULT NULL,
+  `Date_Creation` datetime DEFAULT CURRENT_TIMESTAMP,
+  `Statut_Client` enum('actif','inactif') NOT NULL DEFAULT 'actif',
+  PRIMARY KEY (`Id_Client`),
+  UNIQUE KEY `uniq_client_entreprise_nom` (`Id_Entreprise`,`Nom_Client`),
+  CONSTRAINT `client_ibfk_1` FOREIGN KEY (`Id_Entreprise`) REFERENCES `Entreprise` (`Id_Entreprise`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Table structure for table `Commande_B2B`
@@ -145,6 +155,9 @@ CREATE TABLE `Commande_B2B` (
   `Date_Limite_Reponse` datetime DEFAULT NULL,
   `Mode_Retrait` enum('livraison','retrait_place') DEFAULT 'livraison',
   `Adresse_Retrait` text,
+  `Adresse_Livraison` text COMMENT 'Point de livraison choisi par l acheteur (mode livraison) ; NULL = adresse de l entreprise en secours',
+  `Latitude_Livraison` decimal(10,7) DEFAULT NULL,
+  `Longitude_Livraison` decimal(10,7) DEFAULT NULL,
   `Date_Expedition_Reelle` datetime DEFAULT NULL,
   `Message_Validation` text,
   `Date_Validation` datetime DEFAULT NULL,
@@ -154,18 +167,45 @@ CREATE TABLE `Commande_B2B` (
   KEY `idx_cmd_b2b_vendeuse_statut` (`Id_Entreprise_Vendeuse`,`Statut`),
   CONSTRAINT `commande_b2b_ibfk_1` FOREIGN KEY (`Id_Entreprise_Acheteuse`) REFERENCES `Entreprise` (`Id_Entreprise`),
   CONSTRAINT `commande_b2b_ibfk_2` FOREIGN KEY (`Id_Entreprise_Vendeuse`) REFERENCES `Entreprise` (`Id_Entreprise`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `Commande_B2B`
+-- Table structure for table `Contenir`
 --
 
-LOCK TABLES `Commande_B2B` WRITE;
-/*!40000 ALTER TABLE `Commande_B2B` DISABLE KEYS */;
-INSERT INTO `Commande_B2B` VALUES (1,'CMD-B2B-20260730-001',2,1,NULL,265000.00,'2026-07-30 08:00:00','livree',0,120,NULL,'livraison',NULL,'2026-08-02 09:00:00','Commande validée, livraison prévue sous 48h.','2026-07-31 10:00:00'),(2,'CMD-B2B-20260815-002',2,1,NULL,170000.00,'2026-08-15 14:00:00','prete',0,120,NULL,'livraison',NULL,NULL,'En préparation, expédition prévue sous 2 jours.','2026-08-16 09:30:00'),(3,'CMD-B2B-20260810-003',1,2,NULL,278000.00,'2026-08-10 10:00:00','livree',1,120,NULL,'livraison',NULL,'2026-08-13 07:30:00','Commande urgente validée. Expédition le 13/08.','2026-08-11 08:00:00'),(4,'CMD-B2B-20260819-004',1,2,NULL,42600.00,'2026-08-19 09:00:00','validee',0,120,'2026-08-19 11:00:00','livraison',NULL,NULL,'','2026-08-25 11:01:20'),(5,'CMD-B2B-20260820-005',2,1,NULL,48000.00,'2026-08-20 10:00:00','refusee',0,120,NULL,'livraison',NULL,NULL,'Rupture de stock temporaire sur le clavier mécanique RGB, désolé.','2026-08-20 11:30:00'),(6,'CMD-20260825-1419',5,1,NULL,411500.00,'2026-08-25 11:05:12','prete',1,120,'2026-08-25 13:05:12','livraison',NULL,NULL,'','2026-08-25 11:12:32'),(7,'CMD-20260825-9584',1,2,NULL,299500.00,'2026-08-25 15:25:44','en_attente',1,480,'2026-08-25 23:25:44','livraison',NULL,NULL,NULL,NULL);
-/*!40000 ALTER TABLE `Commande_B2B` ENABLE KEYS */;
-UNLOCK TABLES;
+DROP TABLE IF EXISTS `Contenir`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Contenir` (
+  `Id_Produit` int NOT NULL,
+  `Id_Ligne_Produit` int NOT NULL,
+  PRIMARY KEY (`Id_Produit`,`Id_Ligne_Produit`),
+  KEY `idx_contenir_ligne` (`Id_Ligne_Produit`),
+  CONSTRAINT `contenir_ibfk_1` FOREIGN KEY (`Id_Produit`) REFERENCES `Produit` (`Id_Produit`) ON DELETE CASCADE,
+  CONSTRAINT `contenir_ibfk_2` FOREIGN KEY (`Id_Ligne_Produit`) REFERENCES `Ligne_Produit` (`Id_Ligne_Produit`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `Email_Confirmation`
+--
+
+DROP TABLE IF EXISTS `Email_Confirmation`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Email_Confirmation` (
+  `Id_Confirmation` int NOT NULL AUTO_INCREMENT,
+  `Id_Utilisateur` int NOT NULL,
+  `Code` varchar(6) NOT NULL,
+  `Expire_At` datetime NOT NULL,
+  `Utilise` tinyint(1) DEFAULT '0',
+  `Created_At` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`Id_Confirmation`),
+  KEY `Id_Utilisateur` (`Id_Utilisateur`),
+  CONSTRAINT `email_confirmation_ibfk_1` FOREIGN KEY (`Id_Utilisateur`) REFERENCES `Utilisateur` (`Id_Utilisateur`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Table structure for table `Entreprise`
@@ -190,18 +230,8 @@ CREATE TABLE `Entreprise` (
   `Ville` varchar(100) DEFAULT NULL,
   `Region` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`Id_Entreprise`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `Entreprise`
---
-
-LOCK TABLES `Entreprise` WRITE;
-/*!40000 ALTER TABLE `Entreprise` DISABLE KEYS */;
-INSERT INTO `Entreprise` VALUES (1,'TechVision Sarl','24 Avenue de la Libération, Lomé','+228 90 11 22 33','contact@techvision.tg','NIF-TG-2021-00142','Informatique & Électronique','Vente et distribution de matériel informatique et électronique grand public.',98,12,6.1722000,1.2313000,'Lomé','Maritime'),(2,'FourniBien SA','8 Rue du Commerce, Lomé','+228 91 44 55 66','info@fournibien.tg','NIF-TG-2019-00087','Agroalimentaire & Négoce','Grossiste en produits alimentaires et de grande consommation.',96,19,6.1400000,1.2200000,'Lomé','Maritime'),(5,'ENTREPRISE KENZA',NULL,NULL,NULL,NULL,NULL,NULL,100,0,NULL,NULL,NULL,NULL);
-/*!40000 ALTER TABLE `Entreprise` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Table structure for table `Facture`
@@ -213,6 +243,7 @@ DROP TABLE IF EXISTS `Facture`;
 CREATE TABLE `Facture` (
   `Id_Facture` int NOT NULL AUTO_INCREMENT,
   `Id_Vente` int DEFAULT NULL,
+  `Id_Client` int DEFAULT NULL,
   `Id_Commande_B2B` int DEFAULT NULL,
   `Numero_Facture` varchar(50) NOT NULL,
   `Date_Facture` datetime DEFAULT CURRENT_TIMESTAMP,
@@ -230,21 +261,13 @@ CREATE TABLE `Facture` (
   KEY `idx_facture_date` (`Date_Facture`),
   KEY `idx_facture_archivage` (`Date_Archivage`),
   KEY `idx_facture_ent_statut` (`Id_Entreprise`,`Statut_Paiement`),
+  KEY `idx_facture_client` (`Id_Client`),
   CONSTRAINT `facture_ibfk_1` FOREIGN KEY (`Id_Vente`) REFERENCES `Vente` (`Id_Vente`) ON DELETE SET NULL,
   CONSTRAINT `facture_ibfk_2` FOREIGN KEY (`Id_Commande_B2B`) REFERENCES `Commande_B2B` (`Id_Commande_B2B`) ON DELETE SET NULL,
+  CONSTRAINT `fk_facture_client` FOREIGN KEY (`Id_Client`) REFERENCES `Client` (`Id_Client`) ON DELETE SET NULL,
   CONSTRAINT `fk_facture_entreprise` FOREIGN KEY (`Id_Entreprise`) REFERENCES `Entreprise` (`Id_Entreprise`) ON DELETE RESTRICT ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `Facture`
---
-
-LOCK TABLES `Facture` WRITE;
-/*!40000 ALTER TABLE `Facture` DISABLE KEYS */;
-INSERT INTO `Facture` VALUES (1,1,NULL,'FAC-2026-0001','2026-08-01 09:15:00','2026-08-31 23:59:59','payee',123500.00,0.00,123500.00,1,'2036-08-01 00:00:00'),(2,2,NULL,'FAC-2026-0002','2026-08-05 11:30:00','2026-09-04 23:59:59','payee',29000.00,0.00,29000.00,1,'2036-08-05 00:00:00'),(3,3,NULL,'FAC-2026-0003','2026-08-08 14:00:00','2026-09-07 23:59:59','payee',22400.00,0.00,22400.00,1,'2036-08-08 00:00:00'),(4,4,NULL,'FAC-2026-0004','2026-08-12 10:45:00','2026-09-11 23:59:59','payee',109500.00,0.00,109500.00,1,'2036-08-12 00:00:00'),(5,5,NULL,'FAC-2026-0005','2026-08-18 16:20:00','2026-09-17 23:59:59','payee',36900.00,0.00,36900.00,1,'2036-08-18 00:00:00'),(6,6,NULL,'FAC-2026-0006','2026-08-03 09:30:00','2026-09-02 23:59:59','payee',39000.00,0.00,39000.00,2,'2036-08-03 00:00:00'),(7,7,NULL,'FAC-2026-0007','2026-08-07 13:15:00','2026-09-06 23:59:59','non_payee',49600.00,0.00,49600.00,2,'2036-08-07 00:00:00'),(8,8,NULL,'FAC-2026-0008','2026-08-14 16:00:00','2026-09-13 23:59:59','payee',21600.00,0.00,21600.00,2,'2036-08-14 00:00:00'),(9,9,NULL,'FAC-2026-0009','2026-08-19 10:20:00','2026-09-18 23:59:59','non_payee',46500.00,0.00,46500.00,2,'2036-08-19 00:00:00'),(10,NULL,1,'FAC-2026-B001','2026-08-02 09:00:00','2026-09-01 23:59:59','payee',265000.00,0.00,265000.00,1,'2036-08-02 00:00:00'),(11,NULL,3,'FAC-2026-B002','2026-08-13 07:30:00','2026-09-12 23:59:59','non_payee',278000.00,0.00,278000.00,2,'2036-08-13 00:00:00'),(19,20,NULL,'FAC-20260825-5296','2026-08-25 21:18:06','2026-09-24 21:18:06','payee',68000.00,0.00,85000.00,1,'2036-08-25 21:18:06');
-/*!40000 ALTER TABLE `Facture` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Table structure for table `Historique_Commande_B2B`
@@ -266,18 +289,8 @@ CREATE TABLE `Historique_Commande_B2B` (
   KEY `Id_Entreprise_Action` (`Id_Entreprise_Action`),
   CONSTRAINT `historique_commande_b2b_ibfk_1` FOREIGN KEY (`Id_Commande_B2B`) REFERENCES `Commande_B2B` (`Id_Commande_B2B`) ON DELETE CASCADE,
   CONSTRAINT `historique_commande_b2b_ibfk_2` FOREIGN KEY (`Id_Entreprise_Action`) REFERENCES `Entreprise` (`Id_Entreprise`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `Historique_Commande_B2B`
---
-
-LOCK TABLES `Historique_Commande_B2B` WRITE;
-/*!40000 ALTER TABLE `Historique_Commande_B2B` DISABLE KEYS */;
-INSERT INTO `Historique_Commande_B2B` VALUES (1,3,'expediee','livree','Réception confirmée par l\'acheteur',1,'2026-08-25 10:54:37'),(2,2,'en_preparation','prete',NULL,1,'2026-08-25 10:55:48'),(3,4,'en_attente','validee',NULL,2,'2026-08-25 11:01:20'),(4,6,'en_attente','validee',NULL,1,'2026-08-25 11:12:32'),(5,6,'validee','en_preparation',NULL,1,'2026-08-25 11:13:54'),(6,6,'en_preparation','prete',NULL,1,'2026-08-25 11:14:00');
-/*!40000 ALTER TABLE `Historique_Commande_B2B` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Table structure for table `Ligne_Commande_B2B`
@@ -300,18 +313,162 @@ CREATE TABLE `Ligne_Commande_B2B` (
   KEY `Id_Produit` (`Id_Produit`),
   CONSTRAINT `ligne_commande_b2b_ibfk_1` FOREIGN KEY (`Id_Commande_B2B`) REFERENCES `Commande_B2B` (`Id_Commande_B2B`) ON DELETE CASCADE,
   CONSTRAINT `ligne_commande_b2b_ibfk_2` FOREIGN KEY (`Id_Produit`) REFERENCES `Produit` (`Id_Produit`) ON DELETE RESTRICT
-) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `trg_ligne_cmd_b2b_ins` AFTER INSERT ON `Ligne_Commande_B2B` FOR EACH ROW BEGIN
+  UPDATE `Commande_B2B` SET `Montant_Total` = (
+    SELECT COALESCE(SUM(`Sous_Total`), 0) FROM `Ligne_Commande_B2B` WHERE `Id_Commande_B2B` = NEW.`Id_Commande_B2B`
+  ) WHERE `Id_Commande_B2B` = NEW.`Id_Commande_B2B`;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `trg_ligne_cmd_b2b_upd` AFTER UPDATE ON `Ligne_Commande_B2B` FOR EACH ROW BEGIN
+  UPDATE `Commande_B2B` SET `Montant_Total` = (
+    SELECT COALESCE(SUM(`Sous_Total`), 0) FROM `Ligne_Commande_B2B` WHERE `Id_Commande_B2B` = NEW.`Id_Commande_B2B`
+  ) WHERE `Id_Commande_B2B` = NEW.`Id_Commande_B2B`;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `trg_ligne_cmd_b2b_del` AFTER DELETE ON `Ligne_Commande_B2B` FOR EACH ROW BEGIN
+  UPDATE `Commande_B2B` SET `Montant_Total` = (
+    SELECT COALESCE(SUM(`Sous_Total`), 0) FROM `Ligne_Commande_B2B` WHERE `Id_Commande_B2B` = OLD.`Id_Commande_B2B`
+  ) WHERE `Id_Commande_B2B` = OLD.`Id_Commande_B2B`;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+
+--
+-- Table structure for table `Ligne_Produit`
+--
+
+DROP TABLE IF EXISTS `Ligne_Produit`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Ligne_Produit` (
+  `Id_Ligne_Produit` int NOT NULL AUTO_INCREMENT,
+  `Id_Entreprise` int NOT NULL,
+  `Libelle` varchar(100) NOT NULL,
+  PRIMARY KEY (`Id_Ligne_Produit`),
+  UNIQUE KEY `uniq_ligneproduit_entreprise_libelle` (`Id_Entreprise`,`Libelle`),
+  CONSTRAINT `ligne_produit_ibfk_1` FOREIGN KEY (`Id_Entreprise`) REFERENCES `Entreprise` (`Id_Entreprise`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `Ligne_Commande_B2B`
+-- Table structure for table `Ligne_Vente`
 --
 
-LOCK TABLES `Ligne_Commande_B2B` WRITE;
-/*!40000 ALTER TABLE `Ligne_Commande_B2B` DISABLE KEYS */;
-INSERT INTO `Ligne_Commande_B2B` VALUES (1,1,2,'Clavier mécanique RGB',5,5,24000.00,120000.00),(2,1,3,'Souris sans fil',10,10,12000.00,120000.00),(3,1,4,'Câble HDMI 2m',6,6,4200.00,25000.00),(4,2,1,'Écran PC 27\" FHD',2,0,85000.00,170000.00),(5,3,6,'Riz long grain 25 kg',10,10,17000.00,170000.00),(6,3,7,'Huile de palme 5 L',20,15,5400.00,108000.00),(7,4,9,'Savon ménage (carton 24u)',2,0,9500.00,19000.00),(8,4,10,'Farine de blé 25 kg',2,0,11800.00,23600.00),(9,5,2,'Clavier mécanique RGB',2,0,24000.00,48000.00),(10,6,2,'Clavier mécanique RGB',5,0,24000.00,120000.00),(11,6,1,'Écran PC 27\" FHD',2,0,85000.00,170000.00),(12,6,15,'Riz long grain 25 kg',1,0,1500.00,1500.00),(13,6,3,'Souris sans fil',10,0,12000.00,120000.00),(14,7,10,'Farine de blé 25 kg',5,0,11800.00,59000.00),(15,7,7,'Huile de palme 5 L',10,0,5400.00,54000.00),(16,7,6,'Riz long grain 25 kg',5,0,17000.00,85000.00),(17,7,9,'Savon ménage (carton 24u)',2,0,9500.00,19000.00),(18,7,8,'Sucre blanc 50 kg',3,0,27500.00,82500.00);
-/*!40000 ALTER TABLE `Ligne_Commande_B2B` ENABLE KEYS */;
-UNLOCK TABLES;
+DROP TABLE IF EXISTS `Ligne_Vente`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `Ligne_Vente` (
+  `Id_Ligne_Vente` int NOT NULL AUTO_INCREMENT,
+  `Id_Vente` int NOT NULL,
+  `Id_Produit` int NOT NULL,
+  `Nom_Produit` varchar(200) NOT NULL COMMENT 'Historisé : copie du nom au moment de la vente',
+  `Quantite` int NOT NULL,
+  `Prix_Unitaire` decimal(10,2) NOT NULL COMMENT 'Historisé au moment de la vente',
+  `Sous_Total` decimal(10,2) GENERATED ALWAYS AS ((`Quantite` * `Prix_Unitaire`)) STORED,
+  PRIMARY KEY (`Id_Ligne_Vente`),
+  KEY `Id_Vente` (`Id_Vente`),
+  KEY `Id_Produit` (`Id_Produit`),
+  CONSTRAINT `ligne_vente_ibfk_1` FOREIGN KEY (`Id_Vente`) REFERENCES `Vente` (`Id_Vente`) ON DELETE CASCADE,
+  CONSTRAINT `ligne_vente_ibfk_2` FOREIGN KEY (`Id_Produit`) REFERENCES `Produit` (`Id_Produit`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `trg_ligne_vente_ins` AFTER INSERT ON `Ligne_Vente` FOR EACH ROW BEGIN
+  UPDATE `Vente` SET `Montant_Total` = (
+    SELECT COALESCE(SUM(`Sous_Total`), 0) FROM `Ligne_Vente` WHERE `Id_Vente` = NEW.`Id_Vente`
+  ) WHERE `Id_Vente` = NEW.`Id_Vente`;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `trg_ligne_vente_upd` AFTER UPDATE ON `Ligne_Vente` FOR EACH ROW BEGIN
+  UPDATE `Vente` SET `Montant_Total` = (
+    SELECT COALESCE(SUM(`Sous_Total`), 0) FROM `Ligne_Vente` WHERE `Id_Vente` = NEW.`Id_Vente`
+  ) WHERE `Id_Vente` = NEW.`Id_Vente`;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+/*!50003 CREATE*/ /*!50017 DEFINER=`root`@`localhost`*/ /*!50003 TRIGGER `trg_ligne_vente_del` AFTER DELETE ON `Ligne_Vente` FOR EACH ROW BEGIN
+  UPDATE `Vente` SET `Montant_Total` = (
+    SELECT COALESCE(SUM(`Sous_Total`), 0) FROM `Ligne_Vente` WHERE `Id_Vente` = OLD.`Id_Vente`
+  ) WHERE `Id_Vente` = OLD.`Id_Vente`;
+END */;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 
 --
 -- Table structure for table `Logistique`
@@ -345,18 +502,8 @@ CREATE TABLE `Logistique` (
   CONSTRAINT `logistique_ibfk_2` FOREIGN KEY (`Id_Commande_B2B`) REFERENCES `Commande_B2B` (`Id_Commande_B2B`) ON DELETE SET NULL,
   CONSTRAINT `logistique_ibfk_3` FOREIGN KEY (`Id_Facture`) REFERENCES `Facture` (`Id_Facture`) ON DELETE SET NULL,
   CONSTRAINT `logistique_ibfk_4` FOREIGN KEY (`Id_Entreprise`) REFERENCES `Entreprise` (`Id_Entreprise`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `Logistique`
---
-
-LOCK TABLES `Logistique` WRITE;
-/*!40000 ALTER TABLE `Logistique` DISABLE KEYS */;
-INSERT INTO `Logistique` VALUES (1,4,NULL,4,'Rapidex Express','RPX-20260812-4401','livree','2026-08-12 15:00:00','2026-08-13 12:00:00','2026-08-13 10:30:00','Quartier Bè, Rue des Palmiers, Lomé','Livraison effectuée sans incident.',1,6.1580000,1.2250000),(2,8,NULL,8,'Sahel Transport','STR-20260814-2201','expediee','2026-08-14 16:30:00','2026-08-16 12:00:00',NULL,'Quartier Adidogomé, Lomé','En cours de livraison.',2,6.1550000,1.1900000),(3,NULL,1,10,'TransLog Togo','TLT-20260802-0012','livree','2026-08-02 09:00:00','2026-08-04 17:00:00','2026-08-04 14:15:00','8 Rue du Commerce, Lomé','Livraison B2B — réception confirmée.',1,6.1400000,1.2200000),(4,NULL,3,11,'Sahel Transport','STR-20260813-0089','livree','2026-08-13 07:30:00','2026-08-15 12:00:00','2026-08-25 10:54:37','24 Avenue de la Libération, Lomé','Commande urgente — 30 unités.',2,6.1722000,1.2313000),(12,20,NULL,19,NULL,NULL,'traitement',NULL,NULL,NULL,NULL,NULL,1,NULL,NULL);
-/*!40000 ALTER TABLE `Logistique` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Table structure for table `Notification_B2B`
@@ -377,20 +524,11 @@ CREATE TABLE `Notification_B2B` (
   PRIMARY KEY (`Id_Notification`),
   KEY `Id_Entreprise_Destinataire` (`Id_Entreprise_Destinataire`),
   KEY `Id_Commande_B2B` (`Id_Commande_B2B`),
+  KEY `idx_notif_dest_lue` (`Id_Entreprise_Destinataire`,`Est_Lue`),
   CONSTRAINT `notification_b2b_ibfk_1` FOREIGN KEY (`Id_Entreprise_Destinataire`) REFERENCES `Entreprise` (`Id_Entreprise`) ON DELETE CASCADE,
   CONSTRAINT `notification_b2b_ibfk_2` FOREIGN KEY (`Id_Commande_B2B`) REFERENCES `Commande_B2B` (`Id_Commande_B2B`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `Notification_B2B`
---
-
-LOCK TABLES `Notification_B2B` WRITE;
-/*!40000 ALTER TABLE `Notification_B2B` DISABLE KEYS */;
-INSERT INTO `Notification_B2B` VALUES (1,1,'nouvelle_commande','Nouvelle commande B2B reçue','FourniBien SA — 265 000 FCFA (CMD-B2B-20260730-001).',1,1,'2026-07-30 08:05:00'),(2,1,'nouvelle_commande','Nouvelle commande B2B reçue','FourniBien SA — 170 000 FCFA (CMD-B2B-20260815-002).',2,1,'2026-08-15 14:05:00'),(3,2,'expedition','Votre commande a été expédiée','TechVision Sarl a expédié CMD-B2B-20260730-001.',1,1,'2026-08-02 09:10:00'),(4,2,'nouvelle_commande','Nouvelle commande B2B urgente','TechVision Sarl — 278 000 FCFA (CMD-B2B-20260810-003).',3,1,'2026-08-10 10:05:00'),(5,2,'nouvelle_commande','Nouvelle commande B2B reçue','TechVision Sarl — 42 600 FCFA (CMD-B2B-20260819-004).',4,1,'2026-08-19 09:05:00'),(6,2,'refus','Commande CMD-B2B-20260820-005 refusée','TechVision Sarl a refusé votre commande : rupture de stock temporaire.',5,1,'2026-08-20 11:30:00'),(7,2,'reception','🏆 Commande CMD-B2B-20260810-003 livrée','TechVision Sarl a confirmé l\'arrivée de la commande CMD-B2B-20260810-003. Les produits sont maintenant disponibles dans sa réception d\'approvisionnement.',3,0,'2026-08-25 10:54:37'),(8,1,'livraison','✅ Réception de CMD-B2B-20260810-003 confirmée','La commande CMD-B2B-20260810-003 est arrivée. Ouvrez Approvisionnement pour choisir les quantités à ajouter à votre stock.',3,1,'2026-08-25 10:54:37'),(9,2,'prete','✅ Commande CMD-B2B-20260815-002 prête à expédier','Votre commande CMD-B2B-20260815-002 est prête. Elle sera expédiée très prochainement par TechVision Sarl.',2,0,'2026-08-25 10:55:48'),(10,1,'validation','✅ Commande CMD-B2B-20260819-004 validée par FourniBien SA','Votre commande CMD-B2B-20260819-004 a été validée par FourniBien SA. Elle va être mise en préparation.',4,1,'2026-08-25 11:01:20'),(11,1,'commande_urgente','⚡ COMMANDE URGENTE de ENTREPRISE KENZA','Commande CMD-20260825-1419 — Total : 411 500 F. Délai de réponse requis : 120 minutes.',6,1,'2026-08-25 11:05:12'),(12,5,'validation','✅ Commande CMD-20260825-1419 validée par TechVision Sarl','Votre commande CMD-20260825-1419 a été validée par TechVision Sarl. Elle va être mise en préparation.',6,0,'2026-08-25 11:12:32'),(13,5,'preparation','📦 Commande CMD-20260825-1419 en préparation','Votre commande CMD-20260825-1419 est actuellement en cours de préparation par TechVision Sarl.',6,0,'2026-08-25 11:13:54'),(14,5,'prete','✅ Commande CMD-20260825-1419 prête à expédier','Votre commande CMD-20260825-1419 est prête. Elle sera expédiée très prochainement par TechVision Sarl.',6,1,'2026-08-25 11:14:00'),(15,2,'commande_urgente','⚡ COMMANDE URGENTE de TechVision Sarl','Commande CMD-20260825-9584 — Total : 299 500 F. Délai de réponse requis : 480 minutes.',7,0,'2026-08-25 15:25:44');
-/*!40000 ALTER TABLE `Notification_B2B` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Table structure for table `Password_Reset`
@@ -411,15 +549,6 @@ CREATE TABLE `Password_Reset` (
   CONSTRAINT `password_reset_ibfk_1` FOREIGN KEY (`Id_Utilisateur`) REFERENCES `Utilisateur` (`Id_Utilisateur`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `Password_Reset`
---
-
-LOCK TABLES `Password_Reset` WRITE;
-/*!40000 ALTER TABLE `Password_Reset` DISABLE KEYS */;
-/*!40000 ALTER TABLE `Password_Reset` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Table structure for table `Produit`
@@ -444,19 +573,11 @@ CREATE TABLE `Produit` (
   `Seuil_Alerte_Stock` int unsigned NOT NULL DEFAULT '5' COMMENT 'Alerte si Quantite_En_Stock <= seuil',
   PRIMARY KEY (`Id_Produit`),
   KEY `idx_produit_ent` (`Id_Entreprise`),
+  KEY `idx_produit_code_barre_unite` (`Code_Barre_Unite`),
+  KEY `idx_produit_code_barre_carton` (`Code_Barre_Carton`),
   CONSTRAINT `produit_ibfk_1` FOREIGN KEY (`Id_Entreprise`) REFERENCES `Entreprise` (`Id_Entreprise`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `Produit`
---
-
-LOCK TABLES `Produit` WRITE;
-/*!40000 ALTER TABLE `Produit` DISABLE KEYS */;
-INSERT INTO `Produit` VALUES (1,'Écran PC 27\" FHD','Moniteur Full HD 1920×1080, dalle IPS, 75 Hz',95000.00,10,'3760001234001','3760001234100',4,1,85000.00,2,1,5),(2,'Clavier mécanique RGB','Switches blue, rétroéclairage RGB, AZERTY',28500.00,20,'3760001234002','3760001234200',10,1,24000.00,5,1,5),(3,'Souris sans fil','Capteur 1600 DPI, autonomie 12 mois',14500.00,30,'3760001234003',NULL,1,1,12000.00,10,1,5),(4,'Câble HDMI 2m','HDMI 2.0, 4K 60 Hz, contacts dorés',4200.00,85,'3760001234004','3760001234400',20,0,NULL,1,1,5),(5,'Hub USB 4 ports','USB 3.0, transfert 5 Gbps, PC/Mac',9800.00,18,'3760001234005',NULL,1,0,NULL,1,1,5),(6,'Riz long grain 25 kg','Riz blanc étuvé, sac 25 kg, Thaïlande',19500.00,180,'6280001234006','6280001234600',5,1,17000.00,5,2,5),(7,'Huile de palme 5 L','Huile de palme raffinée, bidon 5 L',6200.00,250,'6280001234007','6280001234700',12,1,5400.00,10,2,5),(8,'Sucre blanc 50 kg','Sucre cristallisé, sac 50 kg',31000.00,120,'6280001234008','6280001234800',2,1,27500.00,3,2,5),(9,'Savon ménage (carton 24u)','Savon de lessive 400g, carton de 24',10800.00,58,'6280001234009','6280001234900',1,1,9500.00,2,2,5),(10,'Farine de blé 25 kg','Farine T55, sac 25 kg',13500.00,93,'6280001234010','6280001235000',4,1,11800.00,5,2,5),(15,'Riz long grain 25 kg','Riz blanc étuvé, sac 25 kg, Thaïlande',17000.00,4,'6280001234006','6280001234600',5,1,1500.00,1,1,5),(16,'Huile de palme 5 L','Huile de palme raffinée, bidon 5 L',5400.00,15,'6280001234007','6280001234700',12,0,NULL,1,1,5);
-/*!40000 ALTER TABLE `Produit` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Table structure for table `Scan_Session`
@@ -483,17 +604,8 @@ CREATE TABLE `Scan_Session` (
   KEY `idx_scan_session_expires` (`Expires_At`),
   CONSTRAINT `fk_scan_session_entreprise` FOREIGN KEY (`Id_Entreprise`) REFERENCES `Entreprise` (`Id_Entreprise`) ON DELETE CASCADE,
   CONSTRAINT `fk_scan_session_utilisateur` FOREIGN KEY (`Id_Utilisateur`) REFERENCES `Utilisateur` (`Id_Utilisateur`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `Scan_Session`
---
-
-LOCK TABLES `Scan_Session` WRITE;
-/*!40000 ALTER TABLE `Scan_Session` DISABLE KEYS */;
-/*!40000 ALTER TABLE `Scan_Session` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Table structure for table `Scan_Session_Scan`
@@ -511,17 +623,8 @@ CREATE TABLE `Scan_Session_Scan` (
   PRIMARY KEY (`Id_Scan`),
   KEY `idx_scan_session_scan_session` (`Id_Scan_Session`,`Id_Scan`),
   CONSTRAINT `fk_scan_session_scan_session` FOREIGN KEY (`Id_Scan_Session`) REFERENCES `Scan_Session` (`Id_Scan_Session`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `Scan_Session_Scan`
---
-
-LOCK TABLES `Scan_Session_Scan` WRITE;
-/*!40000 ALTER TABLE `Scan_Session_Scan` DISABLE KEYS */;
-/*!40000 ALTER TABLE `Scan_Session_Scan` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Table structure for table `Utilisateur`
@@ -534,6 +637,7 @@ CREATE TABLE `Utilisateur` (
   `Id_Utilisateur` int NOT NULL AUTO_INCREMENT,
   `Nom_Utilisateur` varchar(50) NOT NULL,
   `Email_Utilisateur` varchar(100) NOT NULL,
+  `Email_Verifie` tinyint(1) NOT NULL DEFAULT '1' COMMENT 'Comptes dÃ©jÃ  existants = vÃ©rifiÃ©s ; nouvelles inscriptions dÃ©marrent Ã  0',
   `Mot_De_Passe_Utilisateur` varchar(255) NOT NULL,
   `Role_Utilisateur` enum('admin','proprio','vendeur','livreur') NOT NULL DEFAULT 'proprio',
   `Id_Entreprise` int DEFAULT NULL,
@@ -542,18 +646,8 @@ CREATE TABLE `Utilisateur` (
   UNIQUE KEY `Email_Utilisateur` (`Email_Utilisateur`),
   KEY `Id_Entreprise` (`Id_Entreprise`),
   CONSTRAINT `utilisateur_ibfk_1` FOREIGN KEY (`Id_Entreprise`) REFERENCES `Entreprise` (`Id_Entreprise`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `Utilisateur`
---
-
-LOCK TABLES `Utilisateur` WRITE;
-/*!40000 ALTER TABLE `Utilisateur` DISABLE KEYS */;
-INSERT INTO `Utilisateur` VALUES (1,'superadmin','admin@factupro.tg','$2y$10$wDBhcqr2IOrF2FrR2Lh7puQ4Ds.NBg2nM0x3SgCVwuuFI4kLValiG','admin',NULL),(2,'alex_admin','alex@techvision.tg','$2y$10$Xh92eIKaEj85xBV4.t3nBOJYkk6mz9GqaqFn4xodRQ98xJ5ouQGjO','proprio',1),(3,'marie_tech','marie@techvision.tg','$2y$10$EdjpN47OV6JBWZ9XUooLSOV0aJ/vQyQaVOxux474i2D6czfwN2NdG','vendeur',1),(4,'sophie_tech','sophie@techvision.tg','$2y$10$hZRsRltrlq393MZtbYfZL.uomvKcIbkWLp82j3Xg58i7LXMjGkgLW','vendeur',1),(5,'paul_tech','paul@techvision.tg','$2y$10$qubfEaiQdSkZe4FvXT3HSOfhroTgysWqffpX5YOLm.e8nsBhSF.G.','vendeur',1),(6,'livreur_tech','livreur@techvision.tg','$2y$10$O//tbhLzjoul4w6ZCzHY6OgLhkAbvCc1jv0FMSjjMRPR0z30ZmtoW','livreur',1),(7,'moussa_tech','moussa@techvision.tg','$2y$10$cU9nToZeULEqv88nBdRKfObA9rVzIQnExJCL.nWW.JDz5OSykbzGe','livreur',1),(8,'fourni_admin','admin@fournibien.tg','$2y$10$cbWf2IuvIlkqp6e/tiRvBO/hG6eACqDCcplRULvWD1JrZoFuYNWOm','proprio',2),(9,'jean_fourni','jean@fournibien.tg','$2y$10$Y57vCKdKAOpobKhRKTN9fud/tSbq6VV1LSflkZlHWifgM2jY8X2eq','vendeur',2),(10,'awa_fourni','awa@fournibien.tg','$2y$10$u4u91MFC72s9gHCZJDGvwuAkkWqOACfIeqLN0.pV8NmESkrsLBOsm','vendeur',2),(11,'koffi_fourni','koffi@fournibien.tg','$2y$10$8GMDolXRgaQDABh0/G5EheEWqeAFq.XsKih.yIFZBN2GyKyBvQESW','vendeur',2),(12,'livreur_fourni','livreur@fournibien.tg','$2y$10$J8EhyRlySG7GoGhx4wX1sub.N20V1bsBswkos3sEX5rnSrHHAskFG','livreur',2),(13,'ama_fourni','ama@fournibien.tg','$2y$10$OM27U3LGxU0f7ZUWzKPpv.qJR1HHSIHuf30u54m1rRclUgeP0EyPK','livreur',2),(16,'kénza','nicouebeglahkenza@gmail.com','$2y$10$3uacaf5IPfoLJkBS54eL9eDPJZ8Sfz3tExp.QIYn0KWLTdDtPVxsm','proprio',5);
-/*!40000 ALTER TABLE `Utilisateur` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Table structure for table `Vente`
@@ -566,28 +660,28 @@ CREATE TABLE `Vente` (
   `Id_Vente` int NOT NULL AUTO_INCREMENT,
   `Numero_Vente` varchar(50) NOT NULL,
   `Nom_Client` varchar(100) DEFAULT 'Client Comptant',
+  `Id_Client` int DEFAULT NULL COMMENT 'FK Client ; Nom_Client reste un libellÃ© de cache',
   `Nom_Vendeur` varchar(100) DEFAULT NULL,
+  `Id_Vendeur` int DEFAULT NULL COMMENT 'FK Utilisateur ; Nom_Vendeur reste un libellÃ© de cache',
   `Date_Vente` datetime DEFAULT CURRENT_TIMESTAMP,
-  `Articles_JSON` text NOT NULL,
+  `Articles_JSON` text COMMENT '[DEPRECATED] RemplacÃ© par Ligne_Vente pour les nouvelles ventes ; conservÃ© pour les ventes historiques et l''affichage.',
   `Montant_Total` decimal(10,2) NOT NULL,
   `Type_Vente` enum('directe','b2b') DEFAULT 'directe',
   `Id_Entreprise` int DEFAULT NULL,
   PRIMARY KEY (`Id_Vente`),
   UNIQUE KEY `Numero_Vente` (`Numero_Vente`),
   KEY `idx_vente_ent_date` (`Id_Entreprise`,`Date_Vente`),
+  KEY `idx_vente_vendeur` (`Id_Vendeur`),
+  KEY `idx_vente_client` (`Id_Client`),
+  CONSTRAINT `fk_vente_client` FOREIGN KEY (`Id_Client`) REFERENCES `Client` (`Id_Client`) ON DELETE SET NULL,
+  CONSTRAINT `fk_vente_vendeur` FOREIGN KEY (`Id_Vendeur`) REFERENCES `Utilisateur` (`Id_Utilisateur`) ON DELETE SET NULL,
   CONSTRAINT `vente_ibfk_1` FOREIGN KEY (`Id_Entreprise`) REFERENCES `Entreprise` (`Id_Entreprise`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `Vente`
+-- Dumping events for database 'facturation'
 --
-
-LOCK TABLES `Vente` WRITE;
-/*!40000 ALTER TABLE `Vente` DISABLE KEYS */;
-INSERT INTO `Vente` VALUES (1,'VNT-20260801-0001','Kofi Mensah','alex_admin','2026-08-01 09:15:00','[{\"nom\":\"Écran PC 27\\\" FHD\",\"quantite\":1,\"prix_unitaire\":95000,\"sous_total\":95000},{\"nom\":\"Clavier mécanique RGB\",\"quantite\":1,\"prix_unitaire\":28500,\"sous_total\":28500}]',123500.00,'directe',1),(2,'VNT-20260805-0002','Ama Asante','marie_tech','2026-08-05 11:30:00','[{\"nom\":\"Souris sans fil\",\"quantite\":2,\"prix_unitaire\":14500,\"sous_total\":29000}]',29000.00,'directe',1),(3,'VNT-20260808-0003','Kwame Baffoe','sophie_tech','2026-08-08 14:00:00','[{\"nom\":\"Hub USB 4 ports\",\"quantite\":1,\"prix_unitaire\":9800,\"sous_total\":9800},{\"nom\":\"Câble HDMI 2m\",\"quantite\":3,\"prix_unitaire\":4200,\"sous_total\":12600}]',22400.00,'directe',1),(4,'VNT-20260812-0004','Abena Osei','paul_tech','2026-08-12 10:45:00','[{\"nom\":\"Écran PC 27\\\" FHD\",\"quantite\":1,\"prix_unitaire\":95000,\"sous_total\":95000},{\"nom\":\"Souris sans fil\",\"quantite\":1,\"prix_unitaire\":14500,\"sous_total\":14500}]',109500.00,'directe',1),(5,'VNT-20260818-0005','Fiifi Mensah','marie_tech','2026-08-18 16:20:00','[{\"nom\":\"Clavier mécanique RGB\",\"quantite\":1,\"prix_unitaire\":28500,\"sous_total\":28500},{\"nom\":\"Câble HDMI 2m\",\"quantite\":2,\"prix_unitaire\":4200,\"sous_total\":8400}]',36900.00,'directe',1),(6,'VNT-20260803-0006','Yao Adjei','jean_fourni','2026-08-03 09:30:00','[{\"nom\":\"Riz long grain 25 kg\",\"quantite\":2,\"prix_unitaire\":19500,\"sous_total\":39000}]',39000.00,'directe',2),(7,'VNT-20260807-0007','Akosua Mensah','awa_fourni','2026-08-07 13:15:00','[{\"nom\":\"Huile de palme 5 L\",\"quantite\":3,\"prix_unitaire\":6200,\"sous_total\":18600},{\"nom\":\"Sucre blanc 50 kg\",\"quantite\":1,\"prix_unitaire\":31000,\"sous_total\":31000}]',49600.00,'directe',2),(8,'VNT-20260814-0008','Kodjo Agbeko','koffi_fourni','2026-08-14 16:00:00','[{\"nom\":\"Savon ménage (carton 24u)\",\"quantite\":2,\"prix_unitaire\":10800,\"sous_total\":21600}]',21600.00,'directe',2),(9,'VNT-20260819-0009','Efua Boateng','fourni_admin','2026-08-19 10:20:00','[{\"nom\":\"Farine de blé 25 kg\",\"quantite\":2,\"prix_unitaire\":13500,\"sous_total\":27000},{\"nom\":\"Riz long grain 25 kg\",\"quantite\":1,\"prix_unitaire\":19500,\"sous_total\":19500}]',46500.00,'directe',2),(20,'FAC-20260825-5296','Client Comptant','alex_admin','2026-08-25 21:18:06','[{\"id_produit\":15,\"nom\":\"Riz long grain 25 kg\",\"quantite_carton\":0,\"quantite_unite\":5,\"quantite_unites\":5,\"prix_unitaire\":17000,\"total\":85000}]',85000.00,'directe',1);
-/*!40000 ALTER TABLE `Vente` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Dumping routines for database 'facturation'
@@ -602,4 +696,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-08-25 21:36:13
+-- Dump completed
