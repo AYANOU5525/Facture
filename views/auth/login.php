@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="../assets/vendor/fonts/fonts.css">
 
     <link rel="stylesheet" href="../assets/vendor/bootstrap/bootstrap.min.css">
-    <link rel="stylesheet" href="../assets/css/theme.css">
+    <link rel="stylesheet" href="../assets/css/theme.css?v=<?= @filemtime(__DIR__ . '/../../assets/css/theme.css') ?>">
     <link rel="stylesheet" href="../assets/vendor/fontawesome/css/all.min.css">
 </head>
 

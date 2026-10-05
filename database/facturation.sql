@@ -149,7 +149,7 @@ CREATE TABLE `Commande_B2B` (
   `Articles_JSON` text COMMENT '[DEPRECATED] Conservé pour rétrocompatibilité',
   `Montant_Total` decimal(10,2) NOT NULL,
   `Date_Commande` datetime DEFAULT CURRENT_TIMESTAMP,
-  `Statut` enum('en_attente','validee','en_preparation','prete','expediee','livree','refusee') DEFAULT 'en_attente',
+  `Statut` enum('en_attente','a_confirmer','validee','en_preparation','prete','expediee','livree','refusee','annulee') DEFAULT 'en_attente',
   `Est_Urgente` tinyint(1) DEFAULT '0',
   `Delai_Reponse_Minutes` int DEFAULT '120',
   `Date_Limite_Reponse` datetime DEFAULT NULL,
@@ -161,12 +161,15 @@ CREATE TABLE `Commande_B2B` (
   `Date_Expedition_Reelle` datetime DEFAULT NULL,
   `Message_Validation` text,
   `Date_Validation` datetime DEFAULT NULL,
+  `Id_Commande_Origine` int DEFAULT NULL COMMENT 'Commande dont celle-ci est le reliquat (livraison partielle à compléter)',
   PRIMARY KEY (`Id_Commande_B2B`),
   UNIQUE KEY `Numero_Commande` (`Numero_Commande`),
   KEY `Id_Entreprise_Acheteuse` (`Id_Entreprise_Acheteuse`),
   KEY `idx_cmd_b2b_vendeuse_statut` (`Id_Entreprise_Vendeuse`,`Statut`),
+  KEY `Id_Commande_Origine` (`Id_Commande_Origine`),
   CONSTRAINT `commande_b2b_ibfk_1` FOREIGN KEY (`Id_Entreprise_Acheteuse`) REFERENCES `Entreprise` (`Id_Entreprise`),
-  CONSTRAINT `commande_b2b_ibfk_2` FOREIGN KEY (`Id_Entreprise_Vendeuse`) REFERENCES `Entreprise` (`Id_Entreprise`)
+  CONSTRAINT `commande_b2b_ibfk_2` FOREIGN KEY (`Id_Entreprise_Vendeuse`) REFERENCES `Entreprise` (`Id_Entreprise`),
+  CONSTRAINT `commande_b2b_origine_fk` FOREIGN KEY (`Id_Commande_Origine`) REFERENCES `Commande_B2B` (`Id_Commande_B2B`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -200,6 +203,7 @@ CREATE TABLE `Email_Confirmation` (
   `Code` varchar(6) NOT NULL,
   `Expire_At` datetime NOT NULL,
   `Utilise` tinyint(1) DEFAULT '0',
+  `Tentatives` tinyint unsigned NOT NULL DEFAULT '0',
   `Created_At` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`Id_Confirmation`),
   KEY `Id_Utilisateur` (`Id_Utilisateur`),
@@ -305,6 +309,7 @@ CREATE TABLE `Ligne_Commande_B2B` (
   `Id_Produit` int NOT NULL,
   `Nom_Produit` varchar(200) NOT NULL,
   `Quantite` int NOT NULL,
+  `Quantite_Proposee` int DEFAULT NULL COMMENT 'Quantité proposée par le vendeur en attente d''accord de l''acheteur (statut a_confirmer)',
   `Quantite_Receptionnee` int NOT NULL DEFAULT '0',
   `Prix_Unitaire` decimal(10,2) NOT NULL,
   `Sous_Total` decimal(10,2) NOT NULL,

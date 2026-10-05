@@ -95,7 +95,7 @@ class TeamController extends Controller
         <!-- EN-TÊTE -->
         <tr>
           <td style="background:#3b5bdb;padding:32px 40px;text-align:center;">
-            <h1 style="margin:0;color:#ffffff;font-size:24px;">🎉 Bienvenue sur FactuPro</h1>
+            <h1 style="margin:0;color:#ffffff;font-size:24px;">Bienvenue sur FactuPro</h1>
             <p style="margin:8px 0 0;color:#bfcfff;font-size:14px;">Votre compte a été créé</p>
           </td>
         </tr>
@@ -146,7 +146,7 @@ class TeamController extends Controller
             <!-- AVERTISSEMENT -->
             <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:14px 18px;margin-bottom:16px;">
               <p style="margin:0;color:#7a5800;font-size:13px;">
-                ⚠️ <strong>Important :</strong> Ce mot de passe est provisoire.
+                <strong>Important :</strong> Ce mot de passe est provisoire.
                 Veuillez le changer dès votre première connexion via <em>Paramètres → Sécurité</em>.
               </p>
             </div>
@@ -186,7 +186,7 @@ HTML;
 
         envoyerEmailB2b(
             $email,
-            "🎉 Bienvenue sur FactuPro — Vos identifiants de connexion",
+            "Bienvenue sur FactuPro — Vos identifiants de connexion",
             $html,
             $altText
         );

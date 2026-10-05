@@ -198,6 +198,12 @@ class ProductController extends Controller
         try {
             $this->products->delete((int) $_POST['id_produit'], $entreprise_id);
             return ['Produit supprimé avec succès.', ''];
+        } catch (\PDOException $e) {
+            // Clé étrangère RESTRICT (Ligne_Vente, Ligne_Commande_B2B) : produit déjà vendu ou commandé.
+            if ($e->getCode() === '23000') {
+                return ['', "Ce produit figure déjà dans des ventes ou des commandes B2B : il ne peut pas être supprimé (l'historique des factures doit être conservé). Retirez-le du déstockage B2B ou passez son stock à 0."];
+            }
+            return ['', 'Erreur lors de la suppression : ' . $e->getMessage()];
         } catch (\Throwable $e) {
             return ['', 'Erreur lors de la suppression : ' . $e->getMessage()];
         }
@@ -222,19 +228,31 @@ class ProductController extends Controller
     private function handleSave(int $entreprise_id): array
     {
         $id_produit = $_POST['id_produit'] ?? null;
-        $categoryIds = array_map('intval', (array) ($_POST['categories'] ?? []));
+        $categoryIds = array_values(array_unique(array_filter(
+            array_map('intval', (array) ($_POST['categories'] ?? [])),
+            static fn (int $categoryId): bool => $categoryId > 0
+        )));
+        $ownedCategoryIds = array_map(
+            'intval',
+            array_column($this->categories->listByEnterprise($entreprise_id), 'Id_Ligne_Produit')
+        );
+        $categoryIds = array_values(array_intersect($categoryIds, $ownedCategoryIds));
+
+        if ($categoryIds === []) {
+            return ['', 'Sélectionnez au moins une catégorie avant d’enregistrer le produit.'];
+        }
 
         try {
-            if ($id_produit) {
-                $productId = $this->products->save($_POST, $entreprise_id, (int) $id_produit);
-                $this->categories->assignToProduct($productId, $categoryIds, $entreprise_id);
-                return ['Produit modifié avec succès.', ''];
-            }
-
-            $productId = $this->products->save($_POST, $entreprise_id);
+            $this->pdo->beginTransaction();
+            $productId = $this->products->save($_POST, $entreprise_id, $id_produit ? (int) $id_produit : null);
             $this->categories->assignToProduct($productId, $categoryIds, $entreprise_id);
-            return ['Produit ajouté avec succès.', ''];
+            $this->pdo->commit();
+
+            return [$id_produit ? 'Produit modifié avec succès.' : 'Produit ajouté avec succès.', ''];
         } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
             $verbe = $id_produit ? 'la modification' : "l'ajout";
             return ['', "Erreur lors de $verbe : " . $e->getMessage()];
         }

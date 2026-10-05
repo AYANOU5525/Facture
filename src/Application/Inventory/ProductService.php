@@ -96,11 +96,34 @@ final class ProductService
             $quantiteParCarton = 1;
         }
 
+        $quantiteMinB2bInput = $input['quantite_min_b2b'] ?? '';
+        $quantiteMinB2b = $quantiteMinB2bInput === '' ? 1 : filter_var($quantiteMinB2bInput, FILTER_VALIDATE_INT);
+        if ($quantiteMinB2b === false || $quantiteMinB2b < 1) {
+            throw new InvalidArgumentException('La quantité minimale B2B doit être un nombre entier supérieur ou égal à 1.');
+        }
+
+        $prixB2bInput = $input['prix_b2b'] ?? '';
+        $prixB2b = $prixB2bInput !== '' ? filter_var($prixB2bInput, FILTER_VALIDATE_FLOAT) : null;
+        if ($prixB2b === false || ($prixB2b !== null && $prixB2b < 0)) {
+            throw new InvalidArgumentException('Le prix B2B doit être un montant valide et positif ou nul.');
+        }
+
+        $enDestockage = isset($input['en_destockage_b2b']);
+        if ($enDestockage && $prixB2b === null) {
+            $prixB2b = $price;
+        }
+
         $codeUniteOrNull = $codeBarreUnite !== '' ? $codeBarreUnite : null;
         $codeCartonOrNull = $codeBarreCarton !== '' ? $codeBarreCarton : null;
 
         if ($codeUniteOrNull !== null && $codeCartonOrNull !== null && $codeUniteOrNull === $codeCartonOrNull) {
             throw new InvalidArgumentException('Le code-barre unité et le code-barre carton doivent être différents.');
+        }
+
+        // Nom unique par entreprise : la réception B2B (StockService::receiveB2BLine) retrouve le
+        // produit de l'acheteur par son nom à défaut de code-barres, un doublon la rendrait ambiguë.
+        if ($this->repository->findByName($name, $enterpriseId, $productId) !== null) {
+            throw new InvalidArgumentException('Un produit nommé « ' . $name . ' » existe déjà.');
         }
 
         $conflict = $this->repository->findConflictingProduct($codeUniteOrNull, $codeCartonOrNull, $enterpriseId, $productId);
@@ -116,9 +139,9 @@ final class ProductService
             'prix' => $price,
             'stock' => $stock,
             'seuil_alerte' => $seuil,
-            'en_destockage' => isset($input['en_destockage_b2b']) ? 1 : 0,
-            'prix_b2b' => ($input['prix_b2b'] ?? '') !== '' ? $input['prix_b2b'] : null,
-            'qte_min_b2b' => ($input['quantite_min_b2b'] ?? '') !== '' ? $input['quantite_min_b2b'] : 1,
+            'en_destockage' => $enDestockage ? 1 : 0,
+            'prix_b2b' => $prixB2b,
+            'qte_min_b2b' => $quantiteMinB2b,
             'code_barre_unite' => $codeBarreUnite !== '' ? $codeBarreUnite : null,
             'code_barre_carton' => $codeBarreCarton !== '' ? $codeBarreCarton : null,
             'quantite_par_carton' => $quantiteParCarton,

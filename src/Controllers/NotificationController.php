@@ -20,7 +20,7 @@ class NotificationController extends Controller
 
         // Paginer les notifications
         $page  = max(1, intval($_GET['p'] ?? 1));
-        $limit = 20;
+        $limit = 5;
         $offset = ($page - 1) * $limit;
 
         $total_stmt = $this->pdo->prepare("SELECT COUNT(*) FROM Notification_B2B WHERE Id_Entreprise_Destinataire = ?");

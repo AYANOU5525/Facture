@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure\Persistence;
 
+use App\Application\Billing\Vat;
 use PDO;
 
 final class InvoiceRepository
@@ -78,10 +79,11 @@ final class InvoiceRepository
     {
         $statement = $this->pdo->prepare(
             'INSERT INTO Facture
-                (Id_Vente, Id_Client, Numero_Facture, Date_Echeance, Montant_HT, Montant_TTC, Date_Archivage, Id_Entreprise)
-             VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY), ?, ?, DATE_ADD(NOW(), INTERVAL 10 YEAR), ?)'
+                (Id_Vente, Id_Client, Numero_Facture, Date_Echeance, Montant_HT, TVA, Montant_TTC, Date_Archivage, Id_Entreprise)
+             VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY), ?, ?, ?, DATE_ADD(NOW(), INTERVAL 10 YEAR), ?)'
         );
-        $statement->execute([$saleId, $clientId, $number, $total * 0.8, $total, $enterpriseId]);
+        $vat = Vat::fromTtc($total);
+        $statement->execute([$saleId, $clientId, $number, $vat['ht'], $vat['tva'], $total, $enterpriseId]);
 
         return (int) $this->pdo->lastInsertId();
     }

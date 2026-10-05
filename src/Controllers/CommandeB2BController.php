@@ -35,6 +35,9 @@ class CommandeB2BController extends Controller
 
         $mon_entreprise_id = (int) $_SESSION['entreprise_id'];
 
+        // Avant tout traitement : une commande urgente expirée ne doit plus pouvoir être validée.
+        expirerCommandesUrgentes($this->pdo);
+
         $success = '';
         $error   = '';
 
@@ -65,7 +68,7 @@ class CommandeB2BController extends Controller
         $selected_vendeur = $_SESSION['selected_vendeur'] ?? null;
         if ($selected_vendeur) {
             $stmt = $this->pdo->prepare("
-                SELECT Id_Produit, Nom_Produit, Prix_B2B, Quantite_En_Stock, Quantite_Min_B2B
+                SELECT Id_Produit, Nom_Produit, Prix_B2B, Quantite_Min_B2B
                 FROM Produit
                 WHERE Id_Entreprise = ? AND En_Destockage_B2B = 1 AND Quantite_En_Stock > 0
                 ORDER BY Nom_Produit
@@ -89,9 +92,12 @@ class CommandeB2BController extends Controller
                 SELECT c.*,
                        e.Nom_Entreprise AS Autre_Partie,
                        e.Tel_Entreprise,
-                       e.Email_Entreprise
+                       e.Email_Entreprise,
+                       f.Numero_Facture, o.Numero_Commande AS Numero_Origine
                 FROM Commande_B2B c
                 JOIN Entreprise e ON c.Id_Entreprise_Acheteuse = e.Id_Entreprise
+                LEFT JOIN Facture f ON f.Id_Commande_B2B = c.Id_Commande_B2B
+                LEFT JOIN Commande_B2B o ON o.Id_Commande_B2B = c.Id_Commande_Origine
                 WHERE c.Id_Entreprise_Vendeuse = ?
                 ORDER BY c.Est_Urgente DESC, c.Date_Commande DESC
             ";
@@ -101,9 +107,12 @@ class CommandeB2BController extends Controller
                 SELECT c.*,
                        e.Nom_Entreprise AS Autre_Partie,
                        e.Tel_Entreprise,
-                       e.Email_Entreprise
+                       e.Email_Entreprise,
+                       f.Numero_Facture, o.Numero_Commande AS Numero_Origine
                 FROM Commande_B2B c
                 JOIN Entreprise e ON c.Id_Entreprise_Vendeuse = e.Id_Entreprise
+                LEFT JOIN Facture f ON f.Id_Commande_B2B = c.Id_Commande_B2B
+                LEFT JOIN Commande_B2B o ON o.Id_Commande_B2B = c.Id_Commande_Origine
                 WHERE c.Id_Entreprise_Acheteuse = ?
                 ORDER BY c.Est_Urgente DESC, c.Date_Commande DESC
             ";
@@ -176,6 +185,18 @@ class CommandeB2BController extends Controller
             return $this->handleRefuser($mon_entreprise_id);
         }
 
+        if ($action === 'proposer_partiel') {
+            return $this->handleProposerPartiel($mon_entreprise_id);
+        }
+
+        if ($action === 'accepter_proposition') {
+            return $this->handleAccepterProposition($mon_entreprise_id);
+        }
+
+        if ($action === 'annuler_commande') {
+            return $this->handleAnnulerCommande($mon_entreprise_id);
+        }
+
         return ['', ''];
     }
 
@@ -206,7 +227,7 @@ class CommandeB2BController extends Controller
             $mon_nom = $this->getNomEntrepriseLocal($mon_entreprise_id);
             $type_notif = $est_urgente ? 'commande_urgente' : 'nouvelle_commande';
             $titre_notif = $est_urgente
-                ? "⚡ COMMANDE URGENTE de $mon_nom"
+                ? "Commande urgente de $mon_nom"
                 : "Nouvelle commande de $mon_nom";
             $msg_notif = "Commande $numero — Total : " . number_format($total_commande, 0, ',', ' ') . " F.";
             if ($est_urgente) {
@@ -214,7 +235,7 @@ class CommandeB2BController extends Controller
             }
             creerNotificationB2b($this->pdo, $id_vendeur, $type_notif, $titre_notif, $msg_notif, $id_commande);
 
-            return ["Commande $numero envoyée avec succès !" . ($est_urgente ? " 🔴 Marquée comme URGENTE." : ""), ''];
+            return ["Commande $numero envoyée avec succès !" . ($est_urgente ? " Marquée comme urgente." : ""), ''];
         } catch (\Exception $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
@@ -254,6 +275,7 @@ class CommandeB2BController extends Controller
                 throw new \RuntimeException(
                     "Validation impossible — stock insuffisant :\n• "
                         . implode("\n• ", $messages_erreur)
+                        . "\nOuvrez le détail de la commande pour proposer une livraison partielle à l'acheteur."
                 );
             }
 
@@ -275,7 +297,7 @@ class CommandeB2BController extends Controller
                 $this->pdo,
                 (int) $cmd['Id_Entreprise_Acheteuse'],
                 'validation',
-                "✅ Commande $num validée par $nom_vendeur",
+                "Commande $num validée par $nom_vendeur",
                 "Votre commande $num a été validée par $nom_vendeur. Elle va être mise en préparation." . ($msg_vendeur ? "\nMessage du vendeur : $msg_vendeur" : ''),
                 $id_commande
             );
@@ -309,7 +331,7 @@ class CommandeB2BController extends Controller
                 $this->pdo,
                 (int) $cmd['Id_Entreprise_Acheteuse'],
                 'preparation',
-                "📦 Commande {$cmd['Numero_Commande']} en préparation",
+                "Commande {$cmd['Numero_Commande']} en préparation",
                 "Votre commande {$cmd['Numero_Commande']} est actuellement en cours de préparation par $nom_vendeur.",
                 $id_commande
             );
@@ -340,7 +362,7 @@ class CommandeB2BController extends Controller
                 $this->pdo,
                 (int) $cmd['Id_Entreprise_Acheteuse'],
                 'prete',
-                "✅ Commande {$cmd['Numero_Commande']} prête à expédier",
+                "Commande {$cmd['Numero_Commande']} prête à expédier",
                 "Votre commande {$cmd['Numero_Commande']} est prête. Elle sera expédiée très prochainement par $nom_vendeur.",
                 $id_commande
             );
@@ -367,8 +389,8 @@ class CommandeB2BController extends Controller
                 $this->pdo,
                 (int) $cmd['Id_Entreprise_Acheteuse'],
                 'expedition',
-                "🚚 Commande {$cmd['Numero_Commande']} expédiée",
-                "Votre commande {$cmd['Numero_Commande']} a été expédiée par $nom_vendeur et est en cours de livraison. Facture N° $ref_facture générée.",
+                "Commande {$cmd['Numero_Commande']} expédiée",
+                "Votre commande {$cmd['Numero_Commande']} a été expédiée par $nom_vendeur et est en cours de livraison. Facture N° $ref_facture : consultable dans Factures › Factures d'achat, ou depuis la commande.",
                 $id_commande
             );
 
@@ -420,13 +442,8 @@ class CommandeB2BController extends Controller
 
             enregistrerHistoriqueCommande($this->pdo, $id_commande, 'expediee', 'livree', 'Réception confirmée par l\'acheteur', $mon_entreprise_id);
 
-            // Score fiabilité vendeur +1
-            $this->pdo->prepare("
-                UPDATE Entreprise
-                SET Score_Fiabilite = LEAST(100, Score_Fiabilite + 1),
-                    Nombre_Commandes_Completees = Nombre_Commandes_Completees + 1
-                WHERE Id_Entreprise = ?
-            ")->execute([$cmd['Id_Entreprise_Vendeuse']]);
+            // Score de fiabilité recalculé (livrées / commandes tranchées), cf. OrderRepository.
+            (new OrderRepository($this->pdo))->recalculateSellerReliability((int) $cmd['Id_Entreprise_Vendeuse']);
 
             $this->pdo->commit();
 
@@ -435,7 +452,7 @@ class CommandeB2BController extends Controller
                 $this->pdo,
                 (int) $cmd['Id_Entreprise_Vendeuse'],
                 'reception',
-                "🏆 Commande {$cmd['Numero_Commande']} livrée",
+                "Commande {$cmd['Numero_Commande']} livrée",
                 "$nom_acheteur a confirmé l'arrivée de la commande {$cmd['Numero_Commande']}. Les produits sont maintenant disponibles dans sa réception d'approvisionnement.",
                 $id_commande
             );
@@ -444,12 +461,12 @@ class CommandeB2BController extends Controller
                 $this->pdo,
                 $mon_entreprise_id,
                 'livraison',
-                "✅ Réception de {$cmd['Numero_Commande']} confirmée",
+                "Réception de {$cmd['Numero_Commande']} confirmée",
                 "La commande {$cmd['Numero_Commande']} est arrivée. Ouvrez Approvisionnement pour choisir les quantités à ajouter à votre stock.",
                 $id_commande
             );
 
-            return ["Arrivée confirmée ! Choisissez maintenant les quantités à ajouter dans Approvisionnement.", ''];
+            return ["Arrivée confirmée ! Choisissez maintenant les quantités à ajouter dans Approvisionnement. La facture du fournisseur est disponible depuis la commande et dans Factures › Factures d'achat.", ''];
         } catch (\Exception $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
@@ -474,12 +491,109 @@ class CommandeB2BController extends Controller
                 $this->pdo,
                 (int) $cmd['Id_Entreprise_Acheteuse'],
                 'refus',
-                "❌ Commande {$cmd['Numero_Commande']} refusée par $nom_vendeur",
+                "Commande {$cmd['Numero_Commande']} refusée par $nom_vendeur",
                 "Votre commande {$cmd['Numero_Commande']} a été refusée par $nom_vendeur.\nMotif : $motif_refus",
                 $id_commande
             );
 
             return ["Commande refusée. L'acheteur a été notifié avec le motif.", ''];
+        } catch (\Exception $e) {
+            return ['', $e->getMessage()];
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    // 7. LIVRAISON PARTIELLE : proposition du vendeur
+    // ──────────────────────────────────────────────
+    private function handleProposerPartiel(int $mon_entreprise_id): array
+    {
+        try {
+            $id_commande = intval($_POST['id_commande'] ?? 0);
+            $result = $this->orderService->proposePartial(
+                $id_commande,
+                $mon_entreprise_id,
+                (array) ($_POST['quantites'] ?? []),
+                (string) ($_POST['message'] ?? '')
+            );
+            $cmd = $result['order'];
+
+            $nom_vendeur = $this->getNomEntrepriseLocal($mon_entreprise_id);
+            creerNotificationB2b(
+                $this->pdo,
+                (int) $cmd['Id_Entreprise_Acheteuse'],
+                'validation',
+                "Proposition partielle pour {$cmd['Numero_Commande']}",
+                "$nom_vendeur ne peut pas fournir toute la commande {$cmd['Numero_Commande']} et propose : {$result['summary']}. Acceptez ou annulez la commande depuis Commandes B2B › Mes commandes.",
+                $id_commande
+            );
+
+            return ["Proposition envoyée à l'acheteur ({$result['summary']}). Le stock correspondant est réservé en attendant sa réponse.", ''];
+        } catch (\Exception $e) {
+            return ['', $e->getMessage()];
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    // 8. LIVRAISON PARTIELLE : acceptation par l'acheteur
+    // ──────────────────────────────────────────────
+    private function handleAccepterProposition(int $mon_entreprise_id): array
+    {
+        try {
+            $id_commande = intval($_POST['id_commande'] ?? 0);
+            $completer = ($_POST['completer'] ?? '') === '1';
+            $result = $this->orderService->acceptProposal($id_commande, $mon_entreprise_id, $completer);
+            $cmd = $result['order'];
+            $reliquat = $result['backorder'];
+
+            $nom_acheteur = $this->getNomEntrepriseLocal($mon_entreprise_id);
+            creerNotificationB2b(
+                $this->pdo,
+                (int) $cmd['Id_Entreprise_Vendeuse'],
+                'validation',
+                "Proposition acceptée pour {$cmd['Numero_Commande']}",
+                "$nom_acheteur accepte votre proposition partielle : la commande {$cmd['Numero_Commande']} est validée, vous pouvez la mettre en préparation."
+                    . ($reliquat ? " Il vous demande de compléter le reste plus tard : {$reliquat['summary']} (commande {$reliquat['number']}, à valider quand votre stock le permettra)." : ''),
+                $id_commande
+            );
+            if ($reliquat) {
+                creerNotificationB2b(
+                    $this->pdo,
+                    (int) $cmd['Id_Entreprise_Vendeuse'],
+                    'nouvelle_commande',
+                    "Reliquat à compléter : {$reliquat['number']}",
+                    "Reste de la commande {$cmd['Numero_Commande']} pour $nom_acheteur : {$reliquat['summary']}.",
+                    $reliquat['id']
+                );
+            }
+
+            return [$reliquat
+                ? "Proposition acceptée : la commande est validée avec les quantités disponibles, et le reste ({$reliquat['summary']}) est commandé en reliquat sous le n° {$reliquat['number']}."
+                : "Proposition acceptée : la commande est validée avec les quantités disponibles.", ''];
+        } catch (\Exception $e) {
+            return ['', $e->getMessage()];
+        }
+    }
+
+    // ──────────────────────────────────────────────
+    // 9. ANNULATION par l'acheteur (en attente ou proposition déclinée)
+    // ──────────────────────────────────────────────
+    private function handleAnnulerCommande(int $mon_entreprise_id): array
+    {
+        try {
+            $id_commande = intval($_POST['id_commande'] ?? 0);
+            $cmd = $this->orderService->cancelByBuyer($id_commande, $mon_entreprise_id, (string) ($_POST['motif'] ?? ''));
+
+            $nom_acheteur = $this->getNomEntrepriseLocal($mon_entreprise_id);
+            creerNotificationB2b(
+                $this->pdo,
+                (int) $cmd['Id_Entreprise_Vendeuse'],
+                'refus',
+                "Commande {$cmd['Numero_Commande']} annulée par l'acheteur",
+                "$nom_acheteur a annulé la commande {$cmd['Numero_Commande']}" . ($cmd['Statut'] === 'a_confirmer' ? ' (proposition partielle déclinée) : le stock réservé vous a été rendu.' : '.') . ' Votre score de fiabilité n\'est pas affecté.',
+                $id_commande
+            );
+
+            return ["Commande annulée. Le fournisseur a été prévenu.", ''];
         } catch (\Exception $e) {
             return ['', $e->getMessage()];
         }

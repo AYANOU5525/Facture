@@ -137,14 +137,24 @@ class StockController extends Controller
 
     private function fetchReceptionsEnAttente(int $entreprise_id): array
     {
-        // Jointure (facultative) vers Produit pour afficher le stock actuel et permettre
-        // à la vue de calculer "stock après réception" avant validation — pur affichage,
-        // la transaction de réception elle-même relit et verrouille la ligne séparément.
+        // Stock actuel de l'ACHETEUR pour cet article (l.Id_Produit est le produit du vendeur) :
+        // même correspondance que StockService::receiveB2BLine — code-barres, puis nom exact.
+        // NULL = article absent du catalogue, il sera créé à la réception. Pur affichage, la
+        // transaction de réception relit et verrouille la ligne séparément.
         $stmt = $this->pdo->prepare("
             SELECT l.Id_Ligne, l.Id_Produit, l.Nom_Produit, l.Quantite, l.Quantite_Receptionnee,
                    (l.Quantite - l.Quantite_Receptionnee) AS Quantite_Restante,
                    c.Numero_Commande, e.Nom_Entreprise AS Nom_Vendeur,
-                   p.Quantite_En_Stock AS Stock_Actuel
+                   COALESCE(
+                       (SELECT pb.Quantite_En_Stock FROM Produit pb
+                        WHERE pb.Id_Entreprise = c.Id_Entreprise_Acheteuse
+                          AND ((pb.Code_Barre_Unite IS NOT NULL AND pb.Code_Barre_Unite IN (p.Code_Barre_Unite, p.Code_Barre_Carton))
+                            OR (pb.Code_Barre_Carton IS NOT NULL AND pb.Code_Barre_Carton IN (p.Code_Barre_Unite, p.Code_Barre_Carton)))
+                        ORDER BY pb.Id_Produit LIMIT 1),
+                       (SELECT pb.Quantite_En_Stock FROM Produit pb
+                        WHERE pb.Id_Entreprise = c.Id_Entreprise_Acheteuse AND pb.Nom_Produit = l.Nom_Produit
+                        ORDER BY pb.Id_Produit LIMIT 1)
+                   ) AS Stock_Actuel
             FROM Ligne_Commande_B2B l
             JOIN Commande_B2B c ON c.Id_Commande_B2B = l.Id_Commande_B2B
             JOIN Entreprise e ON e.Id_Entreprise = c.Id_Entreprise_Vendeuse

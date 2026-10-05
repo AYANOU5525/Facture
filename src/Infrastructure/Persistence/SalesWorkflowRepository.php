@@ -28,7 +28,7 @@ final class SalesWorkflowRepository
 
     public function hasLogistics(int $saleId): ?array
     {
-        $statement = $this->pdo->prepare('SELECT Id_Logistique FROM Logistique WHERE Id_Vente = ?');
+        $statement = $this->pdo->prepare('SELECT Id_Logistique, Transporteur FROM Logistique WHERE Id_Vente = ?');
         $statement->execute([$saleId]);
         $logistics = $statement->fetch();
 
@@ -48,6 +48,18 @@ final class SalesWorkflowRepository
         string $trackingNumber,
         ?string $deliveryDate
     ): void {
+        // La vente en livraison a déjà créé une entrée « traitement » (InvoiceService) : on la
+        // complète plutôt que d'en créer une seconde.
+        $existing = $this->hasLogistics($saleId);
+        if ($existing !== null) {
+            $statement = $this->pdo->prepare(
+                'UPDATE Logistique SET Transporteur = ?, Numero_Suivi = ?, Date_Livraison_Prevue = ?
+                 WHERE Id_Logistique = ? AND Id_Entreprise = ?'
+            );
+            $statement->execute([$carrier, $trackingNumber, $deliveryDate, $existing['Id_Logistique'], $enterpriseId]);
+            return;
+        }
+
         $statement = $this->pdo->prepare(
             "INSERT INTO Logistique
                 (Id_Vente, Id_Entreprise, Transporteur, Numero_Suivi, Date_Livraison_Prevue, Statut_Livraison)

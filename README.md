@@ -43,23 +43,44 @@ Une plateforme unique qui centralise le cycle commercial interne et ouvre un can
 
 ## Installation de la base de données
 
-Le schéma complet tient en deux fichiers, **à exécuter dans cet ordre** sur une base neuve :
-
-1. `database/facturation.sql` — schéma de base + données de démonstration.
-2. `database/migrations.sql` — **fichier unique** regroupant toutes les migrations correctives (dans l'ordre où elles ont été écrites : correction MCD `Ligne_Vente`/`Id_Vendeur`/triggers `Montant_Total`, index `Notification_B2B`, index codes-barres, adresse de livraison B2B, `Client`/`Ligne_Produit`/`Contenir`, confirmation d'email). **Indispensable** : sans cette étape, la connexion échoue avec `SQLSTATE[42S22]: Unknown column 'Email_Verifie'` et toute vente échoue avec `Unknown column 'Id_Vendeur'`/`'Id_Client'`.
-
-   Toute nouvelle migration est ajoutée à la suite de ce même fichier (voir le sommaire en tête de `database/migrations.sql`) — ne pas créer de nouveau fichier `migration_xxx.sql` séparé.
+- **Base neuve** : `database/facturation.sql` contient le schéma complet et à jour (21 tables, index, clés étrangères, triggers) ; la base démarre vide.
+- **Base déjà installée** : `database/migrations.sql` la met à niveau **sans perte de données** (fichier unique, rejouable sans risque : chaque bloc vérifie s'il a déjà été appliqué). Toute nouvelle mise à jour s'ajoute à la suite de ce fichier, avec une entrée dans son sommaire, et le changement de schéma est aussi reporté dans `facturation.sql`.
 
 ```bash
-mysql -u root --default-character-set=utf8mb4 facturation < database/facturation.sql
+# installation neuve
+mysql -u root --default-character-set=utf8mb4 < database/facturation.sql
+# mise à jour d'une base existante
 mysql -u root --default-character-set=utf8mb4 facturation < database/migrations.sql
 ```
 
-**Environnement Docker** : les mêmes fichiers doivent être rejoués séparément contre la base du conteneur (`docker-compose.yml` expose MySQL sur le port hôte `3307`, distinct des `3306` habituels) — les deux bases ne se synchronisent jamais automatiquement entre elles. **Attention** : `database/facturation.sql` contient des `DROP TABLE IF EXISTS` et réinitialise les données de démonstration — ne jamais le rejouer sur une base contenant des données à conserver ; sur une base déjà installée, ne rejouer que `database/migrations.sql`.
+**Environnement Docker** : MySQL du conteneur est exposé sur le port hôte `3307`, distinct du MySQL Laragon habituel (`3306`). Le `.env` local configure l'application Laragon vers le MySQL Docker (`DB_HOST=127.0.0.1`, `DB_PORT=3307`, identifiants `DOCKER_DB_*`) ; l'application Docker se connecte au même serveur via `db:3306`. Le MySQL local de Laragon peut contenir une copie de test, mais cette copie n'est pas synchronisée automatiquement et n'est pas utilisée par l'application. **Attention** : `database/facturation.sql` contient des `DROP TABLE IF EXISTS` et supprime les tables/données existantes avant de recréer le schéma vide — ne jamais le rejouer sur une base contenant des données à conserver ; sur une base déjà installée, n'utiliser que `database/migrations.sql`.
 
 `--default-character-set=utf8mb4` évite que le client `mysql` retombe sur un jeu de caractères par défaut (ex. `cp850` sous Windows) et corrompe les caractères accentués des commentaires de colonnes lors de l'import.
 
-Pour réinitialiser les données de démonstration ensuite (comptes de test à mot de passe connu) : `php database/reset_demo.php`.
+Le schéma seul ne crée aucun compte de démonstration; le premier compte se crée depuis la page d'inscription.
+
+Pour ajouter un jeu de données fictives complet dans l'environnement de test : `php database/seed_test_data.php`. Le script ajoute cinq entreprises aux données existantes, localisées à Lome (Maritime), Kpalime (Plateaux), Sokode (Centrale), Kara (Kara) et Dapaong (Savanes), avec des montants de test en FCFA, comptes, produits, clients, ventes/factures, annonces et commandes B2B. Il refuse de s'exécuter si ses comptes de test existent déjà. Les comptes ajoutés utilisent le mot de passe commun `FactuTest2026!` et des adresses email réservées en `.test` ; ne jamais exécuter ce script en production.
+
+## Règles de gestion notables
+
+- **TVA** : les prix saisis sont TTC ; la facture affiche HT, TVA et TTC au taux de 18 % (`src/Application/Billing/Vat.php`, seul endroit à modifier si le taux change).
+- **Numérotation** : factures et commandes sont numérotées séquentiellement par jour (`FAC-AAAAMMJJ-0001`, `FAC-B2B-…`, `CMD-…`).
+- **Annulation de facture** : possible pour une vente au comptoir tant que la marchandise n'est ni expédiée ni livrée ; la facture reste archivée 10 ans (statut « annulée », définitif), le stock est réintégré et la vente sort du chiffre d'affaires. Les factures B2B suivent le cycle de la commande.
+- **Commandes urgentes** : sans réponse du vendeur dans le délai demandé, la commande est refusée automatiquement (constaté au prochain chargement des pages B2B ou du tableau de bord) et les deux entreprises sont notifiées.
+- **Stock du vendeur confidentiel (B2B)** : l'acheteur ne voit pas le stock de ses fournisseurs et peut commander la quantité qu'il veut. Si le vendeur n'a pas tout, il propose les quantités qu'il peut fournir (bouton « Partiel ») ; le stock proposé est réservé et la commande passe « À confirmer ». L'acheteur choisit : **Accepter** (commande validée sur ces quantités), **Accepter + compléter plus tard** (le manque devient une nouvelle commande « reliquat », reliée à l'originale, que le vendeur validera quand son stock le permettra) ou **Annuler** (stock rendu au vendeur, sans effet sur son score). L'acheteur peut aussi annuler une commande tant qu'elle est en attente.
+- **Notifications en temps réel** : compteur sur la cloche et dans le menu, liste déroulante, alerte à l'écran avec signal sonore et compteur dans le titre de l'onglet dès qu'une notification arrive (vérification toutes les 15 s) ; alertes du système d'exploitation en option (HTTPS). Un clic ouvre directement la commande concernée.
+- **Menu latéral rétractable** : bouton en haut à gauche pour le réduire en colonne d'icônes ou le rouvrir (choix mémorisé).
+- **Factures B2B côté acheteur** : la facture émise par le fournisseur est consultable et imprimable par l'acheteur depuis la commande (bouton « Facture ») et dans Factures › Factures d'achat (HT, TVA, TTC, statut de paiement tenu par le fournisseur).
+- **Score de fiabilité B2B** : (commandes livrées + 5) / (livrées + refusées + 5) ; un refus ou un délai dépassé le fait baisser.
+- **Confirmation d'email** : 5 codes erronés désactivent le code en cours (un nouveau code peut être demandé après 60 s).
+
+## Tests automatisés
+
+```bash
+vendor/bin/phpunit
+```
+
+Les tests d'intégration n'utilisent **jamais** la base de dev : `tests/bootstrap.php` recrée à chaque lancement une base isolée `<DB_NAME>_test` (ou `DB_TEST_NAME` dans `.env`) avec le schéma exact de la base de dev, lu en lecture seule, et chaque test crée ses propres données (`tests/Fixtures.php`).
 
 ## Envoi d'emails (confirmation d'inscription, mot de passe oublié)
 

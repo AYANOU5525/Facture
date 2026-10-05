@@ -11,6 +11,9 @@ class AuthController extends Controller
 
     private const EMAIL_CONFIRMATION_CODE_TTL = 900; // 15 minutes
     private const EMAIL_CONFIRMATION_RESEND_COOLDOWN = 60;
+    // Codes erronés tolérés avant désactivation du code en cours : 5 essais par code et un
+    // renvoi toutes les 60 s rendent impossible de deviner un code à 6 chiffres par essais.
+    private const EMAIL_CONFIRMATION_MAX_ATTEMPTS = 5;
 
     public function login(): void
     {
@@ -191,7 +194,7 @@ class AuthController extends Controller
                 $confirmation = $stmt->fetch();
 
                 if (!$confirmation) {
-                    $error = "Code invalide ou expiré. Vous pouvez en redemander un.";
+                    $error = $this->registerWrongConfirmationCode((int) $user['Id_Utilisateur']);
                 } else {
                     $this->pdo->prepare("UPDATE Utilisateur SET Email_Verifie = 1 WHERE Id_Utilisateur = ?")
                         ->execute([$user['Id_Utilisateur']]);
@@ -209,6 +212,34 @@ class AuthController extends Controller
             'success' => $success,
             'resent' => $resent,
         ]);
+    }
+
+    /** Compte un code erroné sur le code en cours ; le désactive au-delà du nombre d'essais permis. */
+    private function registerWrongConfirmationCode(int $userId): string
+    {
+        $this->pdo->prepare("
+            UPDATE Email_Confirmation SET Tentatives = Tentatives + 1
+            WHERE Id_Utilisateur = ? AND Utilise = 0 AND Expire_At > NOW()
+        ")->execute([$userId]);
+
+        $stmt = $this->pdo->prepare("
+            SELECT MAX(Tentatives) FROM Email_Confirmation
+            WHERE Id_Utilisateur = ? AND Utilise = 0 AND Expire_At > NOW()
+        ");
+        $stmt->execute([$userId]);
+        $attempts = $stmt->fetchColumn();
+
+        if ($attempts === null || $attempts === false) {
+            return "Code invalide ou expiré. Vous pouvez en redemander un.";
+        }
+        if ((int) $attempts >= self::EMAIL_CONFIRMATION_MAX_ATTEMPTS) {
+            $this->pdo->prepare("UPDATE Email_Confirmation SET Utilise = 1 WHERE Id_Utilisateur = ? AND Utilise = 0")
+                ->execute([$userId]);
+            return "Trop de codes erronés : ce code est désactivé par sécurité. Demandez-en un nouveau.";
+        }
+
+        $left = self::EMAIL_CONFIRMATION_MAX_ATTEMPTS - (int) $attempts;
+        return "Code incorrect. Il vous reste {$left} essai(s) avant désactivation du code.";
     }
 
     /** Génère un code à 6 chiffres, invalide les précédents, l'enregistre et l'envoie par email. */

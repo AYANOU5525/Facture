@@ -153,7 +153,7 @@
                 .then(r => r.json())
                 .then(data => {
                     if (!data.found) {
-                        feedback.innerHTML = '⚠ ' + approEscHtml(data.message || 'Produit introuvable')
+                        feedback.innerHTML = '<i class="fas fa-triangle-exclamation me-1"></i>' + approEscHtml(data.message || 'Produit introuvable')
                             + ' — <a href="#" onclick="openApproAssociateModal(' + JSON.stringify(barcode) + '); return false;">Associer ce code à un produit existant</a>';
                         feedback.style.color = 'var(--bs-danger)';
                         return;
@@ -181,12 +181,12 @@
                 const targetInput = existingRow.querySelector(isCarton ? '[name*="[qte_carton]"]' : '[name*="[qte_unite]"]');
                 targetInput.value = (parseInt(targetInput.value) || 0) + 1;
                 updateApproSubmitState();
-                feedback.textContent = '✔ Quantité mise à jour : ' + data.nom_produit;
+                setIconText(feedback, 'fa-circle-check', 'Quantité mise à jour : ' + data.nom_produit);
             } else {
                 addApproItem(data.id_produit, isCarton ? 1 : 0, isCarton ? 0 : 1);
-                feedback.textContent = '✔ Ajouté : ' + data.nom_produit + (isCarton
+                setIconText(feedback, 'fa-circle-check', 'Ajouté : ' + data.nom_produit + (isCarton
                     ? ` — conditionnement Carton (1 = ${data.coefficient} unités)`
-                    : ' — conditionnement Unité');
+                    : ' — conditionnement Unité'));
             }
             feedback.style.color = 'var(--bs-success)';
         }
@@ -311,7 +311,7 @@
                                 <th class="text-center">Déstockage B2B</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody data-paginate="5">
                             <?php foreach ($receptions_b2b as $reception):
                                 $stockActuel = $reception['Stock_Actuel'] !== null ? (int) $reception['Stock_Actuel'] : null;
                             ?>

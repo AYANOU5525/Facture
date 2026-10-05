@@ -8,31 +8,6 @@ use App\Infrastructure\Persistence\NotificationRepository;
 /** Contrôleur de api/notifications.php — polling AJAX des notifications B2B (badge cloche). */
 class NotificationApiController extends Controller
 {
-    private const ICONES = [
-        'nouvelle_commande'  => 'fa-shopping-cart',
-        'commande_urgente'   => 'fa-bolt',
-        'nouveau_message'    => 'fa-comment',
-        'validation'         => 'fa-check-circle',
-        'refus'              => 'fa-times-circle',
-        'livraison'          => 'fa-truck',
-        'expedition'         => 'fa-shipping-fast',
-        'preparation'        => 'fa-box-open',
-        'prete'              => 'fa-check-double',
-        'reception'          => 'fa-trophy',
-    ];
-
-    private const COULEURS = [
-        'nouvelle_commande'  => '#3498db',
-        'commande_urgente'   => '#e74c3c',
-        'nouveau_message'    => '#9b59b6',
-        'validation'         => '#27ae60',
-        'refus'              => '#e74c3c',
-        'livraison'          => '#27ae60',
-        'expedition'         => '#2980b9',
-        'preparation'        => '#8b5cf6',
-        'prete'              => '#0d9488',
-        'reception'          => '#eab308',
-    ];
 
     public function handle(): void
     {
@@ -50,6 +25,42 @@ class NotificationApiController extends Controller
 
         $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
+        // Polling du bandeau (cloche) : compteur + dernières notifications, en lecture seule
+        // (aucun jeton CSRF généré : le pool de jetons de la session servirait aux formulaires).
+        if ($action === 'poll' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+            $notifs = $notificationService->latest($mon_entreprise_id, 5);
+            foreach ($notifs as &$n) {
+                $n['Icone']   = NotificationService::ICONS[$n['Type_Notif']] ?? 'fa-bell';
+                $n['Couleur'] = NotificationService::COLORS[$n['Type_Notif']] ?? '#6b7076';
+                $n['Lien']    = '../api/notifications.php?action=open&id=' . (int) $n['Id_Notification'];
+                $n['Titre_Court'] = NotificationService::cleanTitle((string) $n['Titre']);
+                unset($n['Id_Entreprise_Acheteuse']);
+            }
+            unset($n);
+
+            $this->jsonResponse([
+                'success'       => true,
+                'count'         => $notificationService->unreadCount($mon_entreprise_id),
+                'notifications' => $notifs,
+            ]);
+        }
+
+        // Clic sur une notification : marquée comme lue puis redirection vers la commande.
+        // GET sans CSRF assumé : effet limité à « marquer comme lue » une notification de sa
+        // propre entreprise, idempotent.
+        if ($action === 'open' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+            $cible = $notificationService->open(intval($_GET['id'] ?? 0), $mon_entreprise_id);
+            header('Location: ../pages/' . ($cible ?? 'notifications_b2b.php'));
+            exit();
+        }
+
+        // « Tout marquer comme lu » depuis le menu de la cloche : même logique que `open`
+        // (GET sans jeton, limité aux notifications de sa propre entreprise, idempotent).
+        if ($action === 'read_all' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+            $nb = $notificationService->markAllRead($mon_entreprise_id);
+            $this->jsonResponse(['success' => true, 'marked' => $nb]);
+        }
+
         if ($action === 'count' && $_SERVER['REQUEST_METHOD'] === 'GET') {
             $count = $notificationService->unreadCount($mon_entreprise_id);
             $this->jsonResponse(['success' => true, 'count' => $count]);
@@ -60,8 +71,8 @@ class NotificationApiController extends Controller
             $notifs = $notificationService->latest($mon_entreprise_id, $limit);
 
             foreach ($notifs as &$n) {
-                $n['Icone']   = self::ICONES[$n['Type_Notif']] ?? 'fa-bell';
-                $n['Couleur'] = self::COULEURS[$n['Type_Notif']] ?? '#6b7076';
+                $n['Icone']   = NotificationService::ICONS[$n['Type_Notif']] ?? 'fa-bell';
+                $n['Couleur'] = NotificationService::COLORS[$n['Type_Notif']] ?? '#6b7076';
             }
             unset($n);
 

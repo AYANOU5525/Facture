@@ -66,7 +66,7 @@
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-paginate="5">
                         <?php foreach ($membres as $u): ?>
                             <tr>
                                 <td>

@@ -237,16 +237,16 @@ class ReseauB2BController extends Controller
             return ['label' => 'Nouveau vendeur', 'minutes' => 0, 'classe' => 'reaction-neutre'];
         }
         if ($moy <= 60) {
-            return ['label' => '⚡ Répond en moins d\'1h', 'minutes' => $moy, 'classe' => 'reaction-excellent'];
+            return ['label' => 'Répond en moins d\'1h', 'minutes' => $moy, 'classe' => 'reaction-excellent'];
         }
         if ($moy <= 120) {
-            return ['label' => '✅ Répond en moins de 2h', 'minutes' => $moy, 'classe' => 'reaction-bon'];
+            return ['label' => 'Répond en moins de 2h', 'minutes' => $moy, 'classe' => 'reaction-bon'];
         }
         if ($moy <= 480) {
             $heures = round($moy / 60);
-            return ['label' => "🕐 Répond en ~{$heures}h", 'minutes' => $moy, 'classe' => 'reaction-moyen'];
+            return ['label' => "Répond en ~{$heures}h", 'minutes' => $moy, 'classe' => 'reaction-moyen'];
         }
 
-        return ['label' => '🐢 Répond sous 24h', 'minutes' => $moy, 'classe' => 'reaction-lent'];
+        return ['label' => 'Répond sous 24h', 'minutes' => $moy, 'classe' => 'reaction-lent'];
     }
 }

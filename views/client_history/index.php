@@ -429,7 +429,7 @@
 
             <!-- TIMELINE VIEW -->
             <div class="ch-timeline-view" id="viewTimeline">
-                <div class="ch-timeline">
+                <div class="ch-timeline" data-paginate="5">
                     <?php foreach ($history as $i => $item):
                         $etat = $item['Etat'] ?? '—';
                         $badge = 'secondary';
@@ -482,7 +482,7 @@
                                 <th class="text-center">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody data-paginate="5">
                             <?php foreach ($history as $item):
                                 $etat = $item['Etat'] ?? '—';
                                 $badge = 'secondary';

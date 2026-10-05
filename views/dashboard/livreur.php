@@ -26,7 +26,7 @@
         </div>
         <div class="card-body">
         <?php if ($livraisons_actives): ?>
-            <div class="row g-3">
+            <div class="row g-3" data-paginate="5">
                 <?php foreach ($livraisons_actives as $l):
                     $is_b2b   = !empty($l['Id_Commande_B2B']);
                     $nom      = $is_b2b ? ($l['Nom_Acheteur'] ?? '-') : ($l['Nom_Client'] ?? '-');

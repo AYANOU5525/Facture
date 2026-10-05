@@ -126,7 +126,7 @@
                         <th class="text-center">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody data-paginate="5">
                     <?php foreach ($produits as $i => $p):
                         $seuil = (int) ($p['Seuil_Alerte_Stock'] ?? 5);
                         $qte   = (int) $p['Quantite_En_Stock'];
@@ -196,6 +196,7 @@
                                     <div class="small fw-bold text-primary mt-1" style="font-family:'Plus Jakarta Sans',sans-serif;">
                                         <?= number_format($p['Prix_B2B'], 0, ',', ' ') ?> F
                                     </div>
+                                    <div class="small text-body-secondary">Min. <?= (int) ($p['Quantite_Min_B2B'] ?? 1) ?> unité(s)</div>
                                 <?php endif; ?>
                             </td>
                             <td class="text-center text-nowrap">
@@ -261,7 +262,7 @@
                 <?php if (empty($categories)): ?>
                     <p class="text-body-secondary small mb-3">Aucune catégorie pour le moment.</p>
                 <?php else: ?>
-                    <ul class="list-group mb-3">
+                    <ul class="list-group mb-3" data-paginate="5">
                         <?php foreach ($categories as $cat): ?>
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <?= htmlspecialchars($cat['Libelle']) ?>
@@ -296,7 +297,7 @@
             <button type="button" class="btn-close" onclick="closeProductModal()" aria-label="Fermer"></button>
         </div>
 
-        <form method="POST" action="products.php">
+        <form method="POST" action="products.php" id="productForm">
         <div class="modal-body">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
             <input type="hidden" name="id_produit" id="modal_id_produit" value="">
@@ -361,7 +362,7 @@
 
                 <span id="scan-feedback" class="d-block small text-body-secondary mb-1"></span>
                 <div id="phone-status-row" class="d-none align-items-center gap-2 mb-1 small">
-                    <span id="phone-status-badge">⚪ Téléphone déconnecté</span>
+                    <span id="phone-status-badge"><i class="far fa-circle me-1"></i> Téléphone déconnecté</span>
                     <span id="phone-countdown" class="text-body-secondary"></span>
                     <button type="button" class="btn btn-danger btn-sm py-0" id="btn-phone-disconnect" onclick="revokePhoneScanner()">
                         Déconnecter le téléphone
@@ -374,9 +375,11 @@
                 </div>
             </div>
 
-            <?php if (!empty($categories)): ?>
-            <div class="mt-3">
-                <label class="form-label">Catégories</label>
+            <div class="mt-3" id="productCategoriesSection">
+                <label class="form-label">Catégories <span class="text-danger">*</span> <span class="small text-body-secondary">(au moins une)</span></label>
+                <?php if (empty($categories)): ?>
+                    <p class="small text-danger mb-0">Aucune catégorie disponible. Fermez cette fenêtre et créez d’abord une catégorie avec le bouton « Catégories ».</p>
+                <?php else: ?>
                 <div class="d-flex flex-wrap gap-3">
                     <?php foreach ($categories as $cat): ?>
                         <div class="form-check">
@@ -386,8 +389,9 @@
                         </div>
                     <?php endforeach; ?>
                 </div>
+                <?php endif; ?>
+                <div class="invalid-feedback d-block d-none" id="productCategoriesError">Sélectionnez au moins une catégorie.</div>
             </div>
-            <?php endif; ?>
 
             <div class="form-check mt-3">
                 <input type="checkbox" class="form-check-input" name="en_destockage_b2b" value="1" id="modal_check_b2b" onchange="toggleModalB2B()">
@@ -402,7 +406,7 @@
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Quantité Min. Achat B2B</label>
-                        <input type="number" name="quantite_min_b2b" id="modal_qte_min" class="form-control" value="1">
+                        <input type="number" name="quantite_min_b2b" id="modal_qte_min" class="form-control" value="1" min="1" step="1">
                     </div>
                 </div>
             </div>
@@ -491,6 +495,24 @@
         document.getElementById('modal_b2b_fields').style.display = chk.checked ? 'block' : 'none';
     }
 
+    document.getElementById('productForm').addEventListener('submit', function(event) {
+        const categories = Array.from(document.querySelectorAll('.modal-category-check'));
+        const hasCategory = categories.some(category => category.checked);
+        const error = document.getElementById('productCategoriesError');
+
+        error.classList.toggle('d-none', hasCategory);
+        if (!hasCategory) {
+            event.preventDefault();
+            if (categories.length > 0) categories[0].focus();
+        }
+    });
+
+    document.querySelectorAll('.modal-category-check').forEach(category => {
+        category.addEventListener('change', function() {
+            if (this.checked) document.getElementById('productCategoriesError').classList.add('d-none');
+        });
+    });
+
     function filterProducts() {
         const search = document.getElementById('searchProduct').value.toUpperCase();
         const filterSelect = document.getElementById('filterProduct');
@@ -571,7 +593,7 @@
     function applyScannedBarcode(barcode, fromPhone) {
         document.getElementById(productScanTargetField).value = barcode;
         const feedback = document.getElementById('scan-feedback');
-        feedback.textContent = (fromPhone ? '📱 ' : '') + '✔ Code capturé : ' + barcode;
+        setIconText(feedback, 'fa-circle-check', 'Code capturé : ' + barcode, fromPhone);
         feedback.style.color = 'var(--success)';
     }
 
@@ -592,7 +614,7 @@
             { fps: 12, qrbox: { width: 260, height: 120 }, aspectRatio: 1.333334 },
             (decodedText) => {
                 document.getElementById(productScanTargetField).value = decodedText;
-                document.getElementById('product-cam-status').textContent = '✔ Code détecté : ' + decodedText;
+                setIconText(document.getElementById('product-cam-status'), 'fa-circle-check', 'Code détecté : ' + decodedText);
                 document.getElementById('product-cam-status').style.color = '#28a745';
                 setTimeout(closeProductCamera, 600);
             },
@@ -600,8 +622,8 @@
         ).catch((err) => {
             const noCamera = /NotFoundError|NotAllowedError|NotReadableError/i.test(String(err));
             document.getElementById('product-cam-status').textContent = noCamera
-                ? "⚠ Aucune caméra utilisable sur cet ordinateur."
-                : '⚠ Caméra inaccessible : ' + err;
+                ? "Aucune caméra utilisable sur cet ordinateur."
+                : 'Caméra inaccessible : ' + err;
             document.getElementById('product-cam-status').style.color = '#dc3545';
             document.getElementById('product-cam-fallback-phone').style.display = 'block';
         });
@@ -717,8 +739,8 @@
     </div>
 </div>
 
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="../assets/vendor/html5-qrcode/html5-qrcode.min.js"></script>
+<script src="../assets/vendor/qrcodejs/qrcode.min.js"></script>
 
 <script>
 /* ── SCANNER TÉLÉPHONE DISTANT ── */
@@ -776,11 +798,11 @@ function closePhoneModal() {
 function setPhoneStatus(statut) {
     const badge = document.getElementById('phone-status-badge');
     if (statut === 'connecte') {
-        badge.textContent = '🟢 Téléphone connecté';
+        badge.innerHTML = '<i class="fas fa-circle text-success me-1"></i> Téléphone connecté';
     } else if (statut === 'en_attente') {
-        badge.textContent = '⚪ En attente de connexion…';
+        badge.innerHTML = '<i class="far fa-circle me-1"></i> En attente de connexion…';
     } else {
-        badge.textContent = '⚪ Téléphone déconnecté';
+        badge.innerHTML = '<i class="far fa-circle me-1"></i> Téléphone déconnecté';
     }
 }
 
@@ -795,7 +817,7 @@ function startScanSessionPolling() {
 
                 setPhoneStatus(data.statut);
                 if (data.statut === 'connecte') {
-                    document.getElementById('phone-modal-status').textContent = '🟢 Téléphone connecté — continuez à scanner sur votre téléphone.';
+                    document.getElementById('phone-modal-status').innerHTML = '<i class="fas fa-circle text-success me-1"></i> Téléphone connecté — continuez à scanner sur votre téléphone.';
                 }
 
                 (data.scans || []).forEach(scan => {

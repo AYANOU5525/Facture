@@ -79,7 +79,7 @@ code {
 
         <?php if (count($factures) > 0): ?>
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0 invoices-sales">
                 <thead>
                     <tr>
                         <th>N° Facture</th>
@@ -91,7 +91,7 @@ code {
                         <th class="text-center">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody data-paginate="5">
                     <?php foreach ($factures as $i => $f):
                         $date_conservation = new DateTime($f['Date_Facture']);
                         $date_conservation->modify('+10 years');
@@ -142,21 +142,22 @@ code {
                                target="_blank" class="btn btn-sm btn-outline-secondary ms-1" title="Imprimer / Exporter en PDF">
                                 <i class="fas fa-print"></i>
                             </a>
-                            <form method="POST" class="d-inline-block ms-1">
+                            <?php if ($f['Statut_Paiement'] !== 'annulee'): ?>
+                            <form method="POST" class="d-inline-block ms-1"
+                                  onsubmit="return this.nouveau_statut.value !== 'annulee' || confirm('Annuler définitivement cette facture ? Elle restera archivée et les produits seront remis en stock.')">
                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                                 <input type="hidden" name="id_facture" value="<?= $f['Id_Facture'] ?>">
                                 <input type="hidden" name="update_status" value="1">
-                                <select name="nouveau_statut" class="form-select form-select-sm d-inline-block" style="width:auto;" onchange="this.form.submit()" title="Changer le statut">
+                                <select name="nouveau_statut" class="form-select form-select-sm d-inline-block" style="width:auto;" onchange="this.form.requestSubmit()" title="Changer le statut">
                                     <option value="">Changer…</option>
                                     <option value="payee" <?= $f['Statut_Paiement'] === 'payee' ? 'selected' : '' ?>>Payée</option>
                                     <option value="non_payee" <?= $f['Statut_Paiement'] === 'non_payee' ? 'selected' : '' ?>>Non payée</option>
-                                    <?php if ($en_retention): ?>
-                                        <option value="annulee" disabled title="Bloqué : conservation légale">Annulée (bloqué)</option>
-                                    <?php else: ?>
-                                        <option value="annulee" <?= $f['Statut_Paiement'] === 'annulee' ? 'selected' : '' ?>>Annulée</option>
+                                    <?php if (empty($f['Id_Commande_B2B'])): ?>
+                                        <option value="annulee">Annuler la facture</option>
                                     <?php endif; ?>
                                 </select>
                             </form>
+                            <?php endif; ?>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -174,6 +175,63 @@ code {
             </div>
         <?php endif; ?>
     </div>
+
+    <?php if (peutGererB2B()): ?>
+    <!-- Factures d'achat : factures B2B reçues des fournisseurs -->
+    <div class="card mt-4" id="factures-achat">
+        <div class="card-header bg-transparent">
+            <h2 class="h6 mb-0"><i class="fas fa-file-import text-primary me-2"></i> Factures d'achat (fournisseurs B2B)</h2>
+            <p class="small text-body-secondary mb-0">Factures émises par vos fournisseurs pour vos commandes B2B. Le statut de paiement est mis à jour par le fournisseur.</p>
+        </div>
+        <?php if (!empty($factures_achat)): ?>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>N° facture</th>
+                        <th>Fournisseur</th>
+                        <th>Commande</th>
+                        <th>Date</th>
+                        <th class="text-end">HT</th>
+                        <th class="text-end">TVA</th>
+                        <th class="text-end">TTC</th>
+                        <th>Paiement</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody data-paginate="5">
+                    <?php
+                    $labels_achat = ['payee' => ['Payée', 'success'], 'non_payee' => ['À payer', 'warning'], 'annulee' => ['Annulée', 'secondary']];
+                    foreach ($factures_achat as $fa):
+                        [$label_fa, $classe_fa] = $labels_achat[$fa['Statut_Paiement']] ?? [$fa['Statut_Paiement'], 'secondary'];
+                    ?>
+                    <tr>
+                        <td class="fw-semibold"><?= htmlspecialchars($fa['Numero_Facture']) ?></td>
+                        <td><?= htmlspecialchars($fa['Fournisseur']) ?></td>
+                        <td><code><?= htmlspecialchars($fa['Numero_Commande']) ?></code></td>
+                        <td class="small"><?= date('d/m/Y', strtotime($fa['Date_Facture'])) ?></td>
+                        <td class="text-end"><?= number_format((float) $fa['Montant_HT'], 0, ',', ' ') ?> F</td>
+                        <td class="text-end"><?= number_format((float) $fa['TVA'], 0, ',', ' ') ?> F</td>
+                        <td class="text-end fw-semibold"><?= number_format((float) $fa['Montant_TTC'], 0, ',', ' ') ?> F</td>
+                        <td><span class="badge text-bg-<?= $classe_fa ?>"><?= htmlspecialchars($label_fa) ?></span></td>
+                        <td class="text-end text-nowrap">
+                            <a href="invoice_view.php?ref=<?= urlencode($fa['Numero_Facture']) ?>" target="_blank" class="btn btn-sm btn-outline-primary" title="Voir la facture">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="invoice_view.php?ref=<?= urlencode($fa['Numero_Facture']) ?>&autoprint=1" target="_blank" class="btn btn-sm btn-outline-secondary ms-1" title="Imprimer / Exporter en PDF">
+                                <i class="fas fa-print"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?php else: ?>
+            <p class="text-body-secondary small p-3 mb-0">Aucune facture d'achat : elles apparaîtront ici dès qu'un fournisseur expédiera l'une de vos commandes B2B.</p>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
 </div>
 
 <script>
@@ -181,7 +239,7 @@ function filterInvoices() {
     const statutFilter = document.getElementById('filterStatut').value;
     const searchInput  = document.getElementById('searchInvoice').value.toUpperCase();
 
-    document.querySelectorAll('table tbody tr').forEach(function(tr) {
+    document.querySelectorAll('table.invoices-sales tbody tr').forEach(function(tr) {
         const statut = tr.dataset.statut || '';
         const numFacture = tr.cells[0]?.textContent || '';
         const client     = tr.cells[1]?.textContent || '';

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\B2B;
 
+use App\Infrastructure\Persistence\DocumentNumberRepository;
 use App\Infrastructure\Persistence\OrderRepository;
 use InvalidArgumentException;
 use PDO;
@@ -25,7 +26,8 @@ final class B2BOrderService
             throw new InvalidArgumentException('Fournisseur et produits obligatoires.');
         }
 
-        $urgent = isset($input['urgent']) ? 1 : 0;
+        // !empty et non isset : le contrôleur transmet toujours la clé (booléen true/false).
+        $urgent = !empty($input['urgent']) ? 1 : 0;
         $deadlineMinutes = (int) ($input['deadline_minutes'] ?? 120);
         if ($deadlineMinutes < 30 || $deadlineMinutes > 10080) {
             $deadlineMinutes = 120;
@@ -66,9 +68,14 @@ final class B2BOrderService
                 if (!$product) {
                     throw new RuntimeException("Produit ID {$productId} indisponible.");
                 }
-                if ((int) $product['Quantite_En_Stock'] < $quantity) {
-                    throw new RuntimeException("Stock insuffisant pour {$product['Nom_Produit']}.");
+                $minimum = max(1, (int) ($product['Quantite_Min_B2B'] ?? 1));
+                if ($quantity < $minimum) {
+                    throw new RuntimeException("Quantité minimale de commande pour {$product['Nom_Produit']} : {$minimum}.");
                 }
+                // Pas de contrôle du stock du vendeur ici : l'acheteur ne le voit pas et peut
+                // commander librement. Si le vendeur n'a pas tout, c'est à lui de le signaler
+                // (proposition partielle, OrderService::proposePartial), et à l'acheteur de
+                // répondre : accepter, accepter en se faisant compléter plus tard, ou annuler.
                 $subtotal = (float) $product['Prix_B2B'] * $quantity;
                 $total += $subtotal;
                 $lines[] = [
@@ -83,7 +90,7 @@ final class B2BOrderService
                 throw new InvalidArgumentException('Aucune quantité saisie.');
             }
 
-            $number = 'CMD-' . date('Ymd') . '-' . random_int(1000, 9999);
+            $number = (new DocumentNumberRepository($this->pdo))->next('Commande_B2B', 'CMD');
             $orderId = $this->repository->create([
                 'number' => $number, 'buyer_id' => $buyerId, 'seller_id' => $sellerId,
                 'total' => $total, 'urgent' => $urgent, 'deadline_minutes' => $deadlineMinutes,

@@ -80,14 +80,4 @@ final class LogisticsRepository
         );
         $statement->execute([$commandId, $enterpriseId]);
     }
-
-    public function incrementSellerScore(int $enterpriseId): void
-    {
-        $statement = $this->pdo->prepare(
-            'UPDATE Entreprise SET Score_Fiabilite = LEAST(100, Score_Fiabilite + 1),
-             Nombre_Commandes_Completees = Nombre_Commandes_Completees + 1
-             WHERE Id_Entreprise = ?'
-        );
-        $statement->execute([$enterpriseId]);
-    }
 }

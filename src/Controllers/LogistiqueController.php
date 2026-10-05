@@ -5,7 +5,7 @@ namespace App\Controllers;
 /** Contrôleur de pages/logistique.php — liste des expéditions/livraisons avec filtres. */
 class LogistiqueController extends Controller
 {
-    private const PER_PAGE = 20;
+    private const PER_PAGE = 5;
 
     public function index(): void
     {

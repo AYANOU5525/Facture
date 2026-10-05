@@ -124,7 +124,7 @@
         Session valide pendant : <strong id="countdown">--:--</strong>
     </div>
 
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="../assets/vendor/html5-qrcode/html5-qrcode.min.js"></script>
 <script>
 const TOKEN = <?= json_encode($token) ?>;
 const STORAGE_KEY = 'factupro_scan_device_' + TOKEN;
@@ -232,7 +232,8 @@ function sendManualBarcode() {
 function showCameraError(message) {
     const el = document.getElementById('camera-error');
     if (!el) return;
-    el.textContent = '⚠ ' + message;
+    el.innerHTML = '<i class="fas fa-triangle-exclamation me-1"></i>';
+    el.append(message);
     el.style.display = 'block';
 }
 

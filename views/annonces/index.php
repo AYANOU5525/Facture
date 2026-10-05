@@ -11,36 +11,25 @@
     <?php endif; ?>
 
     <!-- Navigation B2B -->
-    <div class="d-flex gap-2 flex-wrap mb-3">
-        <a href="reseau_b2b.php" class="btn btn-sm <?= ($current ?? '') === 'reseau_b2b.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
-            <i class="fas fa-building"></i> Annuaire
-        </a>
-        <a href="annonces.php" class="btn btn-sm <?= ($current ?? '') === 'annonces.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
-            <i class="fas fa-bullhorn"></i> Annonces
-        </a>
-        <a href="commandes_b2b.php" class="btn btn-sm <?= ($current ?? '') === 'commandes_b2b.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
-            <i class="fas fa-shipping-fast"></i> Commandes
-        </a>
-        <a href="notifications_b2b.php" class="btn btn-sm <?= ($current ?? '') === 'notifications_b2b.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
-            <i class="fas fa-bell"></i> Notifications
-            <?php if (!empty($nb_non_lues)): ?><span class="badge rounded-pill text-bg-danger ms-1"><?= $nb_non_lues ?></span><?php endif; ?>
-        </a>
-    </div>
+    <?php require __DIR__ . '/../partials/b2b_nav.php'; ?>
 
     <!-- Note d'information -->
-    <div class="alert alert-info d-flex align-items-start gap-2 small">
-        <i class="fas fa-info-circle mt-1"></i>
-        <div><strong>Note :</strong> pour mettre des produits en vente B2B, utilisez l'option « Déstockage B2B » directement dans la gestion des produits.</div>
+    <div class="note-soft mb-3">
+        <span class="note-soft-icon"><i class="fas fa-info"></i></span>
+        <div>Pour mettre des produits en vente B2B, utilisez l'option « Déstockage B2B » directement dans la <a href="products.php">gestion des produits</a>.</div>
     </div>
 
     <div class="row g-4">
         <!-- Formulaire de publication -->
         <div class="col-lg-4">
-            <div class="card h-100">
-                <div class="card-header bg-transparent d-flex align-items-center gap-2">
-                    <h2 class="h6 mb-0"><i class="fas fa-plus text-success me-2"></i>Publier une annonce</h2>
+            <div class="panel-soft h-100">
+                <div class="panel-soft-head">
+                    <div>
+                        <h2 class="panel-soft-title">Publier une annonce</h2>
+                        <div class="panel-soft-sub">Appel d'offres ou recherche de partenaire</div>
+                    </div>
                 </div>
-                <div class="card-body">
+                <div class="panel-soft-body">
                     <form method="POST">
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="action" value="ajouter">
@@ -76,9 +65,12 @@
 
         <!-- Liste des annonces -->
         <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header bg-transparent d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <h2 class="h6 mb-0"><i class="fas fa-list text-primary me-2"></i>Annonces actives <span class="text-body-secondary fw-normal">(<?= count($annonces) ?>)</span></h2>
+            <div class="panel-soft">
+                <div class="panel-soft-head">
+                    <div>
+                        <h2 class="panel-soft-title">Annonces actives</h2>
+                        <div class="panel-soft-sub"><?= count($annonces) ?> annonce<?= count($annonces) > 1 ? 's' : '' ?> publiée<?= count($annonces) > 1 ? 's' : '' ?> sur le réseau</div>
+                    </div>
                     <form method="GET" style="min-width:190px;">
                         <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
                             <option value="">Tous les types</option>
@@ -94,35 +86,30 @@
                         <p class="mb-0">Aucune annonce active pour le moment.</p>
                     </div>
                 <?php else: ?>
-                    <div class="list-group list-group-flush">
+                    <div class="offres-list" data-paginate="5" data-paginate-always>
                         <?php foreach ($annonces as $annonce): ?>
                             <?php
                                 $estAppelOffre = $annonce['Type_Annonce'] === 'appel_offre';
-                                $accentClass = $estAppelOffre ? 'border-danger' : 'border-primary';
-                                $textClass = $estAppelOffre ? 'text-danger' : 'text-primary';
+                                // Couleur du type (pastille + étiquette) : rouge appel d'offres, bleu partenariat
+                                $couleurType = $estAppelOffre ? 'var(--danger)' : 'var(--primary)';
                             ?>
-                            <div class="list-group-item border-start border-4 <?= $accentClass ?> p-3">
-                                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
-                                    <span class="fw-semibold small <?= $textClass ?>">
-                                        <?php if ($estAppelOffre): ?>
-                                            <i class="fas fa-search"></i> Appel d'offre
-                                        <?php else: ?>
-                                            <i class="fas fa-handshake"></i> Partenariat
-                                        <?php endif; ?>
-                                    </span>
-                                    <span class="text-body-secondary small"><i class="fas fa-clock"></i> <?= date('d/m/Y', strtotime($annonce['Date_Publication'])) ?></span>
-                                </div>
+                            <div class="offre-row" style="--offre-color: <?= $couleurType ?>">
+                                <span class="offre-icon"><i class="fas <?= $estAppelOffre ? 'fa-magnifying-glass' : 'fa-handshake' ?>"></i></span>
+                                <div class="offre-body">
+                                    <div class="offre-top">
+                                        <span class="offre-type"><?= $estAppelOffre ? "Appel d'offres" : 'Partenariat' ?></span>
+                                        <span class="offre-date"><i class="far fa-clock"></i> <?= date('d/m/Y', strtotime($annonce['Date_Publication'])) ?></span>
+                                    </div>
+                                    <h3 class="offre-title"><?= htmlspecialchars($annonce['Titre']) ?></h3>
+                                    <p class="offre-desc"><?= nl2br(htmlspecialchars($annonce['Description'])) ?></p>
 
-                                <h3 class="h6 fw-bold mb-1"><?= htmlspecialchars($annonce['Titre']) ?></h3>
-                                <p class="text-body-secondary mb-3"><?= nl2br(htmlspecialchars($annonce['Description'])) ?></p>
-
-                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 pt-2 border-top">
-                                    <div class="small">
-                                        <i class="fas fa-building text-body-secondary"></i>
+                                <div class="offre-foot">
+                                    <div class="offre-ent">
+                                        <i class="fas fa-building"></i>
                                         <strong><?= htmlspecialchars($annonce['Nom_Entreprise']) ?></strong>
-                                        <?php if ($j_ai_coords && !empty($annonce['Latitude']) && !empty($annonce['Longitude'])): ?>
+                                        <?php if ($j_ai_coords && $annonce['Id_Entreprise'] !== $mon_entreprise_id && !empty($annonce['Latitude']) && !empty($annonce['Longitude'])): ?>
                                             <?php $dist = calculDistanceHaversine((float)$mon_ent['Latitude'], (float)$mon_ent['Longitude'], (float)$annonce['Latitude'], (float)$annonce['Longitude']); ?>
-                                            <span class="text-body-secondary ms-1"><i class="fas fa-route"></i> <?= formaterDistance($dist) ?></span>
+                                            <span class="offre-distance">· <?= formaterDistance($dist) ?></span>
                                         <?php endif; ?>
                                     </div>
 
@@ -140,8 +127,9 @@
                                             <?php endif; ?>
                                         </div>
                                     <?php else: ?>
-                                        <span class="text-body-secondary small fst-italic">Votre annonce</span>
+                                        <span class="chip-soft"><i class="fas fa-user"></i> Votre annonce</span>
                                     <?php endif; ?>
+                                </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>

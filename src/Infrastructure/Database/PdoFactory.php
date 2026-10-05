@@ -12,13 +12,14 @@ final class PdoFactory
     public static function fromEnvironment(array $environment): PDO
     {
         $host = (string) ($environment['DB_HOST'] ?? 'localhost');
+        $port = (string) ($environment['DB_PORT'] ?? '3306');
         $name = (string) ($environment['DB_NAME'] ?? 'facturation');
         $user = (string) ($environment['DB_USER'] ?? 'root');
         $password = (string) ($environment['DB_PASS'] ?? '');
 
         try {
             return new PDO(
-                "mysql:host={$host};dbname={$name};charset=utf8mb4",
+                "mysql:host={$host};port={$port};dbname={$name};charset=utf8mb4",
                 $user,
                 $password,
                 [

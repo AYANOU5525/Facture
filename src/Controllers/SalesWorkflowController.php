@@ -32,7 +32,10 @@ class SalesWorkflowController extends Controller
             $this->redirect('dashboard.php');
         }
 
-        $logistique_existe = $this->workflow->hasLogistics((int) $vente['Id_Vente']);
+        // « Existe » = transport déjà renseigné ; une entrée créée à la vente sans transporteur
+        // laisse le formulaire de l'étape 2 accessible pour la compléter.
+        $logistique = $this->workflow->hasLogistics((int) $vente['Id_Vente']);
+        $logistique_existe = $logistique !== null && trim((string) $logistique['Transporteur']) !== '';
 
         $success = '';
         $error = '';
@@ -72,8 +75,9 @@ class SalesWorkflowController extends Controller
                 $success = "Logistique créée avec succès !";
                 $etape = '3';
                 $logistique_existe = true;
-            } catch (\PDOException $e) {
+            } catch (\InvalidArgumentException | \PDOException $e) {
                 $error = "Erreur lors de la création : " . $e->getMessage();
+                $etape = '2'; // rester sur le formulaire logistique (l'URL porte encore etape=1)
             }
         }
 

@@ -61,7 +61,8 @@ class ClientHistoryController extends Controller
                     Numero_Vente as Reference,
                     Date_Vente as Date_Doc,
                     Montant_Total,
-                    'Validée' as Etat
+                    CASE WHEN EXISTS (SELECT 1 FROM Facture fa WHERE fa.Id_Vente = Vente.Id_Vente AND fa.Statut_Paiement = 'annulee')
+                         THEN 'Annulée' ELSE 'Validée' END as Etat
                 FROM Vente
                 WHERE Id_Entreprise = ? AND Nom_Client = ?
                 ORDER BY Date_Vente DESC

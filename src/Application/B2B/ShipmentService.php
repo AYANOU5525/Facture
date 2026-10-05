@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Application\B2B;
 
+use App\Infrastructure\Persistence\DocumentNumberRepository;
 use App\Infrastructure\Persistence\OrderRepository;
 use RuntimeException;
 use PDO;
@@ -25,7 +26,7 @@ final class ShipmentService
                 throw new RuntimeException('Commande introuvable ou statut incorrect.');
             }
 
-            $number = 'FAC-B2B-' . date('Ymd') . '-' . random_int(100, 999);
+            $number = (new DocumentNumberRepository($this->pdo))->next('Vente', 'FAC-B2B');
             $lines = $this->repository->findLines($orderId);
             $saleId = $this->repository->createB2BSale([
                 'number' => $number,

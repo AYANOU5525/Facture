@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inscription - FactuPro</title>
     <link rel="stylesheet" href="../assets/vendor/bootstrap/bootstrap.min.css">
-    <link rel="stylesheet" href="../assets/css/theme.css">
+    <link rel="stylesheet" href="../assets/css/theme.css?v=<?= @filemtime(__DIR__ . '/../../assets/css/theme.css') ?>">
     <link rel="stylesheet" href="../assets/vendor/fontawesome/css/all.min.css">
 </head>
 
@@ -60,7 +60,7 @@
                     <input type="password"
                            id="reg-password"
                            name="password"
-                           class="form-control"
+                          class="form-control"
                            placeholder="Minimum 8 caractères"
                            required
                            oninput="checkRegStrength(this.value); checkRegMatch()">
@@ -178,10 +178,10 @@ function checkRegMatch() {
     const label = document.getElementById('reg-match-label');
     if (!p2) { label.textContent = ''; return; }
     if (p1 === p2) {
-        label.textContent = '✔ Les mots de passe correspondent';
+        label.innerHTML = '<i class="fas fa-circle-check me-1"></i>Les mots de passe correspondent';
         label.style.color = '#28a745';
     } else {
-        label.textContent = '✖ Les mots de passe ne correspondent pas';
+        label.innerHTML = '<i class="fas fa-circle-xmark me-1"></i>Les mots de passe ne correspondent pas';
         label.style.color = '#dc3545';
     }
 }

@@ -6,6 +6,7 @@ namespace App\Application\Billing;
 
 use App\Application\Inventory\PackagingConverter;
 use App\Infrastructure\Persistence\ClientRepository;
+use App\Infrastructure\Persistence\DocumentNumberRepository;
 use App\Infrastructure\Persistence\InvoiceRepository;
 use InvalidArgumentException;
 use PDO;
@@ -32,7 +33,8 @@ final class InvoiceService
         string $seller,
         array $items,
         int $enterpriseId,
-        int $sellerId = 0
+        int $sellerId = 0,
+        bool $withDelivery = true
     ): string {
         if (trim($client) === '' || $items === []) {
             throw new InvalidArgumentException('Client et articles sont obligatoires.');
@@ -75,7 +77,8 @@ final class InvoiceService
                 $total += $lineTotal;
                 $articles[] = [
                     'id_produit' => $productId,
-                    'nom' => $item['label'] ?? $product['Nom_Produit'],
+                    // Nom toujours relu en base : un libellé envoyé par le navigateur pourrait être falsifié.
+                    'nom' => $product['Nom_Produit'],
                     'quantite_carton' => $qteCarton,
                     'quantite_unite' => $qteUnite,
                     'quantite_unites' => $realQuantity,
@@ -91,7 +94,7 @@ final class InvoiceService
 
             $clientId = $this->clients->findOrCreate($client, $enterpriseId);
 
-            $number = 'FAC-' . date('Ymd') . '-' . random_int(1000, 9999);
+            $number = (new DocumentNumberRepository($this->pdo))->next('Vente', 'FAC');
             $saleId = $this->repository->createSale([
                 'number' => $number,
                 'client' => trim($client),
@@ -106,9 +109,9 @@ final class InvoiceService
                 $this->repository->createSaleLine($saleId, $article);
             }
             $invoiceId = $this->repository->createInvoice($saleId, $number, $total, $enterpriseId, $clientId);
-            // Logistique en attente (cf. includes/roles.php) : pas d'entrée créée tant que la
-            // fonctionnalité est désactivée.
-            if (FEATURE_LOGISTIQUE_ACTIVE) {
+            // Pas de suivi logistique pour un retrait sur place (ni tant que la fonctionnalité
+            // est désactivée, cf. includes/roles.php).
+            if (FEATURE_LOGISTIQUE_ACTIVE && $withDelivery) {
                 $this->repository->createLogistics($saleId, $invoiceId, $enterpriseId);
             }
             $this->pdo->commit();

@@ -106,6 +106,9 @@ code {
                             <span class="fw-semibold <?= $v['Type_Vente'] === 'b2b' ? 'text-primary' : 'text-success' ?>">
                                 <?= strtoupper($v['Type_Vente']) ?>
                             </span>
+                            <?php if (!empty($v['Est_Annulee'])): ?>
+                                <span class="badge text-bg-secondary ms-1">Annulée</span>
+                            <?php endif; ?>
                         </td>
                         <td class="text-end">
                             <span class="sv-amount"><?= number_format((float)($v['Montant_Total'] ?? 0), 0, ',', ' ') ?> F</span>

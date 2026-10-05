@@ -163,7 +163,7 @@
                         </div>
                         <span id="barcode_feedback" class="d-block small mt-2"></span>
                         <div id="phone-status-row" class="d-none align-items-center gap-2 mt-2 small">
-                            <span id="phone-status-badge">⚪ Téléphone déconnecté</span>
+                            <span id="phone-status-badge"><i class="far fa-circle me-1"></i> Téléphone déconnecté</span>
                             <span id="phone-countdown" class="text-body-secondary"></span>
                             <button type="button" class="btn btn-danger btn-sm py-0" id="btn-phone-disconnect" onclick="revokePhoneScanner()">
                                 Déconnecter le téléphone
@@ -455,7 +455,7 @@
             { fps: 12, qrbox: { width: 260, height: 120 }, aspectRatio: 1.333334 },
             (decodedText) => {
                 document.getElementById('barcode_input').value = decodedText;
-                document.getElementById('cam-status').textContent = '✔ Code détecté : ' + decodedText;
+                setIconText(document.getElementById('cam-status'), 'fa-circle-check', 'Code détecté : ' + decodedText);
                 document.getElementById('cam-status').style.color = '#28a745';
                 setTimeout(() => {
                     closeCamera();
@@ -466,8 +466,8 @@
         ).catch((err) => {
             const noCamera = /NotFoundError|NotAllowedError|NotReadableError/i.test(String(err));
             document.getElementById('cam-status').textContent = noCamera
-                ? "⚠ Aucune caméra utilisable sur cet ordinateur."
-                : '⚠ Caméra inaccessible : ' + err;
+                ? "Aucune caméra utilisable sur cet ordinateur."
+                : 'Caméra inaccessible : ' + err;
             document.getElementById('cam-status').style.color = '#dc3545';
             document.getElementById('cam-fallback-phone').style.display = 'block';
         });
@@ -509,7 +509,7 @@
             .then(r => r.json())
             .then(data => {
                 if (!data.found) {
-                    feedback.innerHTML = '⚠ ' + escHtml(data.message || 'Produit introuvable')
+                    feedback.innerHTML = '<i class="fas fa-triangle-exclamation me-1"></i>' + escHtml(data.message || 'Produit introuvable')
                         + ' — <a href="#" onclick="openAssociateModal(' + JSON.stringify(barcode) + '); return false;">Associer ce code à un produit existant</a>';
                     feedback.style.color = 'var(--danger)';
                     return;
@@ -591,7 +591,6 @@
     function applyScannedProduct(data, fromPhone) {
         const feedback = document.getElementById('barcode_feedback');
         const isCarton = data.type_conditionnement === 'carton';
-        const prefix = fromPhone ? '📱 ' : '';
 
         const selects = document.querySelectorAll('.product-select');
         let existingRow = null;
@@ -603,12 +602,12 @@
             const targetInput = existingRow.querySelector(isCarton ? '.qte-carton-input' : '.qte-unite-input');
             targetInput.value = (parseInt(targetInput.value) || 0) + 1;
             recalculate();
-            feedback.textContent = prefix + '✔ Quantité mise à jour : ' + data.nom_produit;
+            setIconText(feedback, 'fa-circle-check', 'Quantité mise à jour : ' + data.nom_produit, fromPhone);
         } else {
             addItem(data.id_produit, isCarton ? 1 : 0, isCarton ? 0 : 1);
-            feedback.textContent = prefix + '✔ Ajouté : ' + data.nom_produit + (isCarton
+            setIconText(feedback, 'fa-circle-check', 'Ajouté : ' + data.nom_produit + (isCarton
                 ? ` — conditionnement Carton (1 = ${data.coefficient} unités, ${Math.round(data.prix_conditionnement).toLocaleString('fr-FR')} F)`
-                : ' — conditionnement Unité');
+                : ' — conditionnement Unité'), fromPhone);
         }
         feedback.style.color = 'var(--success)';
     }
@@ -772,8 +771,8 @@
     </div>
 </div>
 
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="../assets/vendor/html5-qrcode/html5-qrcode.min.js"></script>
+<script src="../assets/vendor/qrcodejs/qrcode.min.js"></script>
 
 <script>
 /* ── SCANNER TÉLÉPHONE DISTANT ── */
@@ -819,7 +818,7 @@ function openPhoneScanner() {
 
             const warningEl = document.getElementById('phone-modal-warning');
             if (data.warning) {
-                warningEl.textContent = '⚠ ' + data.warning;
+                setIconText(warningEl, 'fa-triangle-exclamation', data.warning);
                 warningEl.style.display = 'block';
             } else {
                 warningEl.style.display = 'none';
@@ -842,11 +841,11 @@ function closePhoneModal() {
 function setPhoneStatus(statut) {
     const badge = document.getElementById('phone-status-badge');
     if (statut === 'connecte') {
-        badge.textContent = '🟢 Téléphone connecté';
+        badge.innerHTML = '<i class="fas fa-circle text-success me-1"></i> Téléphone connecté';
     } else if (statut === 'en_attente') {
-        badge.textContent = '⚪ En attente de connexion…';
+        badge.innerHTML = '<i class="far fa-circle me-1"></i> En attente de connexion…';
     } else {
-        badge.textContent = '⚪ Téléphone déconnecté';
+        badge.innerHTML = '<i class="far fa-circle me-1"></i> Téléphone déconnecté';
     }
 }
 
@@ -861,7 +860,7 @@ function startScanSessionPolling() {
 
                 setPhoneStatus(data.statut);
                 if (data.statut === 'connecte') {
-                    document.getElementById('phone-modal-status').textContent = '🟢 Téléphone connecté — continuez à scanner sur votre téléphone.';
+                    document.getElementById('phone-modal-status').innerHTML = '<i class="fas fa-circle text-success me-1"></i> Téléphone connecté — continuez à scanner sur votre téléphone.';
                 }
 
                 (data.scans || []).forEach(scan => {

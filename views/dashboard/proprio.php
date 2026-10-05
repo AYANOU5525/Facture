@@ -29,7 +29,7 @@
                 <h2 class="h6 mb-0"><i class="fas fa-exclamation-triangle text-warning me-2"></i> Alertes stock</h2>
                 <a href="products.php" class="link-primary text-decoration-none fw-medium small">Voir les produits</a>
             </div>
-            <div class="list-group list-group-flush">
+            <div class="list-group list-group-flush" data-paginate="5">
                 <?php foreach ($produits_alerte as $pa): ?>
                     <a href="products.php?edit=<?= (int) $pa['Id_Produit'] ?>&focus=stock"
                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
@@ -63,7 +63,7 @@
                                 <th></th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody data-paginate="5">
                             <?php foreach ($b2b as $c): ?>
                                 <tr>
                                     <td><?= htmlspecialchars($c['Nom_Entreprise']) ?></td>
@@ -100,7 +100,7 @@
                             <th class="text-end">Montant</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-paginate="5">
                         <?php foreach ($ventes_recentes as $v): ?>
                             <tr>
                                 <td><?= htmlspecialchars($v['Nom_Client']) ?></td>

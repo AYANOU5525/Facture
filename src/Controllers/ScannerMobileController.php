@@ -23,7 +23,7 @@ class ScannerMobileController extends Controller
         header(
             "Content-Security-Policy: " .
             "default-src 'self'; " .
-            "script-src 'self' 'unsafe-inline' https://unpkg.com; " .
+            "script-src 'self' 'unsafe-inline'; " .
             "style-src 'self' 'unsafe-inline'; " .
             "font-src 'self' data:; " .
             "img-src 'self' data:; " .

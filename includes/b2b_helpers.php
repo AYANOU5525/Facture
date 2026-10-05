@@ -186,26 +186,26 @@ function getTempsReponseMoyen(PDO $pdo, int $id_entreprise): array
         $result = ['label' => 'Nouveau vendeur', 'minutes' => 0, 'classe' => 'reaction-neutre'];
     } elseif ($moy <= 60) {
         $result = [
-            'label'   => '⚡ Répond en moins d\'1h',
+            'label'   => 'Répond en moins d\'1h',
             'minutes' => $moy,
             'classe'  => 'reaction-excellent'
         ];
     } elseif ($moy <= 120) {
         $result = [
-            'label'   => '✅ Répond en moins de 2h',
+            'label'   => 'Répond en moins de 2h',
             'minutes' => $moy,
             'classe'  => 'reaction-bon'
         ];
     } elseif ($moy <= 480) {
         $heures = round($moy / 60);
         $result = [
-            'label'   => "🕐 Répond en ~{$heures}h",
+            'label'   => "Répond en ~{$heures}h",
             'minutes' => $moy,
             'classe'  => 'reaction-moyen'
         ];
     } else {
         $result = [
-            'label'   => '🐢 Répond sous 24h',
+            'label'   => 'Répond sous 24h',
             'minutes' => $moy,
             'classe'  => 'reaction-lent'
         ];
@@ -223,9 +223,12 @@ function getLignesCommande(PDO $pdo, int $id_commande): array
             l.Id_Produit,
             l.Nom_Produit     AS nom,
             l.Quantite        AS quantite,
+            l.Quantite_Proposee AS quantite_proposee,
             l.Prix_Unitaire   AS prix,
-            l.Sous_Total      AS sous_total
+            l.Sous_Total      AS sous_total,
+            p.Quantite_En_Stock AS stock_vendeur
         FROM Ligne_Commande_B2B l
+        LEFT JOIN Produit p ON p.Id_Produit = l.Id_Produit
         WHERE l.Id_Commande_B2B = ?
         ORDER BY l.Id_Ligne ASC
     ");
@@ -331,19 +334,21 @@ function badgeStatutCommande(string $statut, bool $urgente = false): string
 {
     $map = [
         'en_attente'     => ['label' => 'En attente',     'classe' => 'text-bg-warning', 'icon' => 'fa-clock'],
+        'a_confirmer'    => ['label' => 'À confirmer',    'classe' => 'text-bg-warning', 'icon' => 'fa-balance-scale'],
         'validee'        => ['label' => LABEL_VALIDEE,    'classe' => 'text-bg-info',    'icon' => 'fa-check-circle'],
         'en_preparation' => ['label' => 'En préparation', 'classe' => 'text-bg-purple',  'icon' => 'fa-box-open'],
         'prete'          => ['label' => 'Prête',          'classe' => 'text-bg-teal',    'icon' => 'fa-check-double'],
         'expediee'       => ['label' => 'Expédiée',       'classe' => 'text-bg-primary', 'icon' => 'fa-shipping-fast'],
         'livree'         => ['label' => 'Livrée',         'classe' => 'text-bg-success', 'icon' => 'fa-check-circle'],
         'refusee'        => ['label' => 'Refusée',        'classe' => 'text-bg-danger',  'icon' => 'fa-times-circle'],
+        'annulee'        => ['label' => 'Annulée',        'classe' => 'text-bg-secondary', 'icon' => 'fa-ban'],
     ];
 
     $info = $map[$statut] ?? ['label' => strtoupper($statut), 'classe' => 'text-bg-secondary', 'icon' => 'fa-question'];
     $html = "<span class=\"badge {$info['classe']}\"><i class=\"fas {$info['icon']}\"></i> {$info['label']}</span>";
 
-    if ($urgente && in_array($statut, ['en_attente', 'validee', 'en_preparation', 'prete'])) {
-        $html .= ' <span class="badge text-bg-danger badge-pulse">⚡ URGENT</span>';
+    if ($urgente && in_array($statut, ['en_attente', 'a_confirmer', 'validee', 'en_preparation', 'prete'])) {
+        $html .= ' <span class="badge text-bg-danger badge-pulse"><i class="fas fa-bolt"></i> Urgent</span>';
     }
 
     return $html;
@@ -356,12 +361,14 @@ function getLabelStatut(string $statut): string
 {
     $labels = [
         'en_attente'     => 'En attente de validation',
+        'a_confirmer'    => "Proposition partielle — en attente de l'acheteur",
         'validee'        => LABEL_VALIDEE,
         'en_preparation' => 'En cours de préparation',
         'prete'          => 'Prête à expédier',
         'expediee'       => 'Expédiée — En livraison',
-        'livree'         => 'Livrée ✅',
-        'refusee'        => 'Refusée ❌',
+        'livree'         => 'Livrée',
+        'refusee'        => 'Refusée',
+        'annulee'        => "Annulée par l'acheteur",
     ];
     return $labels[$statut] ?? ucfirst(str_replace('_', ' ', $statut));
 }
@@ -437,6 +444,7 @@ function getTimelineSteps(string $statut_actuel): array
 {
     $ordre = [
         'en_attente'     => 0,
+        'a_confirmer'    => 0,
         'validee'        => 1,
         'en_preparation' => 2,
         'prete'          => 3,
@@ -445,10 +453,12 @@ function getTimelineSteps(string $statut_actuel): array
         'refusee'        => -1, // cas spécial
     ];
 
-    if ($statut_actuel === 'refusee') {
+    if ($statut_actuel === 'refusee' || $statut_actuel === 'annulee') {
         return [
             ['statut' => 'en_attente',     'label' => 'Créée',          'icon' => 'fa-file-alt',        'etat' => 'done'],
-            ['statut' => 'refusee',        'label' => 'Refusée',        'icon' => 'fa-times-circle',    'etat' => 'error'],
+            $statut_actuel === 'refusee'
+                ? ['statut' => 'refusee', 'label' => 'Refusée', 'icon' => 'fa-times-circle', 'etat' => 'error']
+                : ['statut' => 'annulee', 'label' => 'Annulée', 'icon' => 'fa-ban', 'etat' => 'error'],
         ];
     }
 
@@ -489,4 +499,25 @@ function getNomEntrepriseLocale(PDO $pdo, int $id_entreprise): string
 /** Erreurs métier du module B2B, à capturer séparément des autres exceptions. */
 class B2BException extends Exception
 {
+}
+
+/**
+ * Refuse les commandes urgentes dont le délai de réponse est dépassé et prévient les deux
+ * parties. Appelé au chargement des pages B2B / du tableau de bord (pas de cron dans le projet).
+ */
+function expirerCommandesUrgentes(PDO $pdo): void
+{
+    $service = new \App\Application\B2B\OrderService($pdo, new \App\Infrastructure\Persistence\OrderRepository($pdo));
+    foreach ($service->expireOverdueUrgentOrders() as $cmd) {
+        $num = $cmd['Numero_Commande'];
+        $id = (int) $cmd['Id_Commande_B2B'];
+        creerNotificationB2b($pdo, (int) $cmd['Id_Entreprise_Acheteuse'], 'refus',
+            "Commande urgente $num expirée",
+            "Le fournisseur n'a pas répondu dans le délai demandé : la commande $num a été refusée automatiquement. Vous pouvez la repasser auprès d'un autre fournisseur.",
+            $id);
+        creerNotificationB2b($pdo, (int) $cmd['Id_Entreprise_Vendeuse'], 'refus',
+            "Délai dépassé pour la commande urgente $num",
+            "Vous n'avez pas répondu à temps : la commande urgente $num a été refusée automatiquement, ce qui compte dans votre score de fiabilité.",
+            $id);
+    }
 }

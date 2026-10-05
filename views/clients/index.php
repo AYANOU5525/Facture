@@ -77,7 +77,7 @@
                         <th class="text-center">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody data-paginate="5">
                     <?php foreach ($clients_b2b as $c):
                         $initiales = strtoupper(substr($c['Nom_Client'], 0, 2));
                     ?>

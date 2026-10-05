@@ -32,7 +32,7 @@
             <span class="badge text-bg-light"><?= $nb_entreprises ?> au total</span>
         </div>
         <?php if ($entreprises_recentes): ?>
-            <div class="list-group list-group-flush">
+            <div class="list-group list-group-flush" data-paginate="5">
                 <?php foreach ($entreprises_recentes as $e):
                     $initials = mb_strtoupper(mb_substr($e['Nom_Entreprise'], 0, 2));
                 ?>

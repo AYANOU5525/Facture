@@ -89,7 +89,7 @@ class DashboardController extends Controller
 
         // Une seule requête pour les deux agrégats de Vente plutôt que deux allers-retours.
         [$nb_ventes_total, $ca_total_plateforme] = $this->pdo
-            ->query("SELECT COUNT(*), COALESCE(SUM(Montant_Total), 0) FROM Vente")
+            ->query("SELECT COUNT(*), COALESCE(SUM(Montant_Total), 0) FROM Vente WHERE " . \App\Application\Billing\InvoiceCancellationService::notCancelledSql() . "")
             ->fetch(\PDO::FETCH_NUM);
         $nb_ventes_total = (int) $nb_ventes_total;
         $ca_total_plateforme = (float) $ca_total_plateforme;
@@ -116,11 +116,11 @@ class DashboardController extends Controller
 
     private function showVendeur(int $entreprise_id): void
     {
-        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM Vente WHERE Id_Entreprise = ? AND DATE(Date_Vente) = CURDATE()");
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM Vente WHERE Id_Entreprise = ? AND DATE(Date_Vente) = CURDATE() AND " . \App\Application\Billing\InvoiceCancellationService::notCancelledSql() . "");
         $stmt->execute([$entreprise_id]);
         $ventes_jour = (int) $stmt->fetchColumn();
 
-        $stmt = $this->pdo->prepare("SELECT COALESCE(SUM(Montant_Total), 0) FROM Vente WHERE Id_Entreprise = ? AND DATE(Date_Vente) = CURDATE()");
+        $stmt = $this->pdo->prepare("SELECT COALESCE(SUM(Montant_Total), 0) FROM Vente WHERE Id_Entreprise = ? AND DATE(Date_Vente) = CURDATE() AND " . \App\Application\Billing\InvoiceCancellationService::notCancelledSql() . "");
         $stmt->execute([$entreprise_id]);
         $ca_jour = (float) $stmt->fetchColumn();
 
@@ -143,8 +143,12 @@ class DashboardController extends Controller
 
     private function showProprio(int $entreprise_id): void
     {
-        // 1. Chiffre d'Affaires (Ventes + B2B Vendu)
-        $stmt = $this->pdo->prepare("SELECT SUM(Montant_Total) FROM Vente WHERE Id_Entreprise = ?");
+        require_once __DIR__ . '/../../includes/b2b_helpers.php';
+        expirerCommandesUrgentes($this->pdo);
+
+        // 1. Chiffre d'Affaires (ventes au comptoir + B2B livré). Type_Vente = 'directe' : les
+        // ventes B2B (créées à l'expédition) sont déjà comptées par $ca_b2b, sinon doublon.
+        $stmt = $this->pdo->prepare("SELECT SUM(Montant_Total) FROM Vente WHERE Id_Entreprise = ? AND Type_Vente = 'directe' AND " . \App\Application\Billing\InvoiceCancellationService::notCancelledSql() . "");
         $stmt->execute([$entreprise_id]);
         $ca_direct = $stmt->fetchColumn() ?? 0;
 
@@ -154,7 +158,7 @@ class DashboardController extends Controller
         $total_ca = $ca_direct + $ca_b2b;
 
         // 2. Nombre de ventes
-        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM Vente WHERE Id_Entreprise = ?");
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM Vente WHERE Id_Entreprise = ? AND " . \App\Application\Billing\InvoiceCancellationService::notCancelledSql() . "");
         $stmt->execute([$entreprise_id]);
         $nb_ventes = (int) $stmt->fetchColumn();
 

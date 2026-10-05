@@ -10,83 +10,108 @@ use RuntimeException;
 use Tests\DatabaseTestCase;
 
 /**
- * Vérifie que la machine à états des commandes B2B refuse une transition qui ne part
- * pas du statut attendu (ex. : tenter de valider une commande déjà livrée). Comme
- * InvoiceService, transitionForSeller() gère sa propre transaction en interne, donc
- * pas d'enveloppe rollback possible depuis le test. On s'appuie sur des lignes
- * fixture réelles et déjà dans un état "terminal" (livrée / expédiée) : la requête de
- * garde (WHERE ... AND Statut = <attendu>) ne matche jamais, donc aucune écriture n'a
- * lieu — zéro résidu, et on vérifie explicitement que le statut n'a pas bougé.
+ * Machine à états des commandes B2B : transitions refusées hors statut attendu, refus,
+ * expiration automatique des commandes urgentes et score de fiabilité du vendeur.
  */
 final class OrderServiceTransitionTest extends DatabaseTestCase
 {
+    private function service(\PDO $pdo): OrderService
+    {
+        return new OrderService($pdo, new OrderRepository($pdo));
+    }
+
+    private function score(\PDO $pdo, int $enterprise): int
+    {
+        return (int) $pdo->query("SELECT Score_Fiabilite FROM Entreprise WHERE Id_Entreprise = $enterprise")->fetchColumn();
+    }
+
     public function testTransitionFailsWhenCurrentStatusDoesNotMatchExpected(): void
     {
         $pdo = $this->getPdo();
-        $service = new OrderService($pdo, new OrderRepository($pdo));
-
-        [$orderId, $enterpriseId, $statusBefore] = $this->fetchAnyOrderNotInStatus($pdo, 'en_attente');
-
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessageMatches('/introuvable ou statut incorrect/');
+        $f = $this->fixtures($pdo);
+        $seller = $f->enterprise('Vendeur');
+        $order = $f->order($f->enterprise('Acheteur'), $seller, 'livree');
 
         try {
-            // On prétend (à tort) que la commande est "en_attente" pour la faire passer
-            // à "validee" — doit être rejeté puisque son vrai statut est différent.
-            $service->transitionForSeller($orderId, $enterpriseId, 'en_attente', 'validee');
-        } finally {
-            $statusAfter = $pdo
-                ->query('SELECT Statut FROM Commande_B2B WHERE Id_Commande_B2B = ' . (int) $orderId)
-                ->fetchColumn();
-            $this->assertSame($statusBefore, $statusAfter, 'Le statut ne doit pas bouger quand la transition est refusée.');
+            $this->service($pdo)->transitionForSeller($order, $seller, 'en_attente', 'validee');
+            $this->fail('La transition aurait dû être refusée.');
+        } catch (RuntimeException $e) {
+            $this->assertMatchesRegularExpression('/introuvable ou statut incorrect/', $e->getMessage());
         }
+        $this->assertSame('livree', $f->orderStatus($order));
     }
 
     public function testTransitionFailsForWrongEnterprise(): void
     {
         $pdo = $this->getPdo();
-        $service = new OrderService($pdo, new OrderRepository($pdo));
-
-        $row = $pdo->query('SELECT Id_Commande_B2B, Statut, Id_Entreprise_Vendeuse FROM Commande_B2B LIMIT 1')
-            ->fetch();
-        $this->assertNotFalse($row, 'Précondition : au moins une commande B2B doit exister en fixture.');
-
-        $wrongEnterpriseId = (int) $row['Id_Entreprise_Vendeuse'] + 1_000_000;
+        $f = $this->fixtures($pdo);
+        $order = $f->order($f->enterprise('Acheteur'), $f->enterprise('Vendeur'));
 
         $this->expectException(RuntimeException::class);
-
-        $service->transitionForSeller(
-            (int) $row['Id_Commande_B2B'],
-            $wrongEnterpriseId,
-            (string) $row['Statut'],
-            'validee'
-        );
+        $this->service($pdo)->transitionForSeller($order, $f->enterprise('Intrus'), 'en_attente', 'validee');
     }
 
     public function testRefuseRejectsAnEmptyReason(): void
     {
-        $pdo = $this->getPdo();
-        $service = new OrderService($pdo, new OrderRepository($pdo));
-
         $this->expectException(\InvalidArgumentException::class);
-
-        // Le motif vide doit être rejeté avant toute requête ; l'ID/entreprise n'ont
-        // même pas besoin d'exister pour ce cas.
-        $service->refuse(999999, 999999, '   ');
+        $this->service($this->getPdo())->refuse(999999, 999999, '   ');
     }
 
-    /** @return array{0:int,1:int,2:string} [orderId, enterpriseId, currentStatus] */
-    private function fetchAnyOrderNotInStatus(\PDO $pdo, string $excludedStatus): array
+    public function testRefusalLowersTheReliabilityScore(): void
     {
-        $stmt = $pdo->prepare('SELECT Id_Commande_B2B, Id_Entreprise_Vendeuse, Statut FROM Commande_B2B WHERE Statut != ? LIMIT 1');
-        $stmt->execute([$excludedStatus]);
-        $row = $stmt->fetch();
+        $pdo = $this->getPdo();
+        $f = $this->fixtures($pdo);
+        $seller = $f->enterprise('Vendeur');
+        $order = $f->order($f->enterprise('Acheteur'), $seller);
 
-        $this->assertNotFalse(
-            $row,
-            "Précondition : il faut au moins une commande B2B fixture avec un statut différent de '{$excludedStatus}'."
-        );
+        $this->service($pdo)->refuse($order, $seller, 'Rupture');
 
-        return [(int) $row['Id_Commande_B2B'], (int) $row['Id_Entreprise_Vendeuse'], (string) $row['Statut']];
+        $this->assertSame('refusee', $f->orderStatus($order));
+        // (0 livrée + 5) / (1 tranchée + 5) = 83 %
+        $this->assertSame(83, $this->score($pdo, $seller));
+    }
+
+    public function testReliabilityScoreFollowsDeliveredOverDecidedOrders(): void
+    {
+        $pdo = $this->getPdo();
+        $f = $this->fixtures($pdo);
+        $seller = $f->enterprise('Vendeur');
+        $buyer = $f->enterprise('Acheteur');
+        foreach (['livree', 'livree', 'livree', 'refusee', 'en_attente', 'expediee'] as $status) {
+            $f->order($buyer, $seller, $status);
+        }
+
+        (new OrderRepository($pdo))->recalculateSellerReliability($seller);
+
+        // Seules livrées et refusées comptent : (3 + 5) / (4 + 5) = 89 %
+        $this->assertSame(89, $this->score($pdo, $seller));
+        $this->assertSame(3, (int) $pdo->query("SELECT Nombre_Commandes_Completees FROM Entreprise WHERE Id_Entreprise = $seller")->fetchColumn());
+    }
+
+    public function testOverdueUrgentOrdersAreRefusedAutomatically(): void
+    {
+        $pdo = $this->getPdo();
+        $f = $this->fixtures($pdo);
+        $seller = $f->enterprise('Vendeur');
+        $buyer = $f->enterprise('Acheteur');
+        $past = date('Y-m-d H:i:s', time() - 60);
+        $future = date('Y-m-d H:i:s', time() + 3600);
+
+        $expired = $f->order($buyer, $seller, 'en_attente', ['Est_Urgente' => 1, 'Date_Limite_Reponse' => $past]);
+        $stillOpen = $f->order($buyer, $seller, 'en_attente', ['Est_Urgente' => 1, 'Date_Limite_Reponse' => $future]);
+        $alreadyValidated = $f->order($buyer, $seller, 'validee', ['Est_Urgente' => 1, 'Date_Limite_Reponse' => $past]);
+        $notUrgent = $f->order($buyer, $seller, 'en_attente');
+
+        $result = $this->service($pdo)->expireOverdueUrgentOrders();
+
+        $this->assertContains($expired, array_map('intval', array_column($result, 'Id_Commande_B2B')));
+        $this->assertSame('refusee', $f->orderStatus($expired));
+        $this->assertSame('en_attente', $f->orderStatus($stillOpen));
+        $this->assertSame('validee', $f->orderStatus($alreadyValidated));
+        $this->assertSame('en_attente', $f->orderStatus($notUrgent));
+        $this->assertSame(83, $this->score($pdo, $seller), 'Un délai dépassé compte comme un refus.');
+
+        $history = $pdo->query("SELECT Nouveau_Statut FROM Historique_Commande_B2B WHERE Id_Commande_B2B = $expired")->fetchColumn();
+        $this->assertSame('refusee', $history);
     }
 }

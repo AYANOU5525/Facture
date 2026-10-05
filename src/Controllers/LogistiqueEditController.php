@@ -52,10 +52,13 @@ class LogistiqueEditController extends Controller
             $statuts_valides = ['traitement', 'en_attente', 'expediee', 'livree', 'annulee'];
             // Les champs date laissés vides arrivent en '' (pas absents) : les normaliser en
             // null ici, sinon MySQL rejette '' comme valeur DATETIME (SQLSTATE 22007).
-            $date_exp = trim($_POST['date_expedition'] ?? '') ?: null;
-            $date_prevue = trim($_POST['date_prevue'] ?? '') ?: null;
-            $date_livree = trim($_POST['date_livraison'] ?? '') ?: null;
-            $notes = $_POST['notes'] ?? '';
+            // Un champ ABSENT du formulaire (ex. bouton « Marquer livrée » du livreur, qui
+            // n'envoie pas la date d'expédition) conserve la valeur en base : la mise à jour
+            // réécrit toutes les colonnes et l'effacerait sinon.
+            $date_exp = trim($_POST['date_expedition'] ?? ($log['Date_Expedition'] ?? '')) ?: null;
+            $date_prevue = trim($_POST['date_prevue'] ?? ($log['Date_Livraison_Prevue'] ?? '')) ?: null;
+            $date_livree = trim($_POST['date_livraison'] ?? ($log['Date_Livraison_Effectuee'] ?? '')) ?: null;
+            $notes = $_POST['notes'] ?? ($log['Notes_Logistique'] ?? '');
             $adresse_livraison = $_POST['adresse_livraison'] ?? '';
             $lat_livraison = !empty($_POST['lat_livraison']) ? floatval($_POST['lat_livraison']) : null;
             $lng_livraison = !empty($_POST['lng_livraison']) ? floatval($_POST['lng_livraison']) : null;
@@ -108,10 +111,10 @@ class LogistiqueEditController extends Controller
                         : 'Livrée par le transporteur';
                     enregistrerHistoriqueCommande($this->pdo, $id_cmd, $event['old_status'], $event['new_status'], $note, $entreprise_id);
                     if ($event['new_status'] === 'expediee') {
-                        creerNotificationB2b($this->pdo, (int) $cmd['Id_Entreprise_Acheteuse'], 'expedition', "🚚 Commande {$cmd['Numero_Commande']} en livraison", "Votre commande {$cmd['Numero_Commande']} a été expédiée via $transporteur (N° de suivi : $numero_suivi).", $id_cmd);
+                        creerNotificationB2b($this->pdo, (int) $cmd['Id_Entreprise_Acheteuse'], 'expedition', "Commande {$cmd['Numero_Commande']} en livraison", "Votre commande {$cmd['Numero_Commande']} a été expédiée via $transporteur (N° de suivi : $numero_suivi).", $id_cmd);
                     } else {
-                        creerNotificationB2b($this->pdo, (int) $cmd['Id_Entreprise_Acheteuse'], 'livraison', "✅ Commande {$cmd['Numero_Commande']} livrée", "La livraison de votre commande {$cmd['Numero_Commande']} est arrivée.", $id_cmd);
-                        creerNotificationB2b($this->pdo, (int) $cmd['Id_Entreprise_Vendeuse'], 'reception', "🏆 Commande {$cmd['Numero_Commande']} livrée", "La livraison de votre commande {$cmd['Numero_Commande']} a été complétée.", $id_cmd);
+                        creerNotificationB2b($this->pdo, (int) $cmd['Id_Entreprise_Acheteuse'], 'livraison', "Commande {$cmd['Numero_Commande']} livrée", "La livraison de votre commande {$cmd['Numero_Commande']} est arrivée.", $id_cmd);
+                        creerNotificationB2b($this->pdo, (int) $cmd['Id_Entreprise_Vendeuse'], 'reception', "Commande {$cmd['Numero_Commande']} livrée", "La livraison de votre commande {$cmd['Numero_Commande']} a été complétée.", $id_cmd);
                     }
                 }
 

@@ -4,32 +4,19 @@
     </div>
 
     <!-- Navigation B2B -->
-    <div class="d-flex gap-2 flex-wrap mb-3">
-        <a href="reseau_b2b.php" class="btn btn-sm <?= $current === 'reseau_b2b.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
-            <i class="fas fa-building"></i> Annuaire
-        </a>
-        <a href="annonces.php" class="btn btn-sm <?= $current === 'annonces.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
-            <i class="fas fa-bullhorn"></i> Annonces
-        </a>
-        <a href="commandes_b2b.php" class="btn btn-sm <?= $current === 'commandes_b2b.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
-            <i class="fas fa-shipping-fast"></i> Commandes
-        </a>
-        <a href="notifications_b2b.php" class="btn btn-sm <?= $current === 'notifications_b2b.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
-            <i class="fas fa-bell"></i> Notifications
-        </a>
-    </div>
+    <?php require __DIR__ . '/../partials/b2b_nav.php'; ?>
 
-    <div class="card">
-        <div class="card-header bg-transparent d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h2 class="h6 mb-0">
-                <i class="fas fa-bell text-primary me-2"></i>
-                <?= count($notifications) ?> notification<?= count($notifications) > 1 ? 's' : '' ?>
-                <?php if ($nb_non_lues > 0): ?>
-                    <span class="text-primary fw-semibold ms-1"><?= $nb_non_lues ?> non lue<?= $nb_non_lues > 1 ? 's' : '' ?></span>
-                <?php else: ?>
-                    <span class="text-success ms-1"><i class="fas fa-check"></i> à jour</span>
-                <?php endif; ?>
-            </h2>
+    <div class="panel-soft">
+        <div class="panel-soft-head">
+            <div>
+                <h2 class="panel-soft-title">Notifications</h2>
+                <div class="panel-soft-sub">
+                    <?= count($notifications) ?> notification<?= count($notifications) > 1 ? 's' : '' ?> ·
+                    <?= $nb_non_lues > 0
+                        ? $nb_non_lues . ' non lue' . ($nb_non_lues > 1 ? 's' : '')
+                        : 'vous êtes à jour' ?>
+                </div>
+            </div>
             <?php if ($nb_non_lues > 0): ?>
                 <form method="POST">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
@@ -42,12 +29,13 @@
         </div>
 
         <?php if (empty($notifications)): ?>
-            <div class="text-center text-body-secondary py-5">
-                <i class="fas fa-bell-slash fs-1 opacity-25 d-block mb-3"></i>
-                <p class="mb-0">Aucune notification pour le moment.</p>
+            <div class="notif-empty py-5">
+                <span class="notif-empty-icon"><i class="fas fa-bell-slash"></i></span>
+                <span class="fw-semibold">Aucune notification</span>
+                <span>Les commandes et messages B2B apparaîtront ici.</span>
             </div>
         <?php else: ?>
-            <div class="list-group list-group-flush notifs-list">
+            <div class="notifs-page-list">
             <?php foreach ($notifications as $n): ?>
                 <?php
                 $ts = strtotime($n['Date_Creation']);
@@ -64,31 +52,30 @@
                     $estNonLue = !$n['Est_Lue'];
                 ?>
                 <<?= $tag ?> <?php if ($hasCommande): ?>
-                        href="commandes_b2b.php?open_chat=<?= $id_cmd ?>&amp;num=<?= urlencode($n['Numero_Commande']) ?>"
-                        onclick="beaconMarquerLue(<?= $n['Id_Notification'] ?>)"
+                        href="../api/notifications.php?action=open&amp;id=<?= (int) $n['Id_Notification'] ?>"
                     <?php else: ?>
                         onclick="marquerLue(<?= $n['Id_Notification'] ?>, this)"
                     <?php endif; ?>
-                    class="list-group-item list-group-item-action notif-item d-flex gap-3 align-items-start <?= $estNonLue ? 'notif-unread border-start border-4 border-primary' : '' ?>"
-                    style="cursor:pointer;">
-                    <i class="fas fa-bell flex-shrink-0 mt-1 <?= $estNonLue ? 'text-primary' : 'text-body-secondary' ?>"></i>
-                    <div class="notif-content flex-grow-1">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="fw-semibold"><?= htmlspecialchars($n['Titre']) ?></span>
-                            <?php if ($estNonLue): ?><span class="text-primary fw-semibold small">Nouveau</span><?php endif; ?>
-                        </div>
+                    class="notif-page-row <?= $estNonLue ? 'is-unread' : '' ?>"
+                    style="--notif-color: <?= htmlspecialchars(\App\Application\B2B\NotificationService::COLORS[$n['Type_Notif']] ?? '#6b7076') ?>">
+                    <span class="notif-row-icon">
+                        <i class="fas <?= htmlspecialchars(\App\Application\B2B\NotificationService::ICONS[$n['Type_Notif']] ?? 'fa-bell') ?>"></i>
+                    </span>
+                    <div class="notif-page-body">
+                        <div class="notif-page-title"><?= htmlspecialchars(\App\Application\B2B\NotificationService::cleanTitle((string) $n['Titre'])) ?></div>
                         <?php if ($n['Message']): ?>
-                            <div class="text-body-secondary small mt-1"><?= htmlspecialchars($n['Message']) ?></div>
+                            <div class="notif-page-msg"><?= htmlspecialchars($n['Message']) ?></div>
                         <?php endif; ?>
-                        <div class="d-flex align-items-center gap-3 text-body-secondary mt-1" style="font-size:0.76rem;">
-                            <span><i class="fas fa-clock"></i> <?= $temps ?></span>
+                        <div class="notif-page-meta">
+                            <span><i class="far fa-clock"></i> <?= $temps ?></span>
                             <?php if ($n['Numero_Commande']): ?>
-                                <span class="text-primary">
-                                    <i class="fas fa-external-link-alt"></i> <?= htmlspecialchars($n['Numero_Commande']) ?>
-                                </span>
+                                <span class="notif-page-cmd"><i class="fas fa-receipt"></i> <?= htmlspecialchars($n['Numero_Commande']) ?></span>
                             <?php endif; ?>
                         </div>
                     </div>
+                    <?php if ($estNonLue): ?>
+                        <span class="notif-voyant" title="Non lue" aria-label="Non lue"></span>
+                    <?php endif; ?>
                 </<?= $tag ?>>
             <?php endforeach; ?>
             </div>
@@ -121,31 +108,65 @@
         }).catch(() => {});
     }
 
-    // Notification liée à une commande : la navigation par défaut du <a> ouvre directement
-    // commandes_b2b.php (qui rouvre le chat) — on se contente de marquer comme lue en tâche de fond.
-    function beaconMarquerLue(id) {
-        envoyerMarquageLue(id);
-    }
+    // Notification liée à une commande : le lien passe par api/notifications.php?action=open,
+    // qui la marque comme lue et redirige vers la commande (bon onglet, détail déplié).
 
     // Notification sans commande associée : pas de destination à ouvrir, on reste sur la page.
     async function marquerLue(id, el) {
-        if (el.classList.contains('notif-unread')) {
-            el.classList.remove('notif-unread');
+        if (el.classList.contains('is-unread')) {
+            el.classList.remove('is-unread');
+            el.querySelector('.notif-voyant')?.remove();
             await envoyerMarquageLue(id);
         }
     }
 </script>
 
 <style>
-    .notif-unread {
-        background: var(--bs-primary-bg-subtle);
+    .notifs-page-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 12px;
     }
-    .notif-item:hover {
-        background: var(--bs-secondary-bg);
+    .notif-page-row {
+        position: relative;
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 14px 44px 14px 16px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg-card);
+        color: var(--text-main);
+        text-decoration: none;
+        cursor: pointer;
+        transition: background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
     }
-    .notif-item.notif-unread:hover {
-        background: var(--bs-primary-bg-subtle);
-        filter: brightness(0.97);
+    .notif-page-row:hover {
+        color: var(--text-main);
+        border-color: color-mix(in srgb, var(--notif-color) 35%, var(--border));
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06);
+    }
+    .notif-page-row.is-unread { background: color-mix(in srgb, var(--primary) 4%, var(--bg-card)); }
+    .notif-page-row .notif-row-icon { width: 38px; height: 38px; font-size: 0.95rem; }
+    .notif-page-body { flex: 1; min-width: 0; }
+    .notif-page-title { font-size: 0.9rem; font-weight: 500; color: var(--text-muted); }
+    .notif-page-row.is-unread .notif-page-title { font-weight: 700; color: var(--text-main); }
+    .notif-page-msg { margin-top: 2px; font-size: 0.82rem; line-height: 1.45; color: var(--text-muted); overflow-wrap: anywhere; }
+    .notif-page-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 0.74rem; color: var(--text-muted); }
+    .notif-page-meta i { font-size: 0.68rem; margin-right: 2px; }
+    .notif-page-cmd { color: var(--primary); font-weight: 600; }
+    /* Voyant « non lue » */
+    .notif-voyant {
+        position: absolute;
+        top: 50%;
+        right: 18px;
+        width: 10px;
+        height: 10px;
+        margin-top: -5px;
+        border-radius: 50%;
+        background: var(--primary);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 18%, transparent);
     }
 </style>
 </body>

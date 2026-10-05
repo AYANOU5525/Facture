@@ -12,9 +12,6 @@ use Tests\DatabaseTestCase;
 /** Couvre LogisticsService::update() — mise à jour du suivi d'une livraison. */
 final class LogisticsServiceTest extends DatabaseTestCase
 {
-    private const ENTERPRISE_ID = 1;
-    private const LOGISTICS_ID = 14; // Entrée fixture autonome (pas de Vente/Commande_B2B liée)
-
     private function service(\PDO $pdo): LogisticsService
     {
         return new LogisticsService($pdo, new LogisticsRepository($pdo));
@@ -40,36 +37,34 @@ final class LogisticsServiceTest extends DatabaseTestCase
     public function testRejectsAnInvalidStatus(): void
     {
         $pdo = $this->getPdo();
+        $f = $this->fixtures($pdo);
+        $enterprise = $f->enterprise();
+        $logistics = $f->logistics($enterprise);
+
         $this->expectException(InvalidArgumentException::class);
-        $this->service($pdo)->update(self::LOGISTICS_ID, self::ENTERPRISE_ID, $this->baseData(['status' => 'en_orbite']));
+        $this->service($pdo)->update($logistics, $enterprise, $this->baseData(['status' => 'en_orbite']));
     }
 
     public function testUpdatesTrackingFieldsForAStandaloneDelivery(): void
     {
         $pdo = $this->getPdo();
+        $f = $this->fixtures($pdo);
+        $enterprise = $f->enterprise();
+        $logistics = $f->logistics($enterprise);
 
-        try {
-            $event = $this->service($pdo)->update(self::LOGISTICS_ID, self::ENTERPRISE_ID, $this->baseData([
-                'carrier' => 'PHPUNIT-Transporteur',
-                'tracking' => 'PHPUNIT-TRACK-123',
-                'status' => 'expediee',
-                'date_expedition' => date('Y-m-d H:i:s'),
-            ]));
+        $event = $this->service($pdo)->update($logistics, $enterprise, $this->baseData([
+            'carrier' => 'PHPUNIT-Transporteur',
+            'tracking' => 'PHPUNIT-TRACK-123',
+            'status' => 'expediee',
+            'date_expedition' => date('Y-m-d H:i:s'),
+        ]));
 
-            // Pas de Commande_B2B liée à cette entrée fixture : aucun évènement de notification à renvoyer.
-            $this->assertNull($event);
+        // Pas de Commande_B2B liée : aucun évènement de notification à renvoyer.
+        $this->assertNull($event);
 
-            $row = $pdo->query(
-                "SELECT Transporteur, Numero_Suivi, Statut_Livraison FROM Logistique WHERE Id_Logistique = " . self::LOGISTICS_ID
-            )->fetch();
-            $this->assertSame('PHPUNIT-Transporteur', $row['Transporteur']);
-            $this->assertSame('PHPUNIT-TRACK-123', $row['Numero_Suivi']);
-            $this->assertSame('expediee', $row['Statut_Livraison']);
-        } finally {
-            $pdo->exec(
-                "UPDATE Logistique SET Transporteur = NULL, Numero_Suivi = NULL, Statut_Livraison = 'traitement',
-                    Date_Expedition = NULL WHERE Id_Logistique = " . self::LOGISTICS_ID
-            );
-        }
+        $row = $pdo->query("SELECT Transporteur, Numero_Suivi, Statut_Livraison FROM Logistique WHERE Id_Logistique = $logistics")->fetch();
+        $this->assertSame('PHPUNIT-Transporteur', $row['Transporteur']);
+        $this->assertSame('PHPUNIT-TRACK-123', $row['Numero_Suivi']);
+        $this->assertSame('expediee', $row['Statut_Livraison']);
     }
 }

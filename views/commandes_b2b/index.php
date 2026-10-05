@@ -21,21 +21,7 @@
     <?php endif; ?>
 
     <!-- Navigation B2B -->
-    <div class="d-flex gap-2 flex-wrap mb-3">
-        <a href="reseau_b2b.php" class="btn btn-sm <?= $current === 'reseau_b2b.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
-            <i class="fas fa-building"></i> Annuaire
-        </a>
-        <a href="annonces.php" class="btn btn-sm <?= $current === 'annonces.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
-            <i class="fas fa-bullhorn"></i> Annonces
-        </a>
-        <a href="commandes_b2b.php" class="btn btn-sm <?= $current === 'commandes_b2b.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
-            <i class="fas fa-shipping-fast"></i> Commandes
-        </a>
-        <a href="notifications_b2b.php" class="btn btn-sm <?= $current === 'notifications_b2b.php' ? 'btn-primary' : 'btn-outline-secondary' ?>">
-            <i class="fas fa-bell"></i> Notifications
-            <?php if (!empty($nb_non_lues)): ?><span class="badge rounded-pill text-bg-danger ms-1"><?= $nb_non_lues ?></span><?php endif; ?>
-        </a>
-    </div>
+    <?php require __DIR__ . '/../partials/b2b_nav.php'; ?>
 
     <!-- Onglets -->
     <ul class="nav nav-pills b2b-tabs mb-4">
@@ -59,11 +45,14 @@
              PANNEAU NOUVELLE COMMANDE (Acheteur)
              ──────────────────────────────── -->
         <?php if ($onglet === 'passees'): ?>
-            <div class="col-lg-4">
-                <div class="card b2b-form-card">
-                    <div class="b2b-form-header">
-                        <i class="fas fa-plus-circle"></i>
-                        <span>Nouvelle commande</span>
+            <!-- Côte à côte seulement sur très grand écran : sinon le tableau, à droite, coupait la colonne Actions -->
+            <div class="col-xxl-4">
+                <div class="panel-soft b2b-form-card">
+                    <div class="panel-soft-head">
+                        <div>
+                            <h2 class="panel-soft-title">Nouvelle commande</h2>
+                            <div class="panel-soft-sub">Commandez auprès d'un fournisseur du réseau</div>
+                        </div>
                     </div>
 
                     <!-- Sélecteur fournisseur -->
@@ -109,9 +98,8 @@
                                             <option value="<?= $p['Id_Produit'] ?>"
                                                 data-nom="<?= htmlspecialchars($p['Nom_Produit'], ENT_QUOTES) ?>"
                                                 data-prix="<?= $p['Prix_B2B'] ?>"
-                                                data-min="<?= max(1, (int)$p['Quantite_Min_B2B']) ?>"
-                                                data-stock="<?= $p['Quantite_En_Stock'] ?>">
-                                                <?= htmlspecialchars($p['Nom_Produit']) ?> — stock : <?= $p['Quantite_En_Stock'] ?>
+                                                data-min="<?= max(1, (int)$p['Quantite_Min_B2B']) ?>">
+                                                <?= htmlspecialchars($p['Nom_Produit']) ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
@@ -159,7 +147,7 @@
                                     <input type="checkbox" name="est_urgente" id="est_urgente"
                                         onchange="toggleUrgence(this)">
                                     <span class="toggle-slider"></span>
-                                    <span>⚡ Commande urgente</span>
+                                    <span><i class="fas fa-bolt"></i> Commande urgente</span>
                                 </label>
                                 <div id="urgence-options" class="urgence-options" style="display:none;">
                                     <label for="delai_minutes" style="font-size:0.85rem; color:var(--text-muted);">Délai de réponse souhaité</label>
@@ -237,18 +225,22 @@
         <!-- ────────────────────────────────
              LISTE DES COMMANDES
              ──────────────────────────────── -->
-        <div class="<?= $onglet === 'passees' ? 'col-lg-8' : 'col-12' ?> min-w-0">
+        <div class="<?= $onglet === 'passees' ? 'col-xxl-8' : 'col-12' ?> min-w-0">
             <?php if (empty($commandes)): ?>
-                <div class="card">
-                    <div class="card-body text-center text-body-secondary py-5">
-                        <i class="fas fa-inbox fs-1 opacity-25 d-block mb-3"></i>
-                        <p class="mb-0">Aucune transaction B2B pour le moment.</p>
+                <div class="panel-soft">
+                    <div class="notif-empty py-5">
+                        <span class="notif-empty-icon"><i class="fas fa-inbox"></i></span>
+                        <span class="fw-semibold"><?= $onglet === 'recues' ? 'Aucune commande reçue' : 'Aucune commande passée' ?></span>
+                        <span><?= $onglet === 'recues' ? 'Les commandes de vos clients B2B apparaîtront ici.' : 'Choisissez un fournisseur pour passer votre première commande.' ?></span>
                     </div>
                 </div>
             <?php else: ?>
-                <div class="card">
-                    <div class="card-header bg-transparent">
-                        <h2 class="fs-6 mb-0"><?= count($commandes) ?> commande<?= count($commandes) > 1 ? 's' : '' ?></h2>
+                <div class="panel-soft">
+                    <div class="panel-soft-head">
+                        <div>
+                            <h2 class="panel-soft-title"><?= $onglet === 'recues' ? 'Commandes reçues' : 'Mes commandes' ?></h2>
+                            <div class="panel-soft-sub"><?= count($commandes) ?> commande<?= count($commandes) > 1 ? 's' : '' ?> · <?= $onglet === 'recues' ? 'vous êtes le fournisseur' : 'vous êtes l\'acheteur' ?></div>
+                        </div>
                     </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
@@ -264,7 +256,7 @@
                                     <th class="text-center">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody data-paginate="5">
                                 <?php foreach ($commandes as $c):
                                     $est_urgente  = (bool)$c['Est_Urgente'];
                                     $urgent_actif = $est_urgente && in_array($c['Statut'], ['en_attente', 'validee']);
@@ -282,7 +274,12 @@
                                             <i class="fas fa-chevron-down"></i>
                                         </button>
                                     </td>
-                                    <td><strong><?= htmlspecialchars($c['Numero_Commande']) ?></strong></td>
+                                    <td class="text-nowrap">
+                                        <strong><?= htmlspecialchars($c['Numero_Commande']) ?></strong>
+                                        <?php if (!empty($c['Numero_Origine'])): ?>
+                                            <div class="small text-body-secondary"><i class="fas fa-clock-rotate-left"></i> Reliquat de <?= htmlspecialchars($c['Numero_Origine']) ?></div>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <?= htmlspecialchars($c['Autre_Partie']) ?>
                                         <?php if ($c['Tel_Entreprise']): ?>
@@ -291,11 +288,11 @@
                                             </a>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-end fw-bold"><?= number_format((float)$c['Montant_Total'], 0, ',', ' ') ?> F</td>
+                                    <td class="text-end fw-bold text-nowrap"><?= number_format((float)$c['Montant_Total'], 0, ',', ' ') ?> F</td>
                                     <td class="small text-body-secondary"><?= date('d/m/y H:i', strtotime($c['Date_Commande'])) ?></td>
                                     <td>
                                         <?php if ($urgent_actif): ?>
-                                            <span class="text-danger fw-semibold">⚡ Urgent</span>
+                                            <span class="text-danger fw-semibold"><i class="fas fa-bolt"></i> Urgent</span>
                                         <?php else: ?>
                                             <span class="text-body-secondary">—</span>
                                         <?php endif; ?>
@@ -314,6 +311,10 @@
                                                             <i class="fas fa-check"></i>
                                                         </button>
                                                     </form>
+                                                    <button type="button" class="btn btn-outline-warning btn-sm" title="Stock insuffisant : proposer une livraison partielle"
+                                                        data-bs-toggle="collapse" data-bs-target="#<?= $detail_id ?>">
+                                                        <i class="fas fa-balance-scale"></i> Partiel
+                                                    </button>
                                                     <button class="btn btn-danger btn-sm" title="Refuser"
                                                         onclick="ouvrirModalRefus(<?= $c['Id_Commande_B2B'] ?>, '<?= htmlspecialchars($c['Numero_Commande']) ?>')">
                                                         <i class="fas fa-times"></i>
@@ -348,6 +349,35 @@
                                                 <?php endif; ?>
                                                 <!-- Actions ACHETEUR (onglet passées) -->
                                             <?php else: ?>
+                                                <?php if ($c['Statut'] === 'a_confirmer'): ?>
+                                                    <form method="POST" class="d-inline" onsubmit="return confirm('Accepter la proposition partielle ? La commande sera validée avec ces quantités.')">
+                                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
+                                                        <input type="hidden" name="action" value="accepter_proposition">
+                                                        <input type="hidden" name="id_commande" value="<?= $c['Id_Commande_B2B'] ?>">
+                                                        <button type="submit" class="btn btn-success btn-sm" title="Prendre les quantités proposées, sans le reste">
+                                                            <i class="fas fa-check"></i> Accepter
+                                                        </button>
+                                                    </form>
+                                                    <form method="POST" class="d-inline" onsubmit="return confirm('Accepter les quantités proposées et demander au fournisseur de compléter le reste plus tard ? Le reste sera enregistré comme une nouvelle commande (reliquat).')">
+                                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
+                                                        <input type="hidden" name="action" value="accepter_proposition">
+                                                        <input type="hidden" name="completer" value="1">
+                                                        <input type="hidden" name="id_commande" value="<?= $c['Id_Commande_B2B'] ?>">
+                                                        <button type="submit" class="btn btn-outline-success btn-sm" title="Prendre ce qui est disponible et se faire compléter le reste plus tard">
+                                                            <i class="fas fa-clock-rotate-left"></i> Accepter + compléter plus tard
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
+                                                <?php if (in_array($c['Statut'], ['en_attente', 'a_confirmer'], true)): ?>
+                                                    <form method="POST" class="d-inline" onsubmit="return confirm('Annuler cette commande ?')">
+                                                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
+                                                        <input type="hidden" name="action" value="annuler_commande">
+                                                        <input type="hidden" name="id_commande" value="<?= $c['Id_Commande_B2B'] ?>">
+                                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Annuler la commande">
+                                                            <i class="fas fa-ban"></i> Annuler
+                                                        </button>
+                                                    </form>
+                                                <?php endif; ?>
                                                 <?php if ($c['Statut'] === 'expediee'): ?>
                                                     <form method="POST" class="d-inline" onsubmit="return confirm('Confirmer la réception correcte de cette commande ?')">
                                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
@@ -360,6 +390,13 @@
                                                 <?php endif; ?>
                                             <?php endif; ?>
 
+                                            <?php if (!empty($c['Numero_Facture'])): ?>
+                                                <a href="invoice_view.php?ref=<?= urlencode($c['Numero_Facture']) ?>" target="_blank"
+                                                   class="btn btn-outline-secondary btn-sm" title="Voir / imprimer la facture <?= htmlspecialchars($c['Numero_Facture']) ?>">
+                                                    <i class="fas fa-file-invoice"></i> Facture
+                                                </a>
+                                            <?php endif; ?>
+
                                             <button class="btn btn-chat btn-sm" title="Chat"
                                                 onclick="ouvrirChat(<?= $c['Id_Commande_B2B'] ?>, '<?= htmlspecialchars($c['Numero_Commande']) ?>')">
                                                 <i class="fas fa-comment-dots"></i>
@@ -368,7 +405,7 @@
                                         </div>
                                     </td>
                                 </tr>
-                                <tr>
+                                <tr data-pg-follow>
                                     <td colspan="8" class="p-0 border-top-0">
                                         <div class="collapse" id="<?= $detail_id ?>">
                                             <div class="commande-detail-panel p-3">
@@ -388,15 +425,57 @@
                                                 <div class="row g-3">
                                                     <div class="col-md-6">
                                                         <!-- Articles (depuis lignes normalisées) -->
-                                                        <div class="commande-articles">
-                                                            <?php foreach ($lignes_cmd as $ligne): ?>
+                                                        <div class="commande-articles" data-paginate="5">
+                                                            <?php $total_propose = 0; ?>
+                                                            <?php foreach ($lignes_cmd as $ligne):
+                                                                $proposee = $c['Statut'] === 'a_confirmer' && isset($ligne['quantite_proposee']) ? (int) $ligne['quantite_proposee'] : null;
+                                                                $total_propose += $proposee !== null ? $proposee * (float) $ligne['prix'] : 0;
+                                                            ?>
                                                                 <div class="article-ligne">
-                                                                    <span class="article-qte"><?= $ligne['quantite'] ?>×</span>
+                                                                    <?php if ($proposee !== null && $proposee !== (int) $ligne['quantite']): ?>
+                                                                        <span class="article-qte"><s class="text-body-secondary"><?= $ligne['quantite'] ?></s> → <?= $proposee ?>×</span>
+                                                                    <?php else: ?>
+                                                                        <span class="article-qte"><?= $ligne['quantite'] ?>×</span>
+                                                                    <?php endif; ?>
                                                                     <span class="article-nom"><?= htmlspecialchars($ligne['nom']) ?></span>
-                                                                    <span class="article-prix"><?= number_format((float)$ligne['sous_total'], 0, ',', ' ') ?> F</span>
+                                                                    <span class="article-prix"><?= number_format($proposee !== null ? $proposee * (float) $ligne['prix'] : (float) $ligne['sous_total'], 0, ',', ' ') ?> F</span>
                                                                 </div>
                                                             <?php endforeach; ?>
+                                                            <?php if ($c['Statut'] === 'a_confirmer'): ?>
+                                                                <div class="alert alert-warning small mt-2 mb-0" data-pg-ignore>
+                                                                    <i class="fas fa-balance-scale"></i>
+                                                                    Proposition partielle du vendeur — nouveau total :
+                                                                    <strong><?= number_format($total_propose, 0, ',', ' ') ?> F</strong>
+                                                                    (au lieu de <?= number_format((float) $c['Montant_Total'], 0, ',', ' ') ?> F).
+                                                                    <?= $onglet === 'recues' ? "En attente de la réponse de l'acheteur." : 'Acceptez ou annulez la commande.' ?>
+                                                                </div>
+                                                            <?php endif; ?>
                                                         </div>
+
+                                                        <?php if ($onglet === 'recues' && $c['Statut'] === 'en_attente'): ?>
+                                                            <!-- Livraison partielle : le vendeur propose les quantités disponibles -->
+                                                            <form method="POST" class="partiel-form border rounded p-2 mb-2"
+                                                                  onsubmit="return confirm('Envoyer cette proposition à l\'acheteur ? Le stock proposé sera réservé en attendant sa réponse.')">
+                                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
+                                                                <input type="hidden" name="action" value="proposer_partiel">
+                                                                <input type="hidden" name="id_commande" value="<?= $c['Id_Commande_B2B'] ?>">
+                                                                <div class="small fw-semibold mb-1"><i class="fas fa-balance-scale"></i> Stock insuffisant ? Proposer une livraison partielle</div>
+                                                                <?php foreach ($lignes_cmd as $ligne):
+                                                                    if (empty($ligne['Id_Ligne'])) { continue; }
+                                                                    $dispo = max(0, (int) ($ligne['stock_vendeur'] ?? 0));
+                                                                ?>
+                                                                    <div class="d-flex align-items-center gap-2 small mb-1">
+                                                                        <span class="flex-grow-1"><?= htmlspecialchars($ligne['nom']) ?>
+                                                                            <span class="text-body-secondary">— commandé <?= (int) $ligne['quantite'] ?>, en stock <?= $dispo ?></span></span>
+                                                                        <input type="number" name="quantites[<?= (int) $ligne['Id_Ligne'] ?>]" class="form-control form-control-sm" style="width:80px"
+                                                                               min="0" max="<?= min((int) $ligne['quantite'], $dispo) ?>" value="<?= min((int) $ligne['quantite'], $dispo) ?>"
+                                                                               aria-label="Quantité proposée pour <?= htmlspecialchars($ligne['nom']) ?>">
+                                                                    </div>
+                                                                <?php endforeach; ?>
+                                                                <input type="text" name="message" class="form-control form-control-sm mb-1" maxlength="255" placeholder="Message pour l'acheteur (facultatif)">
+                                                                <button type="submit" class="btn btn-outline-warning btn-sm w-100"><i class="fas fa-paper-plane"></i> Envoyer la proposition</button>
+                                                            </form>
+                                                        <?php endif; ?>
 
                                                         <span class="mode-retrait-chip">
                                                             <?php if ($mode_retrait === 'retrait_place'): ?>
@@ -450,7 +529,9 @@
                                                                     <i class="fas fa-history"></i> Historique des statuts
                                                                     <i class="fas fa-chevron-down history-chevron" id="history-chevron-<?= $c['Id_Commande_B2B'] ?>"></i>
                                                                 </button>
-                                                                <ul class="history-list" id="history-list-<?= $c['Id_Commande_B2B'] ?>" style="display:none;">
+                                                                <!-- Conteneur replié/déplié (et non la liste elle-même) : la pagination se replie avec l'historique -->
+                                                                <div id="history-list-<?= $c['Id_Commande_B2B'] ?>" style="display:none;">
+                                                                <ul class="history-list" data-paginate="5">
                                                                     <?php foreach ($historique as $h): ?>
                                                                         <li>
                                                                             <span class="history-date"><?= date('d/m H:i', strtotime($h['Date_Changement'])) ?></span>
@@ -464,6 +545,7 @@
                                                                         </li>
                                                                     <?php endforeach; ?>
                                                                 </ul>
+                                                                </div>
                                                             </div>
                                                         <?php endif; ?>
                                                     </div>
@@ -617,15 +699,16 @@
         }
 
         const min = parseInt(opt.dataset.min) || 1;
-        const stock = parseInt(opt.dataset.stock) || 0;
         const prix = parseFloat(opt.dataset.prix) || 0;
 
         document.getElementById('detail-min').textContent = min;
         document.getElementById('detail-prix').textContent = formaterF(prix);
 
+        // Pas de plafond : le stock du vendeur n'est pas visible et l'acheteur commande
+        // librement ; le vendeur signalera un éventuel manque (proposition partielle).
         const qtyInput = document.getElementById('product-qty');
         qtyInput.min = min;
-        qtyInput.max = stock;
+        qtyInput.removeAttribute('max');
         qtyInput.value = min;
 
         details.style.display = 'block';
@@ -649,16 +732,11 @@
 
         const id = select.value;
         const min = parseInt(opt.dataset.min) || 1;
-        const stock = parseInt(opt.dataset.stock) || 0;
         const prix = parseFloat(opt.dataset.prix) || 0;
         const qte = parseInt(document.getElementById('product-qty').value) || 0;
 
         if (qte < min) {
             alert(`Quantité minimale requise : ${min}`);
-            return;
-        }
-        if (qte > stock) {
-            alert(`Stock disponible insuffisant (max ${stock}).`);
             return;
         }
 
@@ -914,10 +992,10 @@
         div.className = 'chat-bubble ' + (estMoi ? 'bubble-moi' : 'bubble-autre');
 
         const typeLabels = {
-            'negociation_qte': '⚖️ Négociation quantité',
-            'negociation_delai': '📅 Négociation délai',
-            'confirmation_dispo': '✅ Confirmation disponibilité',
-            'fichier': '📎 Fichier joint',
+            'negociation_qte': '<i class="fas fa-scale-balanced me-1"></i> Négociation quantité',
+            'negociation_delai': '<i class="far fa-calendar me-1"></i> Négociation délai',
+            'confirmation_dispo': '<i class="fas fa-circle-check me-1"></i> Confirmation disponibilité',
+            'fichier': '<i class="fas fa-paperclip me-1"></i> Fichier joint',
             'texte': null,
         };
         const typeLabel = typeLabels[msg.Type_Message];
@@ -1084,10 +1162,28 @@
         window.history.replaceState({}, '', window.location.pathname + (query ? '?' + query : ''));
     }
 
+    // ── Ouverture directe d'une commande depuis une notification (?ouvrir=ID) ──
+    function ouvrirCommandeDepuisNotification() {
+        const params = new URLSearchParams(window.location.search);
+        const id = parseInt(params.get('ouvrir'));
+        if (!id) return;
+        const panel = document.getElementById('detail-' + id);
+        if (panel) {
+            if (window.Paginator) Paginator.showItem(panel);
+            bootstrap.Collapse.getOrCreateInstance(panel, { toggle: false }).show();
+            panel.closest('tr').previousElementSibling?.classList.add('table-active');
+            setTimeout(() => panel.closest('tr').previousElementSibling?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+        }
+        params.delete('ouvrir');
+        const query = params.toString();
+        window.history.replaceState({}, '', window.location.pathname + (query ? '?' + query : ''));
+    }
+
     // ── Init ──
     document.addEventListener('DOMContentLoaded', function() {
         initCountdowns();
         ouvrirChatDepuisNotification();
+        ouvrirCommandeDepuisNotification();
     });
 </script>
 
@@ -1098,21 +1194,21 @@
 ?>
 <style>
     .btn-purple {
-        background-color: #8b5cf6 !important;
+        background-color: #7c3aed !important; /* #8b5cf6 : contraste insuffisant avec le texte blanc */
         color: white !important;
     }
 
     .btn-purple:hover {
-        background-color: #7c3aed !important;
+        background-color: #6d28d9 !important;
     }
 
     .btn-teal {
-        background-color: #0d9488 !important;
+        background-color: #0f766e !important; /* #0d9488 : contraste insuffisant avec le texte blanc */
         color: white !important;
     }
 
     .btn-teal:hover {
-        background-color: #0f766e !important;
+        background-color: #115e59 !important;
     }
 
     /* ── Historique B2B v3 ── */
@@ -1203,8 +1299,9 @@
     .b2b-tabs {
         display: flex;
         gap: 4px;
-        background: var(--zinc-100);
-        border-radius: 12px;
+        background: var(--bs-secondary-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
         padding: 5px;
         margin-bottom: 25px;
     }
@@ -1230,11 +1327,12 @@
         margin-top: 2px;
     }
 
-    .b2b-tab.active {
+    .b2b-tabs .b2b-tab.active {
         background: var(--bg-card);
         color: var(--primary);
-        box-shadow: var(--shadow-md);
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
     }
+    [data-bs-theme="dark"] .b2b-tabs .b2b-tab.active { background: #1e2236; color: #b4c3ff; }
 
     .b2b-tab:hover:not(.active) {
         background: var(--zinc-200);
@@ -1454,22 +1552,7 @@
     }
 
     /* ── Formulaire commande ── */
-    .b2b-form-card {
-        padding: 0;
-        overflow: hidden;
-        border: 1px solid var(--zinc-200);
-    }
-
-    .b2b-form-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 16px 20px;
-        background: var(--primary);
-        color: white;
-        font-weight: 600;
-        font-size: 1rem;
-    }
+    .b2b-form-card { padding: 0; }
 
     .vendeur-selector {
         padding: 15px 18px;

@@ -16,7 +16,7 @@ final class ProductRepository
     {
         $statement = $this->pdo->prepare(
             'SELECT Id_Produit, Nom_Produit, Description_Produit, Prix_Unitaire_Produit,
-                    Quantite_En_Stock, En_Destockage_B2B, Prix_B2B,
+                    Quantite_En_Stock, En_Destockage_B2B, Prix_B2B, Quantite_Min_B2B,
                     Code_Barre_Unite, Code_Barre_Carton, Quantite_Par_Carton,
                     COALESCE(Seuil_Alerte_Stock, 5) AS Seuil_Alerte_Stock
              FROM Produit
@@ -32,7 +32,7 @@ final class ProductRepository
     {
         $statement = $this->pdo->prepare(
             'SELECT Id_Produit, Nom_Produit, Description_Produit, Prix_Unitaire_Produit,
-                    Quantite_En_Stock, En_Destockage_B2B, Prix_B2B,
+                    Quantite_En_Stock, En_Destockage_B2B, Prix_B2B, Quantite_Min_B2B,
                     Code_Barre_Unite, Code_Barre_Carton, Quantite_Par_Carton,
                     COALESCE(Seuil_Alerte_Stock, 5) AS Seuil_Alerte_Stock
              FROM Produit
@@ -48,6 +48,22 @@ final class ProductRepository
     {
         $statement = $this->pdo->prepare('DELETE FROM Produit WHERE Id_Produit = ? AND Id_Entreprise = ?');
         $statement->execute([$productId, $enterpriseId]);
+    }
+
+    /** Produit de la même entreprise portant déjà ce nom (comparaison insensible à la casse). */
+    public function findByName(string $name, int $enterpriseId, ?int $excludeProductId = null): ?array
+    {
+        $sql = 'SELECT Id_Produit, Nom_Produit FROM Produit WHERE Id_Entreprise = ? AND LOWER(TRIM(Nom_Produit)) = LOWER(?)';
+        $params = [$enterpriseId, trim($name)];
+        if ($excludeProductId !== null) {
+            $sql .= ' AND Id_Produit != ?';
+            $params[] = $excludeProductId;
+        }
+        $statement = $this->pdo->prepare($sql . ' LIMIT 1');
+        $statement->execute($params);
+        $product = $statement->fetch();
+
+        return $product ?: null;
     }
 
     /**

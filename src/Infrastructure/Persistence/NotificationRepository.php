@@ -28,11 +28,11 @@ final class NotificationRepository
         $statement = $this->pdo->prepare(
             'SELECT n.Id_Notification, n.Type_Notif, n.Titre, n.Message,
                     n.Id_Commande_B2B, n.Est_Lue, n.Date_Creation,
-                    c.Numero_Commande
+                    c.Numero_Commande, c.Id_Entreprise_Acheteuse
              FROM Notification_B2B n
              LEFT JOIN Commande_B2B c ON n.Id_Commande_B2B = c.Id_Commande_B2B
              WHERE n.Id_Entreprise_Destinataire = ?
-             ORDER BY n.Date_Creation DESC
+             ORDER BY n.Id_Notification DESC
              LIMIT ?'
         );
         $statement->bindValue(1, $enterpriseId, PDO::PARAM_INT);
@@ -40,6 +40,21 @@ final class NotificationRepository
         $statement->execute();
 
         return $statement->fetchAll();
+    }
+
+    /** Une notification de l'entreprise (null si elle ne lui appartient pas). */
+    public function findForEnterprise(int $notificationId, int $enterpriseId): ?array
+    {
+        $statement = $this->pdo->prepare(
+            'SELECT n.Id_Notification, n.Type_Notif, n.Id_Commande_B2B, c.Numero_Commande, c.Id_Entreprise_Acheteuse
+             FROM Notification_B2B n
+             LEFT JOIN Commande_B2B c ON n.Id_Commande_B2B = c.Id_Commande_B2B
+             WHERE n.Id_Notification = ? AND n.Id_Entreprise_Destinataire = ?'
+        );
+        $statement->execute([$notificationId, $enterpriseId]);
+        $notification = $statement->fetch();
+
+        return $notification ?: null;
     }
 
     public function markRead(int $notificationId, int $enterpriseId): void

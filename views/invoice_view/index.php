@@ -153,6 +153,9 @@ $label_conservation = $label_conservation ?? '';
 
             <div class="invoice-details">
                 <h2>FACTURE</h2>
+                <?php if (!empty($est_annulee)): ?>
+                    <p style="color:#b91c1c; font-weight:bold; border:2px solid #b91c1c; display:inline-block; padding:2px 8px;">ANNULÉE</p>
+                <?php endif; ?>
                 <p>N° <?= htmlspecialchars($vente['Numero_Vente'] ?? '') ?></p>
                 <p>Date : <?= date('d/m/Y', strtotime($vente['Date_Vente'] ?? 'now')) ?></p>
             </div>
@@ -204,9 +207,17 @@ $label_conservation = $label_conservation ?? '';
                     </tr>
                 <?php endforeach; ?>
 
+                <tr>
+                    <td colspan="3" style="text-align: right;">Total HT</td>
+                    <td style="text-align: right;"><?= number_format((float) $montant_ht, 0, ',', ' ') ?> FCFA</td>
+                </tr>
+                <tr>
+                    <td colspan="3" style="text-align: right;">TVA (<?= htmlspecialchars($taux_tva) ?>)</td>
+                    <td style="text-align: right;"><?= number_format((float) $montant_tva, 0, ',', ' ') ?> FCFA</td>
+                </tr>
                 <tr class="total-row">
-                    <td colspan="3" style="text-align: right;">TOTAL NET À PAYER</td>
-                    <td style="text-align: right;"><?= number_format((float) ($vente['Montant_Total'] ?? 0), 0, ',', ' ') ?> FCFA</td>
+                    <td colspan="3" style="text-align: right;"><?= !empty($est_annulee) ? 'TOTAL TTC (FACTURE ANNULÉE)' : 'TOTAL NET À PAYER (TTC)' ?></td>
+                    <td style="text-align: right;"><?= number_format((float) $montant_ttc, 0, ',', ' ') ?> FCFA</td>
                 </tr>
             </tbody>
         </table>
@@ -215,14 +226,14 @@ $label_conservation = $label_conservation ?? '';
             <p>Merci de votre confiance.</p>
             <p>Facture générée numériquement via FactuPro le <?= date('d/m/Y à H:i') ?></p>
             <p style="margin-top: 10px; border-top: 1px solid #ddd; padding-top: 10px; font-style: italic;">
-                🔒 Ce document comptable est conservé conformément aux obligations légales —
+                Ce document comptable est conservé conformément aux obligations légales —
                 durée minimale : <strong>10 ans</strong> — jusqu'au <strong><?= $label_conservation ?></strong>.
             </p>
         </div>
 
         <div class="no-print text-center mt-4">
             <button onclick="window.print()" class="btn btn-primary btn-lg">
-                🖨 Imprimer / Exporter PDF
+                Imprimer / Exporter PDF
             </button>
             <button onclick="window.close()" class="btn btn-outline-secondary btn-lg ms-2">
                 Fermer

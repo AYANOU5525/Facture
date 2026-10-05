@@ -36,7 +36,7 @@
                             <th></th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-paginate="5">
                         <?php foreach ($ventes_recentes as $v): ?>
                             <tr>
                                 <td><strong><?= htmlspecialchars($v['Nom_Client']) ?></strong></td>

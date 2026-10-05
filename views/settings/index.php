@@ -222,10 +222,10 @@ function checkPwdMatch() {
     const label = document.getElementById('pwd-match-label');
     if (!p2) { label.textContent = ''; return; }
     if (p1 === p2) {
-        label.textContent = '✔ Les mots de passe correspondent';
+        label.innerHTML = '<i class="fas fa-circle-check me-1"></i>Les mots de passe correspondent';
         label.style.color = '#28a745';
     } else {
-        label.textContent = '✖ Les mots de passe ne correspondent pas';
+        label.innerHTML = '<i class="fas fa-circle-xmark me-1"></i>Les mots de passe ne correspondent pas';
         label.style.color = '#dc3545';
     }
 }

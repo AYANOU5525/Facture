@@ -16,9 +16,17 @@ use Tests\DatabaseTestCase;
  */
 final class ProductServiceAssociateBarcodeTest extends DatabaseTestCase
 {
-    private const ENTERPRISE_ID = 1;
-    private const PRODUCT_A = 3; // Souris sans fil — Code_Barre_Unite déjà renseigné, Carton NULL
-    private const PRODUCT_B = 5; // Hub USB 4 ports — Code_Barre_Unite déjà renseigné, Carton NULL
+    private int $enterprise;
+    private int $productA; // code unité renseigné, carton vide
+    private int $productB; // code unité renseigné, carton vide
+
+    protected function setUp(): void
+    {
+        $f = $this->fixtures($this->getPdo());
+        $this->enterprise = $f->enterprise();
+        $this->productA = $f->product($this->enterprise, ['Code_Barre_Unite' => 'A-' . uniqid()]);
+        $this->productB = $f->product($this->enterprise, ['Code_Barre_Unite' => 'B-' . uniqid()]);
+    }
 
     private function service(\PDO $pdo): ProductService
     {
@@ -28,73 +36,60 @@ final class ProductServiceAssociateBarcodeTest extends DatabaseTestCase
     public function testAssociatesAnUnknownCodeToTheEmptySlot(): void
     {
         $pdo = $this->getPdo();
-        $code = 'PHPUNIT-TEST-CARTON-' . uniqid();
+        $code = 'CARTON-' . uniqid();
 
-        try {
-            $this->service($pdo)->associateBarcode(self::PRODUCT_A, self::ENTERPRISE_ID, 'carton', $code);
+        $this->service($pdo)->associateBarcode($this->productA, $this->enterprise, 'carton', $code);
 
-            $stored = $pdo->query("SELECT Code_Barre_Carton FROM Produit WHERE Id_Produit = " . self::PRODUCT_A)->fetchColumn();
-            $this->assertSame($code, $stored);
-        } finally {
-            $pdo->exec("UPDATE Produit SET Code_Barre_Carton = NULL WHERE Id_Produit = " . self::PRODUCT_A);
-        }
+        $stored = $pdo->query('SELECT Code_Barre_Carton FROM Produit WHERE Id_Produit = ' . $this->productA)->fetchColumn();
+        $this->assertSame($code, $stored);
     }
 
     public function testRejectsWhenTheSlotIsAlreadyFilled(): void
     {
-        $pdo = $this->getPdo();
-        $existing = $pdo->query("SELECT Code_Barre_Unite FROM Produit WHERE Id_Produit = " . self::PRODUCT_A)->fetchColumn();
-        $this->assertNotEmpty($existing, 'Précondition : le produit fixture doit déjà avoir un code unité.');
-
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessageMatches('/déjà un code/');
 
-        $this->service($pdo)->associateBarcode(self::PRODUCT_A, self::ENTERPRISE_ID, 'unite', 'PHPUNIT-TEST-' . uniqid());
+        $this->service($this->getPdo())->associateBarcode($this->productA, $this->enterprise, 'unite', 'X-' . uniqid());
     }
 
     public function testRejectsACodeAlreadyUsedByAnotherProduct(): void
     {
         $pdo = $this->getPdo();
-        $codeDejaPris = $pdo->query("SELECT Code_Barre_Unite FROM Produit WHERE Id_Produit = " . self::PRODUCT_B)->fetchColumn();
-        $this->assertNotEmpty($codeDejaPris, 'Précondition : le produit B fixture doit déjà avoir un code unité.');
+        $codeDejaPris = (string) $pdo->query('SELECT Code_Barre_Unite FROM Produit WHERE Id_Produit = ' . $this->productB)->fetchColumn();
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessageMatches('/déjà utilisé/');
 
-        // PRODUCT_A n'a pas de code carton : on tente de lui associer, en tant que carton,
-        // le code déjà utilisé comme code UNITÉ par PRODUCT_B — collision inter-produits
-        // et inter-champs, doit être rejetée.
-        $this->service($pdo)->associateBarcode(self::PRODUCT_A, self::ENTERPRISE_ID, 'carton', (string) $codeDejaPris);
+        // Le code UNITÉ de B proposé comme code CARTON de A : collision inter-produits et inter-champs.
+        $this->service($pdo)->associateBarcode($this->productA, $this->enterprise, 'carton', $codeDejaPris);
     }
 
     public function testRejectsAnEmptyCode(): void
     {
-        $pdo = $this->getPdo();
         $this->expectException(InvalidArgumentException::class);
-        $this->service($pdo)->associateBarcode(self::PRODUCT_A, self::ENTERPRISE_ID, 'carton', '   ');
+        $this->service($this->getPdo())->associateBarcode($this->productA, $this->enterprise, 'carton', '   ');
     }
 
     public function testRejectsAnInvalidType(): void
     {
-        $pdo = $this->getPdo();
         $this->expectException(InvalidArgumentException::class);
-        $this->service($pdo)->associateBarcode(self::PRODUCT_A, self::ENTERPRISE_ID, 'palette', 'PHPUNIT-TEST-' . uniqid());
+        $this->service($this->getPdo())->associateBarcode($this->productA, $this->enterprise, 'palette', 'X-' . uniqid());
     }
 
     public function testRejectsAnUnknownProduct(): void
     {
-        $pdo = $this->getPdo();
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessageMatches('/introuvable/');
-        $this->service($pdo)->associateBarcode(999999, self::ENTERPRISE_ID, 'unite', 'PHPUNIT-TEST-' . uniqid());
+        $this->service($this->getPdo())->associateBarcode(999999, $this->enterprise, 'unite', 'X-' . uniqid());
     }
 
     public function testRejectsAProductBelongingToAnotherEnterprise(): void
     {
         $pdo = $this->getPdo();
-        // PRODUCT_A appartient à l'entreprise 1 : le demander sous l'entreprise 2 doit échouer
-        // exactement comme un produit inexistant (isolation multi-tenant).
+        $other = $this->fixtures($pdo)->enterprise('Autre');
+
+        // Isolation multi-tenant : même comportement qu'un produit inexistant.
         $this->expectException(InvalidArgumentException::class);
-        $this->service($pdo)->associateBarcode(self::PRODUCT_A, 2, 'unite', 'PHPUNIT-TEST-' . uniqid());
+        $this->service($pdo)->associateBarcode($this->productA, $other, 'unite', 'X-' . uniqid());
     }
 }

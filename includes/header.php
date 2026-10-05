@@ -32,9 +32,16 @@ if (session_status() === PHP_SESSION_NONE) {
 
     <!-- Styles -->
     <link rel="stylesheet" href="../assets/vendor/bootstrap/bootstrap.min.css">
-    <link rel="stylesheet" href="../assets/css/theme.css">
-    <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="../assets/css/theme.css?v=<?= @filemtime(__DIR__ . '/../assets/css/theme.css') ?>">
+    <link rel="stylesheet" href="../assets/css/animations.css?v=<?= @filemtime(__DIR__ . '/../assets/css/animations.css') ?>">
     <link rel="stylesheet" href="../assets/vendor/fontawesome/css/all.min.css">
+    <script>
+        try {
+            if (localStorage.getItem('factupro_sidebar') === 'collapsed') {
+                document.documentElement.classList.add('sidebar-collapsed');
+            }
+        } catch (e) {}
+    </script>
 </head>
 
 <body>
@@ -151,6 +158,7 @@ if (session_status() === PHP_SESSION_NONE) {
                                 <li class="nav-item">
                                     <a href="notifications_b2b.php" class="nav-link <?= $current === 'notifications_b2b.php' ? 'active' : '' ?>">
                                         <i class="fas fa-bell"></i> Notifications
+                                        <span class="notif-badge notif-badge-side" data-notif-badge hidden>0</span>
                                     </a>
                                 </li>
                             <?php endif; ?>
@@ -188,11 +196,6 @@ if (session_status() === PHP_SESSION_NONE) {
                                         <i class="fas fa-cog"></i> Paramètres
                                     </a>
                                 </li>
-                                <li class="nav-item">
-                                    <a href="audit_log.php" class="nav-link <?= $current === 'audit_log.php' ? 'active' : '' ?>">
-                                        <i class="fas fa-shield-halved"></i> Journal d'audit
-                                    </a>
-                                </li>
                             <?php endif; ?>
                         </ul>
                     </div>
@@ -209,6 +212,10 @@ if (session_status() === PHP_SESSION_NONE) {
                 <i class="fas fa-bars"></i>
             </button>
 
+            <button class="btn-icon d-none d-lg-inline-flex" type="button" id="sidebarToggle" aria-controls="appSidebar" aria-expanded="true" title="Réduire le menu">
+                <i class="fas fa-angles-left"></i>
+            </button>
+
             <h1 class="topbar-title"><?= htmlspecialchars($page_title ?? 'FactuPro') ?></h1>
 
             <div class="topbar-actions">
@@ -217,9 +224,31 @@ if (session_status() === PHP_SESSION_NONE) {
                 </button>
 
                 <?php if (peutAccederB2B()): ?>
-                    <a href="notifications_b2b.php" class="btn btn-icon" id="notifBell" title="Notifications B2B">
-                        <i class="fas fa-bell"></i>
-                    </a>
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-icon position-relative" id="notifBell" title="Notifications B2B"
+                                data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Notifications">
+                            <i class="fas fa-bell"></i>
+                            <span class="notif-badge" data-notif-badge hidden>0</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end notif-menu" aria-labelledby="notifBell">
+                            <div class="notif-menu-head">
+                                <div>
+                                    <div class="notif-menu-title">Notifications</div>
+                                    <div class="notif-menu-sub" id="notifSub">—</div>
+                                </div>
+                                <button type="button" class="notif-menu-action" id="notifReadAll" hidden>
+                                    <i class="fas fa-check-double"></i> Tout marquer comme lu
+                                </button>
+                            </div>
+                            <div id="notifList" class="notif-list">
+                                <div class="notif-empty"><span class="spinner-border spinner-border-sm"></span></div>
+                            </div>
+                            <button type="button" id="notifEnableDesktop" class="notif-menu-desktop" hidden>
+                                <i class="fas fa-desktop"></i> Recevoir aussi les alertes sur l'ordinateur
+                            </button>
+                            <a href="notifications_b2b.php" class="notif-menu-foot">Voir toutes les notifications <i class="fas fa-arrow-right"></i></a>
+                        </div>
+                    </div>
                 <?php endif; ?>
 
                 <div class="dropdown">
@@ -249,7 +278,193 @@ if (session_status() === PHP_SESSION_NONE) {
             </div>
         </header>
 
+        <div class="toast-container position-fixed bottom-0 end-0 p-3" id="notifToasts" aria-live="polite" style="z-index:1090"></div>
+
         <script src="../assets/vendor/bootstrap/bootstrap.bundle.min.js"></script>
+        <script src="../assets/js/pagination.js?v=<?= @filemtime(__DIR__ . '/../assets/js/pagination.js') ?>"></script>
+        <script>
+            /* ── Sidebar rétractable (écrans larges) ──
+               Replie la barre en colonne d'icônes, état mémorisé dans le navigateur. */
+            (function() {
+                const root = document.documentElement;
+                const btn = document.getElementById('sidebarToggle');
+                if (!btn) return;
+
+                // Infobulle = libellé du lien, utile quand seule l'icône est visible.
+                document.querySelectorAll('#appSidebar .nav-link').forEach(function(a) {
+                    if (!a.title) a.title = a.textContent.trim().replace(/\s+\d+$/, '');
+                });
+
+                function sync() {
+                    const collapsed = root.classList.contains('sidebar-collapsed');
+                    btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+                    btn.title = collapsed ? 'Ouvrir le menu' : 'Réduire le menu';
+                    btn.querySelector('i').className = collapsed ? 'fas fa-angles-right' : 'fas fa-angles-left';
+                }
+                btn.addEventListener('click', function() {
+                    const collapsed = root.classList.toggle('sidebar-collapsed');
+                    try { localStorage.setItem('factupro_sidebar', collapsed ? 'collapsed' : 'open'); } catch (e) {}
+                    sync();
+                });
+                sync();
+            })();
+        </script>
+        <?php if (peutAccederB2B()): ?>
+        <script>
+            /* ── Notifications B2B en temps réel ──
+               Interroge le serveur toutes les 15 s (60 s si l'onglet est en arrière-plan) :
+               compteur sur la cloche et dans le menu, liste déroulante, et pour chaque NOUVELLE
+               notification une alerte en bas à droite, un signal sonore, le compteur dans le
+               titre de l'onglet et, si l'utilisateur l'a autorisée, une notification du système. */
+            (function() {
+                const API = '../api/notifications.php?action=poll';
+                const KEY = 'factupro_notif_last_id';
+                const baseTitle = document.title;
+                const listEl = document.getElementById('notifList');
+                const toastsEl = document.getElementById('notifToasts');
+                const desktopBtn = document.getElementById('notifEnableDesktop');
+                let lastSeen = null;
+                try { lastSeen = parseInt(localStorage.getItem(KEY) || '', 10); } catch (e) {}
+                if (isNaN(lastSeen)) lastSeen = null;
+
+                const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+                function setBadges(count) {
+                    document.querySelectorAll('[data-notif-badge]').forEach(function(b) {
+                        b.textContent = count > 99 ? '99+' : String(count);
+                        b.hidden = count === 0;
+                    });
+                    document.title = count > 0 ? '(' + count + ') ' + baseTitle : baseTitle;
+                }
+
+                const subEl = document.getElementById('notifSub');
+                const readAllBtn = document.getElementById('notifReadAll');
+
+                function renderList(items, count) {
+                    subEl.textContent = count > 0
+                        ? count + (count > 1 ? ' nouvelles notifications' : ' nouvelle notification')
+                        : 'Vous êtes à jour';
+                    readAllBtn.hidden = count === 0;
+                    if (!items.length) {
+                        listEl.innerHTML = `
+                            <div class="notif-empty">
+                                <span class="notif-empty-icon"><i class="fas fa-bell-slash"></i></span>
+                                <span class="fw-semibold">Aucune notification</span>
+                                <span>Les commandes et messages B2B apparaîtront ici.</span>
+                            </div>`;
+                        return;
+                    }
+                    listEl.innerHTML = items.map((n) => `
+                        <a href="${esc(n.Lien)}" class="notif-row ${n.Est_Lue == 0 ? 'is-unread' : ''}" style="--notif-color:${esc(n.Couleur)}">
+                            <span class="notif-row-icon"><i class="fas ${esc(n.Icone)}"></i>${n.Est_Lue == 0 ? '<span class="notif-row-dot" aria-label="Non lue"></span>' : ''}</span>
+                            <span class="notif-row-body">
+                                <span class="notif-row-title" title="${esc(n.Titre_Court || n.Titre)}">${esc(n.Titre_Court || n.Titre)}</span>
+                                <span class="notif-row-msg">${esc(n.Message)}</span>
+                                <span class="notif-row-time"><i class="far fa-clock"></i> ${esc(n.Temps_Relatif)}</span>
+                            </span>
+                        </a>`).join('');
+                }
+
+                readAllBtn.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    readAllBtn.disabled = true;
+                    try { await fetch('../api/notifications.php?action=read_all', { cache: 'no-store' }); } catch (err) {}
+                    readAllBtn.disabled = false;
+                    poll();
+                });
+
+                function beep() {
+                    try {
+                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(880, ctx.currentTime);
+                        osc.frequency.setValueAtTime(1175, ctx.currentTime + 0.12);
+                        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.35);
+                        osc.connect(gain).connect(ctx.destination);
+                        osc.start();
+                        osc.stop(ctx.currentTime + 0.35);
+                    } catch (e) {}
+                }
+
+                function toast(n) {
+                    const el = document.createElement('div');
+                    el.className = 'toast notif-toast';
+                    el.setAttribute('role', 'status');
+                    el.style.setProperty('--notif-color', n.Couleur);
+                    el.innerHTML = `
+                        <div class="notif-toast-inner">
+                            <span class="notif-row-icon"><i class="fas ${esc(n.Icone)}"></i></span>
+                            <div class="notif-row-body">
+                                <div class="notif-row-top">
+                                    <span class="notif-row-title">${esc(n.Titre_Court || n.Titre)}</span>
+                                    <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="toast" aria-label="Fermer"></button>
+                                </div>
+                                <div class="notif-row-msg">${esc(n.Message)}</div>
+                                <a href="${esc(n.Lien)}" class="notif-toast-link">Voir la commande <i class="fas fa-arrow-right"></i></a>
+                            </div>
+                        </div>`;
+                    toastsEl.appendChild(el);
+                    const t = new bootstrap.Toast(el, { delay: 12000 });
+                    el.addEventListener('hidden.bs.toast', () => el.remove());
+                    t.show();
+                }
+
+                function desktop(n) {
+                    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+                    try {
+                        const notif = new Notification(n.Titre_Court || n.Titre, { body: n.Message, tag: 'factupro-' + n.Id_Notification });
+                        notif.onclick = () => { window.focus(); window.location.href = n.Lien; };
+                    } catch (e) {}
+                }
+
+                async function poll() {
+                    try {
+                        const res = await fetch(API, { headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        if (!data.success) return;
+                        const items = data.notifications || [];
+                        setBadges(data.count || 0);
+                        renderList(items, data.count || 0);
+
+                        const maxId = items.reduce((m, n) => Math.max(m, parseInt(n.Id_Notification, 10)), 0);
+                        if (lastSeen === null) {
+                            lastSeen = maxId; // première visite : pas de rafale d'alertes sur l'historique
+                        } else {
+                            const fresh = items.filter((n) => parseInt(n.Id_Notification, 10) > lastSeen && n.Est_Lue == 0).reverse();
+                            if (fresh.length) {
+                                fresh.slice(-3).forEach((n) => { toast(n); desktop(n); });
+                                beep();
+                            }
+                            lastSeen = Math.max(lastSeen, maxId);
+                        }
+                        try { localStorage.setItem(KEY, String(lastSeen)); } catch (e) {}
+                    } catch (e) {}
+                }
+
+                // Proposer les alertes système quand le navigateur le permet (HTTPS ou localhost).
+                if ('Notification' in window && window.isSecureContext && Notification.permission === 'default') {
+                    desktopBtn.hidden = false;
+                    desktopBtn.addEventListener('click', () => {
+                        Notification.requestPermission().then(() => { desktopBtn.hidden = true; });
+                    });
+                }
+
+                let timer = null;
+                function schedule() {
+                    clearTimeout(timer);
+                    timer = setTimeout(async () => { await poll(); schedule(); }, document.hidden ? 60000 : 15000);
+                }
+                document.addEventListener('visibilitychange', () => { if (!document.hidden) { poll(); } schedule(); });
+                window.addEventListener('storage', (e) => { if (e.key === KEY && e.newValue) lastSeen = Math.max(lastSeen ?? 0, parseInt(e.newValue, 10)); });
+                poll();
+                schedule();
+            })();
+        </script>
+        <?php endif; ?>
         <script>
             (function() {
                 /* ── Dark Mode Pill Toggle ── */
@@ -279,17 +494,40 @@ if (session_status() === PHP_SESSION_NONE) {
         </script>
 
         <script>
+            /* Message précédé d'une icône Font Awesome. Le texte est inséré comme TEXTE (append),
+               jamais comme HTML : un nom de produit ou un message serveur ne peut rien injecter.
+               fromPhone ajoute l'icône téléphone (code reçu du scanner mobile). */
+            function setIconText(el, icon, text, fromPhone) {
+                el.innerHTML = (fromPhone ? '<i class="fas fa-mobile-screen me-1"></i>' : '')
+                    + '<i class="fas ' + icon + ' me-1"></i>';
+                el.append(text);
+            }
+        </script>
+
+        <script>
             /* ── Indicateur de chargement générique sur tous les formulaires ──
                À la soumission (rechargement de page ou POST classique), désactive le(s)
                bouton(s) submit et affiche un spinner, pour que l'interface ne paraisse pas
                figée pendant l'attente serveur et éviter les double-soumissions. Écoute en
                phase de bulle (comportement par défaut) : si un onsubmit inline a déjà annulé
                l'envoi (ex. confirm() refusé), e.defaultPrevented est déjà vrai et on ne touche
-               à rien. */
+               à rien.
+               Un bouton désactivé n'est plus envoyé avec le formulaire : si le bouton cliqué
+               porte un name (ex. name="valider_paiement", testé côté PHP par isset()), on le
+               recopie dans un champ caché avant de le désactiver, sinon l'action est perdue. */
             document.addEventListener('submit', function(e) {
                 if (e.defaultPrevented) return;
                 const form = e.target;
                 if (!(form instanceof HTMLFormElement)) return;
+
+                const submitter = e.submitter;
+                if (submitter && submitter.name && !submitter.disabled) {
+                    const hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = submitter.name;
+                    hidden.value = submitter.value;
+                    form.appendChild(hidden);
+                }
 
                 form.querySelectorAll('button[type="submit"], input[type="submit"], button:not([type])').forEach(function(btn) {
                     if (btn.disabled) return;
