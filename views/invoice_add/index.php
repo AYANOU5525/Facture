@@ -657,34 +657,32 @@
 </div>
 
 <!-- MODAL CHOIX DU MODE DE SCAN -->
-<div id="scanChooserModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.85);
-     z-index:9000; flex-direction:column; align-items:center; justify-content:center; padding:20px; overflow-y:auto;">
-
-    <div style="background:#1a1a2e; border-radius:16px; width:100%; max-width:380px; box-shadow:0 8px 32px rgba(0,0,0,.6); margin:auto;">
-
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid #2d2d44;">
-            <span style="color:#fff; font-weight:600; font-size:1rem;">
-                <i class="fas fa-barcode" style="color:#17a2b8; margin-right:8px;"></i>Comment voulez-vous scanner ?
-            </span>
-            <button onclick="closeScanChooser()" style="background:none; border:none; color:#aaa; font-size:1.3rem; cursor:pointer; line-height:1;">
-                <i class="fas fa-times"></i>
-            </button>
+<div id="scanChooserModal" class="scan-modal-backdrop" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="scanChooserTitle">
+    <div class="scan-modal">
+        <div class="scan-modal-head">
+            <div>
+                <div class="scan-modal-title" id="scanChooserTitle">Comment voulez-vous scanner ?</div>
+                <div class="scan-modal-sub">Choisissez l'appareil qui lira le code-barres</div>
+            </div>
+            <button type="button" class="btn-close" onclick="closeScanChooser()" aria-label="Fermer"></button>
         </div>
 
-        <div style="padding:20px; display:flex; flex-direction:column; gap:12px;">
-            <button type="button" class="btn btn-secondary" style="width:100%; padding:16px; text-align:left; display:flex; align-items:center; gap:12px;" onclick="chooseWebcamScan()">
-                <i class="fas fa-camera" style="font-size:1.4rem; color:var(--primary);"></i>
-                <span>
-                    <strong style="display:block;">Webcam de cet ordinateur</strong>
-                    <small style="color:var(--text-muted);">Nécessite une caméra branchée sur ce PC</small>
+        <div class="scan-modal-body">
+            <button type="button" class="scan-choice" onclick="chooseWebcamScan()" style="--choice-color: var(--primary)">
+                <span class="scan-choice-icon"><i class="fas fa-camera"></i></span>
+                <span class="scan-choice-text">
+                    <span class="scan-choice-title">Webcam de cet ordinateur</span>
+                    <span class="scan-choice-sub">Nécessite une caméra branchée sur ce PC</span>
                 </span>
+                <i class="fas fa-chevron-right scan-choice-arrow"></i>
             </button>
-            <button type="button" class="btn btn-secondary" style="width:100%; padding:16px; text-align:left; display:flex; align-items:center; gap:12px;" onclick="choosePhoneScan()">
-                <i class="fas fa-mobile-alt" style="font-size:1.4rem; color:var(--primary);"></i>
-                <span>
-                    <strong style="display:block;">Mon téléphone</strong>
-                    <small style="color:var(--text-muted);">Génère un QR Code à scanner avec votre téléphone</small>
+            <button type="button" class="scan-choice" onclick="choosePhoneScan()" style="--choice-color: var(--success)">
+                <span class="scan-choice-icon"><i class="fas fa-mobile-screen"></i></span>
+                <span class="scan-choice-text">
+                    <span class="scan-choice-title">Mon téléphone</span>
+                    <span class="scan-choice-sub">Affiche un QR code à scanner avec votre téléphone</span>
                 </span>
+                <i class="fas fa-chevron-right scan-choice-arrow"></i>
             </button>
         </div>
     </div>

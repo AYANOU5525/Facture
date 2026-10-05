@@ -6,6 +6,7 @@
     <title>Mot de passe oublié - FactuPro</title>
     <link rel="stylesheet" href="../assets/vendor/bootstrap/bootstrap.min.css">
     <link rel="stylesheet" href="../assets/css/theme.css?v=<?= @filemtime(__DIR__ . '/../../assets/css/theme.css') ?>">
+    <script src="../assets/js/page-loader.js?v=<?= @filemtime(__DIR__ . '/../../assets/js/page-loader.js') ?>"></script>
     <link rel="stylesheet" href="../assets/vendor/fontawesome/css/all.min.css">
 </head>
 <body class="login-body fade-in">

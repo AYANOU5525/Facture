@@ -35,6 +35,7 @@ if (session_status() === PHP_SESSION_NONE) {
     <link rel="stylesheet" href="../assets/css/theme.css?v=<?= @filemtime(__DIR__ . '/../assets/css/theme.css') ?>">
     <link rel="stylesheet" href="../assets/css/animations.css?v=<?= @filemtime(__DIR__ . '/../assets/css/animations.css') ?>">
     <link rel="stylesheet" href="../assets/vendor/fontawesome/css/all.min.css">
+    <script src="../assets/js/page-loader.js?v=<?= @filemtime(__DIR__ . '/../assets/js/page-loader.js') ?>"></script>
     <script>
         try {
             if (localStorage.getItem('factupro_sidebar') === 'collapsed') {

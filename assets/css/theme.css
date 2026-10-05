@@ -1096,3 +1096,141 @@ a { transition: color .15s ease; }
 .pagination .page-item.disabled .page-link { background: transparent; color: var(--text-muted); opacity: 0.5; }
 .pagination .page-link i { font-size: 0.7rem; }
 
+/* ============================================================
+   CHOIX DU SCANNER (webcam / téléphone) — vente et produits.
+   Couleurs du thème (clair / sombre) : l'ancienne fenêtre était bleu nuit
+   en dur, avec des boutons gris où le sous-texte devenait illisible.
+   ============================================================ */
+.scan-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+  background: rgba(15, 23, 42, 0.55);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+.scan-modal {
+  width: 100%;
+  max-width: 420px;
+  margin: auto;
+  background: var(--bg-card);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.25);
+  overflow: hidden;
+}
+.scan-modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.scan-modal-title { font-size: 1rem; font-weight: 700; color: var(--text-main); }
+.scan-modal-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+.scan-modal-body { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px 18px; }
+.scan-choice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  color: var(--text-main);
+  transition: border-color 0.12s ease, background 0.12s ease, box-shadow 0.12s ease;
+}
+.scan-choice:hover,
+.scan-choice:focus-visible {
+  border-color: var(--choice-color);
+  background: color-mix(in srgb, var(--choice-color) 6%, var(--bg-card));
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+  outline: none;
+}
+.scan-choice-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  color: var(--choice-color);
+  background: color-mix(in srgb, var(--choice-color) 14%, transparent);
+}
+.scan-choice-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.scan-choice-title { font-size: 0.92rem; font-weight: 700; color: var(--text-main); }
+.scan-choice-sub { font-size: 0.78rem; line-height: 1.35; color: var(--text-muted); }
+.scan-choice-arrow { font-size: 0.75rem; color: var(--text-muted); }
+.scan-choice:hover .scan-choice-arrow { color: var(--choice-color); }
+
+/* ============================================================
+   CHARGEMENT DES PAGES (assets/js/page-loader.js)
+   ============================================================ */
+.page-loader-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 10000;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--primary), #8b5cf6);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--primary) 60%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.2s ease, opacity 0.3s ease;
+}
+.page-loader-bar.is-active { opacity: 1; }
+.page-loader-bar.is-done { opacity: 0; transition: transform 0.2s ease, opacity 0.3s ease 0.15s; }
+.page-loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9990;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg-body) 45%, transparent);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s;
+}
+.page-loader-overlay.is-visible { opacity: 1; visibility: visible; }
+.page-loader-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+}
+.page-loader-spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2.5px solid color-mix(in srgb, var(--primary) 20%, transparent);
+  border-top-color: var(--primary);
+  animation: page-loader-spin 0.7s linear infinite;
+}
+@keyframes page-loader-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .page-loader-spinner { animation-duration: 1.6s; }
+  .page-loader-bar { transition: opacity 0.3s ease; }
+}
+
