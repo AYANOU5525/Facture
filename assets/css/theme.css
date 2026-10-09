@@ -1195,6 +1195,8 @@ a { transition: color .15s ease; }
 .page-loader-bar.is-active { opacity: 1; }
 .page-loader-bar.is-done { opacity: 0; transition: transform 0.2s ease, opacity 0.3s ease 0.15s; }
 .page-loader-overlay {
+  /* Ajouté hors de <body> (avant même qu'il existe) : n'hérite pas de sa police */
+  font-family: var(--bs-font-sans-serif);
   position: fixed;
   inset: 0;
   z-index: 9990;
@@ -1234,3 +1236,301 @@ a { transition: color .15s ease; }
   .page-loader-bar { transition: opacity 0.3s ease; }
 }
 
+
+/* ============================================================
+   HABILLAGE VISUEL : logo, pages de connexion illustrées, bandeau
+   d'accueil du tableau de bord, indicateurs avec icône, états vides
+   illustrés. Images : assets/img/ (SVG locaux, aucun appel externe).
+   Les dégradés bleus restent assez foncés pour garder un contraste
+   d'au moins 4,5 avec le texte blanc.
+   ============================================================ */
+@keyframes art-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+/* Bouton principal aux couleurs de la marque (Bootstrap garde sinon son bleu
+   #0d6efd). #3a57e0 : contraste 5,8 avec le texte blanc. */
+.btn-primary {
+  --bs-btn-bg: #3a57e0;
+  --bs-btn-border-color: #3a57e0;
+  --bs-btn-hover-bg: #2d40b4;
+  --bs-btn-hover-border-color: #2d40b4;
+  --bs-btn-active-bg: #26379c;
+  --bs-btn-active-border-color: #26379c;
+  --bs-btn-disabled-bg: #3a57e0;
+  --bs-btn-disabled-border-color: #3a57e0;
+  --bs-btn-focus-shadow-rgb: 79, 110, 247;
+  box-shadow: 0 4px 12px rgba(58, 87, 224, 0.22);
+}
+
+/* Logo de la barre latérale */
+.sidebar-brand .brand-logo {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 4px 10px rgba(79, 110, 247, 0.35));
+}
+
+/* Halo de marque très léger en haut de la zone de contenu */
+.app-main {
+  background:
+    radial-gradient(900px 320px at 12% -140px, rgba(79, 110, 247, 0.10), transparent 70%),
+    radial-gradient(700px 280px at 96% -160px, rgba(16, 185, 129, 0.07), transparent 70%);
+}
+
+/* Lien actif de la barre latérale : léger dégradé */
+.app-sidebar .nav-link.active {
+  background: linear-gradient(90deg, var(--primary-light), transparent 115%);
+}
+
+/* ---------- Pages de connexion / inscription ---------- */
+.login-body {
+  background:
+    radial-gradient(800px 500px at 0% 0%, rgba(79, 110, 247, 0.16), transparent 60%),
+    radial-gradient(700px 500px at 100% 100%, rgba(16, 185, 129, 0.10), transparent 60%),
+    var(--bg-body);
+}
+
+.auth-shell {
+  width: 100%;
+  max-width: 1040px;
+  display: grid;
+  grid-template-columns: 1fr;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+}
+
+.auth-shell .authentication-card {
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 40px 36px;
+  align-self: center;
+}
+
+.auth-showcase { display: none; }
+
+.auth-icon {
+  background: linear-gradient(135deg, #6d86ff, var(--primary-dark));
+  box-shadow: 0 10px 22px rgba(79, 110, 247, 0.35);
+}
+
+@media (min-width: 992px) {
+  .auth-shell { grid-template-columns: 1.05fr 1fr; }
+
+  .auth-showcase {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 40px 40px 32px;
+    color: #fff;
+    background: linear-gradient(145deg, #4763ee 0%, #3a57e0 50%, #2d40b4 100%);
+    overflow: hidden;
+  }
+
+  .auth-showcase::before,
+  .auth-showcase::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.07);
+    pointer-events: none;
+  }
+  .auth-showcase::before { width: 360px; height: 360px; top: -160px; right: -120px; }
+  .auth-showcase::after  { width: 260px; height: 260px; bottom: -120px; left: -90px; }
+}
+
+.auth-showcase > * { position: relative; z-index: 1; }
+
+.auth-showcase-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+.auth-showcase-brand img { width: 38px; height: 38px; }
+
+.auth-showcase-title {
+  margin: 28px 0 8px;
+  font-size: 1.65rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #fff;
+}
+
+.auth-showcase-text { margin: 0; font-size: 0.95rem; color: rgba(255, 255, 255, 0.9); }
+
+.auth-features {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0 0;
+  display: grid;
+  gap: 10px;
+}
+.auth-features li { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
+.auth-features i {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.16);
+  flex-shrink: 0;
+}
+
+.auth-showcase-art {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin: auto auto 0;
+  padding-top: 24px;
+  animation: art-float 7s ease-in-out infinite;
+}
+
+.auth-mobile-logo { width: 44px; height: 44px; }
+
+/* ---------- Bandeau d'accueil du tableau de bord ---------- */
+.dash-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px 28px;
+  margin-bottom: 20px;
+  border-radius: 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #4763ee 0%, #3a57e0 55%, #2d40b4 100%);
+  box-shadow: 0 14px 34px rgba(58, 87, 224, 0.28);
+  overflow: hidden;
+}
+.dash-hero::before,
+.dash-hero::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.07);
+  pointer-events: none;
+}
+.dash-hero::before { width: 300px; height: 300px; top: -150px; right: 18%; }
+.dash-hero::after  { width: 180px; height: 180px; bottom: -110px; left: -40px; }
+
+.dash-hero > * { position: relative; z-index: 1; }
+
+.dash-hero-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.dash-hero-title {
+  margin: 10px 0 4px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.dash-hero-text { margin: 0; font-size: 0.9rem; color: rgba(255, 255, 255, 0.92); }
+
+.dash-hero-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+
+.btn-hero {
+  --bs-btn-color: #2d40b4;
+  --bs-btn-bg: #fff;
+  --bs-btn-border-color: #fff;
+  --bs-btn-hover-color: #2d40b4;
+  --bs-btn-hover-bg: #eef2ff;
+  --bs-btn-hover-border-color: #eef2ff;
+  --bs-btn-active-color: #2d40b4;
+  --bs-btn-active-bg: #e0e7ff;
+  --bs-btn-active-border-color: #e0e7ff;
+  font-weight: 600;
+}
+
+.btn-hero-ghost {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: rgba(255, 255, 255, 0.12);
+  --bs-btn-border-color: rgba(255, 255, 255, 0.35);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: rgba(255, 255, 255, 0.22);
+  --bs-btn-hover-border-color: rgba(255, 255, 255, 0.55);
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: rgba(255, 255, 255, 0.28);
+  --bs-btn-active-border-color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+}
+
+.dash-hero-art {
+  width: 240px;
+  max-width: 38%;
+  flex-shrink: 0;
+  animation: art-float 7s ease-in-out infinite;
+}
+
+@media (max-width: 575.98px) {
+  .dash-hero { padding: 20px; }
+  .dash-hero-art { display: none; }
+}
+
+/* ---------- Indicateurs du tableau de bord : icône colorée ---------- */
+.dash-kpi {
+  --kpi-color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.dash-kpi.is-danger  { --kpi-color: var(--danger); }
+.dash-kpi.kpi-success { --kpi-color: var(--success); }
+.dash-kpi.kpi-warning { --kpi-color: var(--warning); }
+.dash-kpi.kpi-info    { --kpi-color: var(--info); }
+.dash-kpi.kpi-purple  { --kpi-color: #8b5cf6; }
+
+.dash-kpi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  color: var(--kpi-color);
+  background: color-mix(in srgb, var(--kpi-color) 14%, transparent);
+  flex-shrink: 0;
+}
+
+/* ---------- États vides illustrés ---------- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 28px 16px;
+  color: var(--text-muted);
+}
+.empty-state-img {
+  width: 160px;
+  max-width: 60%;
+  height: auto;
+  margin-bottom: 12px;
+}
+.empty-state-title { margin-bottom: 4px; font-weight: 600; color: var(--text-main); }
+.empty-state-text { max-width: 400px; margin-bottom: 0; font-size: 0.85rem; }
+.empty-state .btn { margin-top: 14px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-showcase-art,
+  .dash-hero-art { animation: none; }
+}

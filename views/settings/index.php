@@ -108,7 +108,7 @@
     <!-- SECTION CHANGEMENT DE MOT DE PASSE -->
     <div class="card mx-auto mt-4" style="max-width:800px;">
         <div class="card-body">
-        <h3 class="fs-6 mb-3"><i class="fas fa-shield-alt text-primary"></i> Sécurité — Changer mon mot de passe</h3>
+        <h3 class="fs-6 mb-3"><i class="fas fa-shield-alt text-primary"></i> Sécurité : changer mon mot de passe</h3>
 
         <?php if ($success_pwd): ?>
             <div class="alert alert-success d-flex align-items-center gap-2"><i class="fas fa-check"></i> <?= htmlspecialchars($success_pwd) ?></div>

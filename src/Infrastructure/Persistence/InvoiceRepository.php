@@ -88,12 +88,12 @@ final class InvoiceRepository
         return (int) $this->pdo->lastInsertId();
     }
 
-    public function createLogistics(int $saleId, int $invoiceId, int $enterpriseId): void
+    public function createLogistics(int $saleId, int $invoiceId, int $enterpriseId, string $trackingNumber): void
     {
         $statement = $this->pdo->prepare(
-            "INSERT INTO Logistique (Id_Vente, Id_Facture, Statut_Livraison, Id_Entreprise)
-             VALUES (?, ?, 'traitement', ?)"
+            "INSERT INTO Logistique (Id_Vente, Id_Facture, Numero_Suivi, Statut_Livraison, Id_Entreprise)
+             VALUES (?, ?, ?, 'traitement', ?)"
         );
-        $statement->execute([$saleId, $invoiceId, $enterpriseId]);
+        $statement->execute([$saleId, $invoiceId, $trackingNumber, $enterpriseId]);
     }
 }

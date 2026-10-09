@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 150" fill="none">
+  <defs>
+    <filter id="sh" x="-25%" y="-25%" width="150%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#0b1442" flood-opacity=".25"/>
+    </filter>
+  </defs>
+  <circle cx="125" cy="78" r="70" fill="#fff" fill-opacity=".08"/>
+
+  <!-- Route -->
+  <rect x="10" y="128" width="220" height="4" rx="2" fill="#fff" fill-opacity=".35"/>
+
+  <!-- Lignes de vitesse -->
+  <g stroke="#fff" stroke-opacity=".6" stroke-width="3" stroke-linecap="round">
+    <path d="M10 70h22M4 86h26M14 102h16"/>
+  </g>
+
+  <!-- Camion -->
+  <g filter="url(#sh)">
+    <rect x="40" y="46" width="112" height="72" rx="8" fill="#fff"/>
+    <path d="M152 70h34l18 22v20a6 6 0 0 1-6 6h-46z" fill="#c7d2fe"/>
+  </g>
+  <path d="M162 76h20l12 15h-32z" fill="#4f6ef7" fill-opacity=".85"/>
+  <rect x="40" y="104" width="164" height="6" fill="#4f6ef7" fill-opacity=".15"/>
+  <rect x="58" y="62" width="34" height="30" rx="4" fill="#fbbf24"/>
+  <path d="M75 62v30" stroke="#fff" stroke-opacity=".7" stroke-width="5"/>
+  <rect x="100" y="70" width="34" height="22" rx="4" fill="#f59e0b"/>
+  <path d="M117 70v22" stroke="#fff" stroke-opacity=".7" stroke-width="5"/>
+
+  <circle cx="74" cy="120" r="13" fill="#1e293b" stroke="#fff" stroke-width="4"/>
+  <circle cx="74" cy="120" r="4" fill="#cbd5e1"/>
+  <circle cx="176" cy="120" r="13" fill="#1e293b" stroke="#fff" stroke-width="4"/>
+  <circle cx="176" cy="120" r="4" fill="#cbd5e1"/>
+
+  <!-- Repère -->
+  <g filter="url(#sh)">
+    <path d="M208 20a14 14 0 0 1 14 14c0 11-14 24-14 24s-14-13-14-24a14 14 0 0 1 14-14z" fill="#10b981"/>
+  </g>
+  <circle cx="208" cy="34" r="5" fill="#fff"/>
+</svg>

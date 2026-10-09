@@ -36,8 +36,96 @@ function creerNotificationB2b(PDO $pdo, int $id_entreprise, string $type, string
     return $id_notif;
 }
 
-/** Envoie un email via PHPMailer (SMTP) si configuré, sinon mail() natif. */
+/**
+ * Programme l'envoi d'un email via PHPMailer (SMTP) si configuré, sinon mail() natif.
+ *
+ * L'envoi n'a pas lieu tout de suite : une connexion SMTP à Gmail prend 1 à 3 s par message,
+ * que l'utilisateur subissait en page blanche (2 emails pour une livraison, 1 par message de
+ * chat…). Les emails sont mis en file et envoyés en fin de requête, une fois la réponse
+ * transmise au navigateur (voir envoyerEmailsEnAttente). Renvoie true : l'email est en file ;
+ * un échec d'envoi est seulement journalisé (error_log), comme avant.
+ */
 function envoyerEmailB2b(string $to, string $subject, string $body, string $altBody = ''): bool
+{
+    if (!isset($GLOBALS['factupro_emails_en_attente'])) {
+        $GLOBALS['factupro_emails_en_attente'] = [];
+        register_shutdown_function('envoyerEmailsEnAttente');
+        // Capture la sortie à venir (JSON, page) pour pouvoir en annoncer la taille exacte
+        // au navigateur et clore la réponse avant les envois (terminerReponseAuNavigateur).
+        if (PHP_SAPI !== 'cli' && !headers_sent()) {
+            ob_start();
+        }
+    }
+    $GLOBALS['factupro_emails_en_attente'][] = [$to, $subject, $body, $altBody];
+    return true;
+}
+
+/** Fonction d'arrêt : libère le navigateur puis envoie les emails mis en file pendant la requête. */
+function envoyerEmailsEnAttente(): void
+{
+    $file = $GLOBALS['factupro_emails_en_attente'] ?? [];
+    $GLOBALS['factupro_emails_en_attente'] = [];
+    if (!$file) {
+        return;
+    }
+
+    terminerReponseAuNavigateur();
+
+    $smtp = null; // connexion SMTP partagée par tous les emails de la requête
+    foreach ($file as [$to, $subject, $body, $altBody]) {
+        envoyerEmailMaintenant($to, $subject, $body, $altBody, $smtp);
+    }
+    if ($smtp) {
+        $smtp->smtpClose();
+    }
+}
+
+/**
+ * Transmet intégralement la réponse au navigateur et la clôt, le script continuant ensuite
+ * (envoi des emails) sans faire attendre l'utilisateur.
+ */
+function terminerReponseAuNavigateur(): void
+{
+    if (PHP_SAPI === 'cli') {
+        return;
+    }
+    ignore_user_abort(true);
+    set_time_limit(120);
+    // Libère le verrou de session : sinon la page suivante (souvent la redirection qui suit
+    // le formulaire) resterait bloquée sur session_start() jusqu'à la fin des envois.
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();
+    }
+    if (function_exists('fastcgi_finish_request')) { // PHP-FPM
+        fastcgi_finish_request();
+        return;
+    }
+
+    // Apache mod_php (Laragon, image Docker php:apache) : on récupère toute la sortie encore
+    // en tampon, on annonce sa taille exacte et on ferme la connexion ; le navigateur considère
+    // alors la réponse complète et affiche la page (ou suit la redirection) immédiatement.
+    $morceaux = [];
+    while (ob_get_level() > 0) {
+        $morceau = ob_get_clean();
+        if ($morceau === false) {
+            break; // tampon non supprimable : on s'arrête là
+        }
+        $morceaux[] = $morceau;
+    }
+    $sortie = implode('', array_reverse($morceaux)); // du tampon le plus externe au plus interne
+    if (!headers_sent()) {
+        if (function_exists('apache_setenv')) {
+            apache_setenv('no-gzip', '1'); // mod_deflate retirerait le Content-Length
+        }
+        header('Connection: close');
+        header('Content-Length: ' . strlen($sortie));
+    }
+    echo $sortie;
+    flush();
+}
+
+/** Envoi effectif d'un email ; $smtp réutilise la même connexion SMTP d'un email à l'autre. */
+function envoyerEmailMaintenant(string $to, string $subject, string $body, string $altBody, ?PHPMailer\PHPMailer\PHPMailer &$smtp): bool
 {
     $host     = $_ENV['MAIL_HOST']       ?? '';
     $username = $_ENV['MAIL_USERNAME']   ?? '';
@@ -52,21 +140,28 @@ function envoyerEmailB2b(string $to, string $subject, string $body, string $altB
     if (!empty($host) && $username !== 'votre.email@gmail.com') {
 
         try {
-            $mail = new PHPMailer\PHPMailer\PHPMailer(true);
-            $mail->isSMTP();
-            $mail->Host     = $host;
-            $mail->SMTPAuth = $username !== '' && $password !== '';
-            if ($mail->SMTPAuth) {
-                $mail->Username = $username;
-                $mail->Password = $password;
+            if ($smtp === null) {
+                $smtp = new PHPMailer\PHPMailer\PHPMailer(true);
+                $smtp->isSMTP();
+                $smtp->Host     = $host;
+                $smtp->SMTPAuth = $username !== '' && $password !== '';
+                if ($smtp->SMTPAuth) {
+                    $smtp->Username = $username;
+                    $smtp->Password = $password;
+                }
+                $smtp->SMTPSecure = match ($encrypt) {
+                    'ssl' => PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS,
+                    'tls' => PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS,
+                    default => '', // '' ou 'none' : pas de chiffrement (attrape-mails local de dev)
+                };
+                $smtp->Port          = $port;
+                $smtp->CharSet       = 'UTF-8';
+                $smtp->SMTPKeepAlive = true; // une seule connexion pour tous les emails de la requête
+                $smtp->Timeout       = 20;   // au lieu de 300 s par défaut si le serveur SMTP ne répond pas
             }
-            $mail->SMTPSecure = match ($encrypt) {
-                'ssl' => PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS,
-                'tls' => PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS,
-                default => '', // '' ou 'none' : pas de chiffrement (attrape-mails local de dev)
-            };
-            $mail->Port       = $port;
-            $mail->CharSet    = 'UTF-8';
+            $mail = $smtp;
+            $mail->clearAllRecipients();
+            $mail->clearAttachments();
 
             $mail->setFrom($from, $fromName);
             $mail->addAddress($to);
@@ -78,6 +173,8 @@ function envoyerEmailB2b(string $to, string $subject, string $body, string $altB
             return $mail->send();
         } catch (Exception $e) {
             error_log("[FactuPro] Échec SMTP vers $to : " . $e->getMessage());
+            $smtp?->smtpClose();
+            $smtp = null; // connexion peut-être rompue : l'email suivant en rouvre une
             return false;
         }
     }
@@ -361,11 +458,11 @@ function getLabelStatut(string $statut): string
 {
     $labels = [
         'en_attente'     => 'En attente de validation',
-        'a_confirmer'    => "Proposition partielle — en attente de l'acheteur",
+        'a_confirmer'    => "Proposition partielle, en attente de l'acheteur",
         'validee'        => LABEL_VALIDEE,
         'en_preparation' => 'En cours de préparation',
         'prete'          => 'Prête à expédier',
-        'expediee'       => 'Expédiée — En livraison',
+        'expediee'       => 'Expédiée, en livraison',
         'livree'         => 'Livrée',
         'refusee'        => 'Refusée',
         'annulee'        => "Annulée par l'acheteur",

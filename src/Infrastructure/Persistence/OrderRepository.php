@@ -51,6 +51,16 @@ final class OrderRepository
         $statement->execute([$orderId, $oldStatus, $newStatus, $note, $enterpriseId]);
     }
 
+    /** Commande quelconque, verrouillée (l'appelant a déjà vérifié l'entreprise par ailleurs). */
+    public function findForUpdate(int $orderId): ?array
+    {
+        $statement = $this->pdo->prepare('SELECT * FROM Commande_B2B WHERE Id_Commande_B2B = ? FOR UPDATE');
+        $statement->execute([$orderId]);
+        $order = $statement->fetch();
+
+        return $order ?: null;
+    }
+
     /** Commande de l'ACHETEUR dans l'un des statuts donnés (verrouillée). */
     public function findForBuyer(int $orderId, int $buyerId, array $statuses): ?array
     {
@@ -269,24 +279,6 @@ final class OrderRepository
         $statement->execute([$saleId, $orderId, $number, $vat['ht'], $vat['tva'], $total, $enterpriseId]);
 
         return (int) $this->pdo->lastInsertId();
-    }
-
-    public function createB2BLogistics(
-        int $saleId,
-        int $orderId,
-        int $invoiceId,
-        int $enterpriseId,
-        ?string $deliveryAddress = null,
-        ?float $deliveryLat = null,
-        ?float $deliveryLng = null
-    ): void {
-        $statement = $this->pdo->prepare(
-            "INSERT INTO Logistique
-                (Id_Vente, Id_Commande_B2B, Id_Facture, Statut_Livraison, Id_Entreprise,
-                 Adresse_Livraison, Adresse_Livraison_Lat, Adresse_Livraison_Lng)
-             VALUES (?, ?, ?, 'traitement', ?, ?, ?, ?)"
-        );
-        $statement->execute([$saleId, $orderId, $invoiceId, $enterpriseId, $deliveryAddress, $deliveryLat, $deliveryLng]);
     }
 
     public function markShipped(int $orderId): void

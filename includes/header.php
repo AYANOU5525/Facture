@@ -13,6 +13,7 @@ if (session_status() === PHP_SESSION_NONE) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= isset($page_title) ? $page_title : 'FactuPro' ?></title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/logo.svg">
 
     <!-- Fonts (auto-hébergées, hors ligne) -->
     <link rel="stylesheet" href="../assets/vendor/fonts/fonts.css">
@@ -51,7 +52,7 @@ if (session_status() === PHP_SESSION_NONE) {
         <?php $current = basename($_SERVER['PHP_SELF']); ?>
 
         <!-- ============================================================
-             SIDEBAR — offcanvas sur mobile/tablette, fixe en colonne à
+             SIDEBAR : offcanvas sur mobile/tablette, fixe en colonne à
              partir du breakpoint lg (voir theme.css : @media (min-width: 992px)).
              ============================================================ -->
         <div class="offcanvas offcanvas-start app-sidebar" tabindex="-1" id="appSidebar" aria-labelledby="appSidebarLabel">
@@ -61,9 +62,7 @@ if (session_status() === PHP_SESSION_NONE) {
             </div>
             <div class="offcanvas-body app-sidebar-body">
                 <a href="dashboard.php" class="sidebar-brand">
-                    <span class="brand-icon d-inline-flex align-items-center justify-content-center">
-                        <i class="fas fa-cube"></i>
-                    </span>
+                    <img src="../assets/img/logo.svg" alt="" class="brand-logo">
                     <span>FactuPro<span class="text-primary">.B2B</span></span>
                 </a>
 
@@ -206,7 +205,7 @@ if (session_status() === PHP_SESSION_NONE) {
         </div>
 
         <!-- ============================================================
-             HEADER SUPÉRIEUR COMPACT — titre de page, notifications, menu utilisateur
+             HEADER SUPÉRIEUR COMPACT : titre de page, notifications, menu utilisateur
              ============================================================ -->
         <header class="app-topbar">
             <button class="btn-icon d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#appSidebar" aria-controls="appSidebar" aria-label="Ouvrir le menu">
@@ -235,7 +234,7 @@ if (session_status() === PHP_SESSION_NONE) {
                             <div class="notif-menu-head">
                                 <div>
                                     <div class="notif-menu-title">Notifications</div>
-                                    <div class="notif-menu-sub" id="notifSub">—</div>
+                                    <div class="notif-menu-sub" id="notifSub">Chargement…</div>
                                 </div>
                                 <button type="button" class="notif-menu-action" id="notifReadAll" hidden>
                                     <i class="fas fa-check-double"></i> Tout marquer comme lu

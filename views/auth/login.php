@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connexion - FactuPro</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/logo.svg">
     <!-- Fonts (auto-hébergées, hors ligne) -->
     <link rel="stylesheet" href="../assets/vendor/fonts/fonts.css">
 
@@ -15,6 +16,9 @@
 </head>
 
 <body class="login-body fade-in">
+
+    <div class="auth-shell">
+    <?php require __DIR__ . '/../partials/auth_showcase.php'; ?>
 
     <div class="authentication-card">
         <div class="auth-header">
@@ -92,6 +96,7 @@
                 <a href="register.php" class="fw-semibold">S'inscrire gratuitement</a>
             </p>
         </div>
+    </div>
     </div>
 
     <script src="../assets/vendor/bootstrap/bootstrap.bundle.min.js"></script>

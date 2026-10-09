@@ -126,9 +126,9 @@
         </div>
 
         <?php if (empty($entreprises)): ?>
-            <div class="text-center text-body-secondary py-5">
-                <i class="fas fa-search fs-1 opacity-25 d-block mb-3"></i>
-                <p class="mb-2">Aucune entreprise trouvée avec ces critères.</p>
+            <div class="empty-state py-5">
+                <img src="../assets/img/illustrations/empty-users.svg" alt="" class="empty-state-img">
+                <p class="empty-state-title">Aucune entreprise trouvée avec ces critères.</p>
                 <a href="reseau_b2b.php" class="btn btn-outline-secondary btn-sm">Voir toutes les entreprises</a>
             </div>
         <?php else: ?>

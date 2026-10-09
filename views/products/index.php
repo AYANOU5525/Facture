@@ -44,7 +44,7 @@
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
         <p class="text-body-secondary mb-0">
             <?php if ($readonly): ?>
-                <i class="fas fa-lock"></i> Consultation uniquement — droits restreints
+                <i class="fas fa-lock"></i> Consultation uniquement, droits restreints
             <?php else: ?>
                 Catalogue, alertes de stock et déstockage B2B
             <?php endif; ?>
@@ -153,7 +153,7 @@
                                 <?php endif; ?>
                             </td>
                             <td class="pr-barcode text-body-secondary">
-                                <?= !empty($p['Code_Barre_Unite']) ? htmlspecialchars($p['Code_Barre_Unite']) : '—' ?>
+                                <?= !empty($p['Code_Barre_Unite']) ? htmlspecialchars($p['Code_Barre_Unite']) : '-' ?>
                                 <?php if (!empty($p['Code_Barre_Carton'])): ?>
                                     <div class="text-body-tertiary" style="font-size:.72rem;">Carton : <?= htmlspecialchars($p['Code_Barre_Carton']) ?></div>
                                 <?php endif; ?>
@@ -164,7 +164,7 @@
                             <td class="text-center">
                                 <?php if ($is_low && !$readonly): ?>
                                     <button type="button" class="pr-stock-alert btn btn-link p-0 border-0"
-                                            title="Stock sous le seuil d'alerte (<?= $seuil ?>) — cliquer pour réapprovisionner"
+                                            title="Stock sous le seuil d'alerte (<?= $seuil ?>) : cliquer pour réapprovisionner"
                                             onclick="openProductModal(<?= htmlspecialchars(json_encode($p), ENT_QUOTES) ?>); focusStockField();">
                                         <i class="fas fa-triangle-exclamation"></i> <?= $qte ?>
                                     </button>
@@ -221,9 +221,9 @@
                 </tbody>
             </table>
             <?php if (empty($produits)): ?>
-                <div class="text-center text-body-secondary py-5">
-                    <i class="fas fa-box-open fs-2 opacity-50 d-block mb-2"></i>
-                    <p class="mb-0 small">Aucun produit dans votre catalogue.</p>
+                <div class="empty-state">
+                    <img src="../assets/img/illustrations/empty-box.svg" alt="" class="empty-state-img">
+                    <p class="empty-state-title">Aucun produit dans votre catalogue.</p>
                 </div>
             <?php endif; ?>
             <div id="noResultsRow" class="text-center text-body-secondary py-4 d-none">
@@ -233,7 +233,7 @@
     </div>
 </div>
 
-<!-- MODALE DE CONFIRMATION — SUPPRESSION PRODUIT -->
+<!-- MODALE DE CONFIRMATION, SUPPRESSION PRODUIT -->
 <div class="modal fade" id="deleteProductModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-sm modal-dialog-centered">
         <div class="modal-content">
@@ -370,7 +370,7 @@
                 </div>
                 <p class="small text-body-secondary mb-0">
                     <i class="fas fa-circle-info"></i>
-                    Cliquez sur <i class="fas fa-camera"></i>, choisissez la webcam de ce PC ou votre téléphone, puis pointez vers le code-barre — il se remplit automatiquement.
+                    Cliquez sur <i class="fas fa-camera"></i>, choisissez la webcam de ce PC ou votre téléphone, puis pointez vers le code-barre : il se remplit automatiquement.
                 </p>
                 </div>
             </div>
@@ -478,7 +478,7 @@
         if (instance) instance.hide();
     }
 
-    /* Amène le focus sur le champ stock une fois le modal ouvert — utilisé quand on arrive
+    /* Amène le focus sur le champ stock une fois le modal ouvert, utilisé quand on arrive
        depuis une alerte de stock (dashboard ou badge d'alerte) pour réapprovisionner vite. */
     function focusStockField() {
         const modal = document.getElementById('productModal');
@@ -631,7 +631,7 @@
 
     function closeProductCamera() {
         // Si la caméra n'a jamais réussi à démarrer (ex: NotFoundError), .stop() peut lever
-        // une exception SYNCHRONE plutôt qu'une promesse rejetée — Promise.resolve().then(...)
+        // une exception SYNCHRONE plutôt qu'une promesse rejetée, Promise.resolve().then(...)
         // capture les deux cas, et le try/finally garantit que la modale se ferme dans tous les cas.
         try {
             const scanner = productQrScanner;
@@ -729,7 +729,7 @@
             </div>
             <p id="phone-modal-status" style="color:#ddd; font-size:0.9rem; margin:16px 0 4px;">Génération du QR Code…</p>
             <p style="color:#888; font-size:0.78rem; margin:0;">
-                Scannez ce QR Code avec l'appareil photo de votre téléphone (même réseau Wi-Fi que ce PC), puis scannez le code-barre — il remplit automatiquement le champ.
+                Scannez ce QR Code avec l'appareil photo de votre téléphone (même réseau Wi-Fi que ce PC), puis scannez le code-barre : il remplit automatiquement le champ.
             </p>
         </div>
         <div style="padding:0 20px 20px;">
@@ -818,7 +818,7 @@ function startScanSessionPolling() {
 
                 setPhoneStatus(data.statut);
                 if (data.statut === 'connecte') {
-                    document.getElementById('phone-modal-status').innerHTML = '<i class="fas fa-circle text-success me-1"></i> Téléphone connecté — continuez à scanner sur votre téléphone.';
+                    document.getElementById('phone-modal-status').innerHTML = '<i class="fas fa-circle text-success me-1"></i> Téléphone connecté, continuez à scanner sur votre téléphone.';
                 }
 
                 (data.scans || []).forEach(scan => {
@@ -830,7 +830,7 @@ function startScanSessionPolling() {
                     resetPhoneScanner();
                 }
             })
-            .catch(() => { /* réseau temporairement indisponible — on retentera au prochain tick */ });
+            .catch(() => { /* réseau temporairement indisponible, on retentera au prochain tick */ });
     }, 1200);
 }
 

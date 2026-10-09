@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 150" fill="none">
+  <defs>
+    <filter id="sh" x="-25%" y="-25%" width="150%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#0b1442" flood-opacity=".25"/>
+    </filter>
+  </defs>
+  <circle cx="130" cy="78" r="70" fill="#fff" fill-opacity=".08"/>
+
+  <rect x="26" y="24" width="160" height="108" rx="14" fill="#fff" filter="url(#sh)"/>
+  <rect x="40" y="36" width="44" height="7" rx="3.5" fill="#c7d2fe"/>
+  <rect x="40" y="48" width="64" height="10" rx="5" fill="#4f6ef7"/>
+  <line x1="40" y1="118" x2="172" y2="118" stroke="#e2e8f0" stroke-width="2"/>
+  <rect x="46" y="96" width="16" height="22" rx="4" fill="#c7d2fe"/>
+  <rect x="70" y="86" width="16" height="32" rx="4" fill="#c7d2fe"/>
+  <rect x="94" y="90" width="16" height="28" rx="4" fill="#a5b4fc"/>
+  <rect x="118" y="76" width="16" height="42" rx="4" fill="#818cf8"/>
+  <rect x="142" y="62" width="16" height="56" rx="4" fill="#4f6ef7"/>
+  <polyline points="54,88 78,78 102,82 126,66 150,50" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M140 48.5l11-.5-1.5 11" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <g filter="url(#sh)">
+    <path d="M186 124h40v7a20 7 0 0 1-40 0z" fill="#d97706"/>
+    <ellipse cx="206" cy="124" rx="20" ry="7" fill="#fbbf24"/>
+    <path d="M186 115h40v7a20 7 0 0 1-40 0z" fill="#d97706"/>
+    <ellipse cx="206" cy="115" rx="20" ry="7" fill="#fbbf24"/>
+    <path d="M186 106h40v7a20 7 0 0 1-40 0z" fill="#d97706"/>
+    <ellipse cx="206" cy="106" rx="20" ry="7" fill="#fcd34d"/>
+    <ellipse cx="206" cy="106" rx="12" ry="3.8" stroke="#f59e0b" stroke-width="1.8"/>
+  </g>
+
+  <g stroke="#fff" stroke-opacity=".75" stroke-width="2.2" stroke-linecap="round">
+    <path d="M210 30v10M205 35h10"/>
+    <path d="M14 112v8M10 116h8"/>
+  </g>
+  <circle cx="222" cy="68" r="3.5" fill="#fff" fill-opacity=".55"/>
+</svg>

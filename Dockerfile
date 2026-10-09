@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     openssl \
     default-mysql-client \
-    && docker-php-ext-install pdo pdo_mysql \
+    && docker-php-ext-install pdo pdo_mysql opcache \
     && a2enmod rewrite ssl \
     && rm -rf /var/lib/apt/lists/*
 

@@ -112,7 +112,12 @@ final class InvoiceService
             // Pas de suivi logistique pour un retrait sur place (ni tant que la fonctionnalité
             // est désactivée, cf. includes/roles.php).
             if (FEATURE_LOGISTIQUE_ACTIVE && $withDelivery) {
-                $this->repository->createLogistics($saleId, $invoiceId, $enterpriseId);
+                $this->repository->createLogistics(
+                    $saleId,
+                    $invoiceId,
+                    $enterpriseId,
+                    (new DocumentNumberRepository($this->pdo))->next('Logistique', 'LIV')
+                );
             }
             $this->pdo->commit();
 

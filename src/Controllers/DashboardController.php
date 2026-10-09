@@ -38,39 +38,43 @@ class DashboardController extends Controller
 
     private function showLivreur(int $entreprise_id): void
     {
-        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM Logistique WHERE Id_Entreprise = ? AND Statut_Livraison IN ('traitement','en_attente')");
-        $stmt->execute([$entreprise_id]);
-        $a_expedier = (int) $stmt->fetchColumn();
-
-        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM Logistique WHERE Id_Entreprise = ? AND Statut_Livraison = 'expediee'");
-        $stmt->execute([$entreprise_id]);
-        $en_route = (int) $stmt->fetchColumn();
-
-        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM Logistique WHERE Id_Entreprise = ? AND Statut_Livraison = 'livree' AND DATE(Date_Livraison_Effectuee) = CURDATE()");
-        $stmt->execute([$entreprise_id]);
-        $livrees_jour = (int) $stmt->fetchColumn();
+        // Le livreur ne voit que les livraisons qui lui ont été assignées à l'expédition.
+        $livreur_id = (int) $_SESSION['user_id'];
 
         $stmt = $this->pdo->prepare("
-            SELECT l.Id_Logistique, l.Statut_Livraison, l.Date_Livraison_Prevue,
+            SELECT
+                SUM(Statut_Livraison = 'expediee' AND Date_Confirmation_Livreur IS NULL) AS a_livrer,
+                SUM(Statut_Livraison = 'expediee' AND Date_Confirmation_Livreur IS NOT NULL) AS attente_acheteur,
+                SUM(DATE(Date_Confirmation_Livreur) = CURDATE()) AS livrees_jour
+            FROM Logistique
+            WHERE Id_Entreprise = ? AND Id_Livreur = ?
+        ");
+        $stmt->execute([$entreprise_id, $livreur_id]);
+        $kpi = $stmt->fetch();
+
+        $stmt = $this->pdo->prepare("
+            SELECT l.Id_Logistique, l.Id_Commande_B2B, l.Statut_Livraison, l.Date_Livraison_Prevue,
                    l.Transporteur, l.Numero_Suivi, l.Adresse_Livraison,
+                   l.Date_Confirmation_Livreur, l.Date_Confirmation_Acheteur,
                    v.Nom_Client, v.Numero_Vente,
                    e.Nom_Entreprise AS Nom_Acheteur, c.Numero_Commande
             FROM Logistique l
             LEFT JOIN Vente v ON l.Id_Vente = v.Id_Vente
             LEFT JOIN Commande_B2B c ON l.Id_Commande_B2B = c.Id_Commande_B2B
             LEFT JOIN Entreprise e ON c.Id_Entreprise_Acheteuse = e.Id_Entreprise
-            WHERE l.Id_Entreprise = ? AND l.Statut_Livraison NOT IN ('livree','annulee')
-            ORDER BY (l.Date_Livraison_Prevue IS NULL) ASC, l.Date_Livraison_Prevue ASC, l.Id_Logistique ASC
+            WHERE l.Id_Entreprise = ? AND l.Id_Livreur = ? AND l.Statut_Livraison = 'expediee'
+            ORDER BY (l.Date_Confirmation_Livreur IS NOT NULL) ASC,
+                     (l.Date_Livraison_Prevue IS NULL) ASC, l.Date_Livraison_Prevue ASC, l.Id_Logistique ASC
             LIMIT 12
         ");
-        $stmt->execute([$entreprise_id]);
+        $stmt->execute([$entreprise_id, $livreur_id]);
         $livraisons_actives = $stmt->fetchAll();
 
         $this->render('dashboard/livreur', [
             'salutation'          => $this->salutation(),
-            'a_expedier'          => $a_expedier,
-            'en_route'            => $en_route,
-            'livrees_jour'        => $livrees_jour,
+            'a_livrer'            => (int) ($kpi['a_livrer'] ?? 0),
+            'attente_acheteur'    => (int) ($kpi['attente_acheteur'] ?? 0),
+            'livrees_jour'        => (int) ($kpi['livrees_jour'] ?? 0),
             'livraisons_actives'  => $livraisons_actives,
         ], 'Tableau de bord');
     }

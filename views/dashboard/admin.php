@@ -1,28 +1,41 @@
 <div class="container fade-in py-4">
-    <div class="mb-3">
-        <h1 class="fs-4 fw-bold mb-1"><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?></h1>
-        <p class="text-body-secondary small mb-0">
-            <i class="fas fa-lock me-1 opacity-50"></i>
-            Accès lecture seule — données agrégées de la plateforme FactuPro.
-        </p>
+    <div class="dash-hero">
+        <div>
+            <span class="dash-hero-date"><i class="fas fa-lock"></i> Accès lecture seule</span>
+            <h1 class="dash-hero-title"><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?></h1>
+            <p class="dash-hero-text">Données agrégées de la plateforme FactuPro.</p>
+        </div>
+        <img src="../assets/img/illustrations/banner-network.svg" alt="" class="dash-hero-art">
     </div>
 
     <div class="dash-kpi-row">
         <div class="dash-kpi is-primary">
-            <div class="dash-kpi-label">Entreprises</div>
-            <div class="dash-kpi-value"><?= $nb_entreprises ?></div>
+            <span class="dash-kpi-icon"><i class="fas fa-building"></i></span>
+            <div>
+                <div class="dash-kpi-label">Entreprises</div>
+                <div class="dash-kpi-value"><?= $nb_entreprises ?></div>
+            </div>
         </div>
-        <div class="dash-kpi">
-            <div class="dash-kpi-label">Utilisateurs</div>
-            <div class="dash-kpi-value"><?= $nb_utilisateurs ?></div>
+        <div class="dash-kpi kpi-purple">
+            <span class="dash-kpi-icon"><i class="fas fa-users"></i></span>
+            <div>
+                <div class="dash-kpi-label">Utilisateurs</div>
+                <div class="dash-kpi-value"><?= $nb_utilisateurs ?></div>
+            </div>
         </div>
-        <div class="dash-kpi">
-            <div class="dash-kpi-label">Ventes totales</div>
-            <div class="dash-kpi-value"><?= number_format($nb_ventes_total, 0, ',', ' ') ?></div>
+        <div class="dash-kpi kpi-success">
+            <span class="dash-kpi-icon"><i class="fas fa-receipt"></i></span>
+            <div>
+                <div class="dash-kpi-label">Ventes totales</div>
+                <div class="dash-kpi-value"><?= number_format($nb_ventes_total, 0, ',', ' ') ?></div>
+            </div>
         </div>
-        <div class="dash-kpi">
-            <div class="dash-kpi-label">CA plateforme</div>
-            <div class="dash-kpi-value"><?= number_format($ca_total_plateforme, 0, ',', ' ') ?> <small>FCFA</small></div>
+        <div class="dash-kpi kpi-warning">
+            <span class="dash-kpi-icon"><i class="fas fa-coins"></i></span>
+            <div>
+                <div class="dash-kpi-label">CA plateforme</div>
+                <div class="dash-kpi-value"><?= number_format($ca_total_plateforme, 0, ',', ' ') ?> <small>FCFA</small></div>
+            </div>
         </div>
     </div>
 
@@ -47,8 +60,9 @@
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
-            <div class="card-body text-center text-body-secondary py-4">
-                <p class="mb-0 small">Aucune entreprise enregistrée.</p>
+            <div class="empty-state">
+                <img src="../assets/img/illustrations/empty-users.svg" alt="" class="empty-state-img">
+                <p class="empty-state-text">Aucune entreprise enregistrée.</p>
             </div>
         <?php endif; ?>
     </div>

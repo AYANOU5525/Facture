@@ -146,7 +146,7 @@ final class OrderService
             }
 
             $summary = implode(' ; ', $changes);
-            $note = 'Proposition partielle : ' . $summary . ($message !== '' ? ' — ' . $message : '');
+            $note = 'Proposition partielle : ' . $summary . ($message !== '' ? '. ' . $message : '');
             $this->repository->transition($orderId, 'a_confirmer', $message !== '' ? $message : null);
             $this->repository->recordHistory($orderId, 'en_attente', 'a_confirmer', $note, $sellerId);
             $this->pdo->commit();
@@ -220,7 +220,7 @@ final class OrderService
             }
 
             $note = "Proposition partielle acceptée par l'acheteur"
-                . ($backorder ? " — reste à compléter : commande {$backorder['number']}" : '');
+                . ($backorder ? ", reste à compléter : commande {$backorder['number']}" : '');
             $this->repository->recordHistory($orderId, 'a_confirmer', 'validee', $note, $buyerId);
             $this->pdo->commit();
 

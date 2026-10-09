@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 380" fill="none">
+  <defs>
+    <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7b93ff"/>
+      <stop offset="1" stop-color="#4f6ef7"/>
+    </linearGradient>
+    <filter id="sh" x="-25%" y="-25%" width="150%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#0b1442" flood-opacity=".28"/>
+    </filter>
+  </defs>
+
+  <!-- Halo -->
+  <circle cx="240" cy="190" r="175" fill="#fff" fill-opacity=".06"/>
+  <circle cx="240" cy="190" r="125" fill="#fff" fill-opacity=".06"/>
+
+  <!-- Fenêtre tableau de bord -->
+  <rect x="40" y="60" width="300" height="210" rx="16" fill="#fff" filter="url(#sh)"/>
+  <path d="M56 60h268a16 16 0 0 1 16 16v20H40V76a16 16 0 0 1 16-16z" fill="#eef2ff"/>
+  <circle cx="60" cy="78" r="5" fill="#ef4444" fill-opacity=".75"/>
+  <circle cx="76" cy="78" r="5" fill="#f59e0b" fill-opacity=".85"/>
+  <circle cx="92" cy="78" r="5" fill="#10b981" fill-opacity=".85"/>
+  <rect x="226" y="72" width="94" height="12" rx="6" fill="#c7d2fe"/>
+
+  <rect x="60" y="112" width="80" height="44" rx="10" fill="#f5f7ff"/>
+  <rect x="70" y="122" width="40" height="6" rx="3" fill="#c7d2fe"/>
+  <rect x="70" y="135" width="56" height="10" rx="5" fill="#4f6ef7"/>
+  <rect x="150" y="112" width="80" height="44" rx="10" fill="#f5f7ff"/>
+  <rect x="160" y="122" width="40" height="6" rx="3" fill="#c7d2fe"/>
+  <rect x="160" y="135" width="44" height="10" rx="5" fill="#10b981"/>
+  <rect x="240" y="112" width="80" height="44" rx="10" fill="#f5f7ff"/>
+  <rect x="250" y="122" width="40" height="6" rx="3" fill="#c7d2fe"/>
+  <rect x="250" y="135" width="50" height="10" rx="5" fill="#f59e0b"/>
+
+  <line x1="60" y1="252" x2="320" y2="252" stroke="#e2e8f0" stroke-width="2"/>
+  <rect x="70" y="222" width="22" height="30" rx="5" fill="url(#bar)" fill-opacity=".35"/>
+  <rect x="110" y="207" width="22" height="45" rx="5" fill="url(#bar)" fill-opacity=".45"/>
+  <rect x="150" y="214" width="22" height="38" rx="5" fill="url(#bar)" fill-opacity=".55"/>
+  <rect x="190" y="194" width="22" height="58" rx="5" fill="url(#bar)" fill-opacity=".7"/>
+  <rect x="230" y="202" width="22" height="50" rx="5" fill="url(#bar)" fill-opacity=".85"/>
+  <rect x="270" y="180" width="22" height="72" rx="5" fill="url(#bar)"/>
+  <polyline points="81,210 121,195 161,202 201,182 241,190 281,166" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="281" cy="166" r="5" fill="#fff" stroke="#10b981" stroke-width="3"/>
+
+  <!-- Notification flottante -->
+  <rect x="286" y="26" width="156" height="50" rx="12" fill="#fff" filter="url(#sh)"/>
+  <circle cx="311" cy="51" r="13" fill="#10b981" fill-opacity=".15"/>
+  <path d="M305.5 51.5l3.8 3.8 7.2-7.6" stroke="#10b981" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="332" y="41" width="88" height="7" rx="3.5" fill="#cbd5e1"/>
+  <rect x="332" y="55" width="58" height="6" rx="3" fill="#e2e8f0"/>
+
+  <!-- Facture flottante -->
+  <g transform="translate(318 132) rotate(6)">
+    <rect width="128" height="168" rx="12" fill="#fff" filter="url(#sh)"/>
+    <rect x="16" y="18" width="28" height="28" rx="8" fill="#4f6ef7"/>
+    <path d="M23.5 32.5l4 4 8-8.5" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="54" y="22" width="56" height="7" rx="3.5" fill="#c7d2fe"/>
+    <rect x="54" y="35" width="38" height="6" rx="3" fill="#e2e8f0"/>
+    <rect x="16" y="62" width="60" height="6" rx="3" fill="#e2e8f0"/>
+    <rect x="88" y="62" width="24" height="6" rx="3" fill="#e2e8f0"/>
+    <rect x="16" y="78" width="52" height="6" rx="3" fill="#e2e8f0"/>
+    <rect x="88" y="78" width="24" height="6" rx="3" fill="#e2e8f0"/>
+    <rect x="16" y="94" width="64" height="6" rx="3" fill="#e2e8f0"/>
+    <rect x="88" y="94" width="24" height="6" rx="3" fill="#e2e8f0"/>
+    <line x1="16" y1="112" x2="112" y2="112" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="4 4"/>
+    <rect x="16" y="124" width="34" height="8" rx="4" fill="#94a3b8"/>
+    <rect x="68" y="122" width="44" height="12" rx="6" fill="#4f6ef7"/>
+    <g fill="#334155">
+      <rect x="16" y="146" width="2" height="12"/><rect x="20" y="146" width="1" height="12"/>
+      <rect x="23" y="146" width="3" height="12"/><rect x="28" y="146" width="1" height="12"/>
+      <rect x="31" y="146" width="2" height="12"/><rect x="35" y="146" width="3" height="12"/>
+      <rect x="40" y="146" width="1" height="12"/><rect x="43" y="146" width="2" height="12"/>
+      <rect x="47" y="146" width="1" height="12"/><rect x="50" y="146" width="3" height="12"/>
+      <rect x="55" y="146" width="2" height="12"/><rect x="59" y="146" width="1" height="12"/>
+    </g>
+  </g>
+
+  <!-- Carton produit -->
+  <g filter="url(#sh)">
+    <path d="M62 262l42 20-42 20-42-20z" fill="#fcd34d"/>
+    <path d="M20 282l42 20v46l-42-20z" fill="#f59e0b"/>
+    <path d="M62 302l42-20v46l-42 20z" fill="#d97706"/>
+  </g>
+  <path d="M41 272l42 20" stroke="#fff" stroke-opacity=".55" stroke-width="7"/>
+  <g transform="translate(30 300) skewY(26.565)" fill="#7c2d12" fill-opacity=".55">
+    <rect x="0" y="0" width="2" height="14"/><rect x="4" y="0" width="1" height="14"/>
+    <rect x="7" y="0" width="3" height="14"/><rect x="12" y="0" width="1" height="14"/>
+    <rect x="15" y="0" width="2" height="14"/><rect x="19" y="0" width="1" height="14"/>
+    <rect x="22" y="0" width="2" height="14"/>
+  </g>
+
+  <!-- Pièces -->
+  <g>
+    <path d="M384 342h48v8a24 8 0 0 1-48 0z" fill="#d97706"/>
+    <ellipse cx="408" cy="342" rx="24" ry="8" fill="#fbbf24"/>
+    <path d="M384 332h48v8a24 8 0 0 1-48 0z" fill="#d97706"/>
+    <ellipse cx="408" cy="332" rx="24" ry="8" fill="#fbbf24"/>
+    <path d="M384 322h48v8a24 8 0 0 1-48 0z" fill="#d97706"/>
+    <ellipse cx="408" cy="322" rx="24" ry="8" fill="#fcd34d"/>
+    <ellipse cx="408" cy="322" rx="15" ry="4.5" stroke="#f59e0b" stroke-width="2"/>
+  </g>
+
+  <!-- Étincelles -->
+  <g stroke="#fff" stroke-opacity=".7" stroke-width="2.5" stroke-linecap="round">
+    <path d="M24 40v12M18 46h12"/>
+    <path d="M458 120v10M453 125h10"/>
+    <path d="M186 330v10M181 335h10"/>
+  </g>
+  <circle cx="452" cy="230" r="4" fill="#fff" fill-opacity=".5"/>
+  <circle cx="140" cy="30" r="3" fill="#fff" fill-opacity=".5"/>
+</svg>

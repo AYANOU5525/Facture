@@ -17,7 +17,7 @@
 
 <div class="container fade-in py-4">
     <div class="mb-3">
-        <p class="text-body-secondary mb-0">Base de clients B2B et directs — volumes d'achat</p>
+        <p class="text-body-secondary mb-0">Base de clients B2B et directs, avec leurs volumes d'achat</p>
     </div>
 
     <?php if (!empty($success)): ?>
@@ -56,7 +56,7 @@
                     <span class="d-inline-flex align-items-center justify-content-center rounded-2" style="width:28px;height:28px;background:var(--primary-light); color:var(--primary); font-size:0.85rem;">
                         <i class="fas fa-handshake"></i>
                     </span>
-                    Clients B2B — Entreprises
+                    Clients B2B : entreprises
                 </h2>
                 <p class="text-body-secondary small mb-0 mt-1"><?= $nb_b2b ?> partenaires</p>
             </div>
@@ -91,7 +91,7 @@
                             </div>
                         </td>
                         <td class="small text-body-secondary">
-                            <?= !empty($c['Tel_Entreprise']) ? htmlspecialchars($c['Tel_Entreprise']) : '—' ?>
+                            <?= !empty($c['Tel_Entreprise']) ? htmlspecialchars($c['Tel_Entreprise']) : '-' ?>
                             <?php if (!empty($c['Email_Entreprise'])): ?>
                                 <div><?= htmlspecialchars($c['Email_Entreprise']) ?></div>
                             <?php endif; ?>
@@ -103,7 +103,7 @@
                             <span class="cl-volume"><?= number_format($c['Total_Depense'], 0, ',', ' ') ?> F</span>
                         </td>
                         <td class="text-end small text-body-secondary">
-                            <?= !empty($c['Derniere_Commande']) ? date('d/m/Y', strtotime($c['Derniere_Commande'])) : '—' ?>
+                            <?= !empty($c['Derniere_Commande']) ? date('d/m/Y', strtotime($c['Derniere_Commande'])) : '-' ?>
                         </td>
                         <td class="text-center">
                             <a href="client_history.php?type=b2b&id=<?= $c['Id_Entreprise'] ?? 0 ?>"
@@ -167,12 +167,12 @@
                         </td>
                         <td class="small text-body-secondary">
                             <?php if ($fiche && (!empty($fiche['Telephone_Client']) || !empty($fiche['Email_Client']))): ?>
-                                <?= !empty($fiche['Telephone_Client']) ? htmlspecialchars($fiche['Telephone_Client']) : '—' ?>
+                                <?= !empty($fiche['Telephone_Client']) ? htmlspecialchars($fiche['Telephone_Client']) : '-' ?>
                                 <?php if (!empty($fiche['Email_Client'])): ?>
                                     <div><?= htmlspecialchars($fiche['Email_Client']) ?></div>
                                 <?php endif; ?>
                             <?php else: ?>
-                                —
+                                -
                             <?php endif; ?>
                         </td>
                         <td class="text-center">
@@ -181,7 +181,7 @@
                                     <?= $fiche['Statut_Client'] === 'actif' ? 'Actif' : 'Inactif' ?>
                                 </span>
                             <?php else: ?>
-                                <span class="text-body-tertiary">—</span>
+                                <span class="text-body-tertiary">-</span>
                             <?php endif; ?>
                         </td>
                         <td class="text-center">
@@ -191,7 +191,7 @@
                             <span class="cl-volume"><?= number_format($c['Total_Depense'], 0, ',', ' ') ?> F</span>
                         </td>
                         <td class="text-end small text-body-secondary">
-                            <?= !empty($c['Derniere_Commande']) ? date('d/m/Y', strtotime($c['Derniere_Commande'])) : '—' ?>
+                            <?= !empty($c['Derniere_Commande']) ? date('d/m/Y', strtotime($c['Derniere_Commande'])) : '-' ?>
                         </td>
                         <td class="text-center text-nowrap">
                             <a href="client_history.php?type=direct&name=<?= urlencode($c['Nom_Client'] ?? '') ?>"
@@ -235,11 +235,9 @@
         <?php endif; ?>
 
         <?php else: ?>
-        <div class="text-center py-5 text-body-secondary">
-            <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-body-secondary text-body-tertiary mb-3" style="width:60px;height:60px;font-size:1.5rem;">
-                <i class="fas fa-users"></i>
-            </div>
-            <p class="small mb-0">Aucun client direct enregistré.</p>
+        <div class="empty-state">
+            <img src="../assets/img/illustrations/empty-users.svg" alt="" class="empty-state-img">
+            <p class="empty-state-title">Aucun client direct enregistré.</p>
         </div>
         <?php endif; ?>
     </div>

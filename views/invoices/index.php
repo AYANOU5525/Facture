@@ -101,7 +101,7 @@ code {
                         $annees_restantes = $en_retention ? $diff->y : 0;
 
                         // "En retard" est un état d'affichage dérivé (échéance dépassée + non payée),
-                        // jamais écrit en base — Statut_Paiement reste sur ses 3 valeurs réelles.
+                        // jamais écrit en base, Statut_Paiement reste sur ses 3 valeurs réelles.
                         $en_retard = $f['Statut_Paiement'] === 'non_payee'
                             && !empty($f['Date_Echeance'])
                             && strtotime($f['Date_Echeance']) < time();
@@ -111,9 +111,9 @@ code {
                     ?>
                     <tr data-statut="<?= $statut_affichage ?>">
                         <td><code><?= htmlspecialchars($f['Numero_Facture']) ?></code></td>
-                        <td class="fw-semibold"><?= htmlspecialchars($f['Nom_Client'] ?? '—') ?></td>
+                        <td class="fw-semibold"><?= htmlspecialchars($f['Nom_Client'] ?? '-') ?></td>
                         <td class="small text-body-secondary">
-                            <?= $f['Date_Echeance'] ? date('d/m/Y', strtotime($f['Date_Echeance'])) : '—' ?>
+                            <?= $f['Date_Echeance'] ? date('d/m/Y', strtotime($f['Date_Echeance'])) : '-' ?>
                         </td>
                         <td>
                             <span class="badge text-bg-<?= $statut_classes[$statut_affichage] ?>">
@@ -165,12 +165,10 @@ code {
             </table>
         </div>
         <?php else: ?>
-            <div class="text-center py-5">
-                <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-body-secondary text-body-tertiary mb-3" style="width:68px;height:68px;font-size:1.8rem;">
-                    <i class="fas fa-file-invoice"></i>
-                </div>
-                <h3 class="fs-6 mb-2">Aucune facture</h3>
-                <p class="text-body-secondary small mb-3">Créez votre première vente pour générer une facture.</p>
+            <div class="empty-state py-5">
+                <img src="../assets/img/illustrations/empty-receipt.svg" alt="" class="empty-state-img">
+                <p class="empty-state-title">Aucune facture</p>
+                <p class="empty-state-text">Créez votre première vente pour générer une facture.</p>
                 <a href="invoice_add.php" class="btn btn-primary"><i class="fas fa-plus"></i> Nouvelle vente</a>
             </div>
         <?php endif; ?>

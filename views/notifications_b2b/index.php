@@ -29,10 +29,10 @@
         </div>
 
         <?php if (empty($notifications)): ?>
-            <div class="notif-empty py-5">
-                <span class="notif-empty-icon"><i class="fas fa-bell-slash"></i></span>
-                <span class="fw-semibold">Aucune notification</span>
-                <span>Les commandes et messages B2B apparaîtront ici.</span>
+            <div class="empty-state py-5">
+                <img src="../assets/img/illustrations/empty-inbox.svg" alt="" class="empty-state-img">
+                <p class="empty-state-title">Aucune notification</p>
+                <p class="empty-state-text">Les commandes et messages B2B apparaîtront ici.</p>
             </div>
         <?php else: ?>
             <div class="notifs-page-list">

@@ -1,5 +1,5 @@
 <style>
-/* ── Client History Premium — ReactBits + Kokonut UI ── */
+/* ── Client History Premium, ReactBits + Kokonut UI ── */
 
 .ch-hero {
     background: var(--bg-card);
@@ -228,30 +228,6 @@
     flex-shrink: 0;
 }
 
-/* Empty state */
-.ch-empty {
-    text-align: center;
-    padding: 60px 20px;
-    color: var(--text-muted);
-}
-
-.ch-empty-icon {
-    width: 80px;
-    height: 80px;
-    border-radius: 24px;
-    background: var(--zinc-100);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    color: var(--zinc-400);
-    margin: 0 auto 20px;
-    animation: float 3s ease-in-out infinite;
-}
-
-.ch-empty h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--text-main); }
-.ch-empty p  { font-size: 0.9rem; }
-
 /* View toggle */
 .ch-view-toggle {
     display: flex;
@@ -316,7 +292,7 @@
         </a>
     </div>
 
-    <!-- HERO CARD — Client Profile -->
+    <!-- HERO CARD, Client Profile -->
     <div class="ch-hero animate-fade-in-down">
         <div class="ch-avatar"><?= htmlspecialchars($initiales) ?></div>
         <div class="ch-meta">
@@ -385,7 +361,7 @@
             </div>
             <div class="ch-kpi-label">Dernière activité</div>
             <div class="ch-kpi-value" style="font-size:1rem;">
-                <?= $derniere_transaction ? date('d/m/Y', strtotime($derniere_transaction)) : '—' ?>
+                <?= $derniere_transaction ? date('d/m/Y', strtotime($derniere_transaction)) : '-' ?>
             </div>
             <div class="ch-kpi-sub">
                 <?php if ($derniere_transaction):
@@ -420,10 +396,10 @@
 
         <div class="card-body">
         <?php if (empty($history)): ?>
-            <div class="ch-empty">
-                <div class="ch-empty-icon"><i class="fas fa-inbox"></i></div>
-                <h3>Aucune transaction</h3>
-                <p>Ce client n'a encore aucune transaction enregistrée.</p>
+            <div class="empty-state">
+                <img src="../assets/img/illustrations/empty-receipt.svg" alt="" class="empty-state-img">
+                <p class="empty-state-title">Aucune transaction</p>
+                <p class="empty-state-text">Ce client n'a encore aucune transaction enregistrée.</p>
             </div>
         <?php else: ?>
 
@@ -431,7 +407,7 @@
             <div class="ch-timeline-view" id="viewTimeline">
                 <div class="ch-timeline" data-paginate="5">
                     <?php foreach ($history as $i => $item):
-                        $etat = $item['Etat'] ?? '—';
+                        $etat = $item['Etat'] ?? '-';
                         $badge = 'secondary';
                         $dot_color = 'var(--zinc-300)';
                         if (in_array($etat, ['livree', 'Validée'])) { $badge = 'success'; $dot_color = 'var(--success)'; }
@@ -484,7 +460,7 @@
                         </thead>
                         <tbody data-paginate="5">
                             <?php foreach ($history as $item):
-                                $etat = $item['Etat'] ?? '—';
+                                $etat = $item['Etat'] ?? '-';
                                 $badge = 'secondary';
                                 if (in_array($etat, ['livree', 'Validée'])) $badge = 'success';
                                 if ($etat === 'annulee') $badge = 'danger';

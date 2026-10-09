@@ -36,7 +36,7 @@
         <h1 class="fs-3 fw-bold mb-1"><i class="fas fa-clipboard-check text-primary me-2"></i> Finalisation de la Vente</h1>
         <p class="text-body-secondary mb-0">
             Vente <strong><?= htmlspecialchars($numero_vente) ?></strong>
-            — <?= htmlspecialchars($vente['Nom_Client']) ?>
+            · <?= htmlspecialchars($vente['Nom_Client']) ?>
         </p>
     </div>
 
@@ -151,46 +151,38 @@
         <div class="card">
         <div class="card-body p-4">
             <h2 class="h5"><i class="fas fa-truck text-primary me-2"></i> Expédition & Logistique</h2>
-            <p class="text-body-secondary">Renseignez les informations de transport pour cette livraison.</p>
-
-            <?php if ($logistique_existe): ?>
-                <div class="alert alert-info">
-                    <i class="fas fa-info-circle"></i> Une entrée logistique existe déjà pour cette vente.
-                </div>
+            <?php if ($logistique): ?>
+                <p class="text-body-secondary">
+                    La fiche de livraison est créée. Le transporteur et la date prévue doivent être renseignés pour valider l'expédition.
+                </p>
+                <ul class="list-unstyled mb-0">
+                    <li><i class="fas fa-barcode text-body-secondary me-2"></i> N° de suivi : <code><?= htmlspecialchars($logistique['Numero_Suivi'] ?? '-') ?></code></li>
+                    <li><i class="fas fa-truck text-body-secondary me-2"></i> Statut : <?= htmlspecialchars(libelleStatutLivraison($logistique)['label']) ?></li>
+                    <?php if (!empty($logistique['Transporteur'])): ?>
+                        <li><i class="fas fa-user text-body-secondary me-2"></i> Transporteur : <?= htmlspecialchars($logistique['Transporteur']) ?></li>
+                    <?php endif; ?>
+                </ul>
                 <div class="d-flex gap-2 justify-content-end flex-wrap mt-4">
-                    <a href="?ref=<?= urlencode($numero_vente) ?>&etape=3&mode=livraison" class="btn btn-primary">
+                    <?php if (peutGererExpeditions()): ?>
+                        <a href="logistique_edit.php?id=<?= (int) $logistique['Id_Logistique'] ?>" class="btn btn-primary">
+                            <i class="fas fa-shipping-fast"></i> <?= $logistique['Statut_Livraison'] === 'traitement' ? "Organiser l'expédition" : 'Suivre la livraison' ?>
+                        </a>
+                    <?php else: ?>
+                        <span class="text-body-secondary small align-self-center">Le propriétaire organisera l'expédition depuis le suivi logistique.</span>
+                    <?php endif; ?>
+                    <a href="?ref=<?= urlencode($numero_vente) ?>&etape=3&mode=livraison" class="btn btn-outline-secondary">
                         <i class="fas fa-arrow-right"></i> Terminer
-                    </a>
-                    <a href="logistique.php" class="btn btn-outline-secondary">
-                        <i class="fas fa-truck"></i> Voir la logistique
                     </a>
                 </div>
             <?php else: ?>
-                <form method="POST">
-                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Transporteur</label>
-                            <input type="text" name="transporteur" class="form-control" placeholder="Ex : DHL, Fedex, UPS...">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Numéro de suivi</label>
-                            <input type="text" name="numero_suivi" class="form-control" placeholder="Code de suivi...">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Date de livraison prévue</label>
-                            <input type="date" name="date_livraison" class="form-control" min="<?= date('Y-m-d') ?>">
-                        </div>
-                    </div>
-                    <div class="d-flex gap-2 justify-content-end flex-wrap mt-4">
-                        <button type="submit" name="creer_logistique" class="btn btn-primary">
-                            <i class="fas fa-save"></i> Enregistrer la logistique
-                        </button>
-                        <a href="?ref=<?= urlencode($numero_vente) ?>&etape=3&mode=livraison" class="btn btn-outline-secondary">
-                            <i class="fas fa-forward"></i> Passer cette étape
-                        </a>
-                    </div>
-                </form>
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle"></i> Aucune livraison n'est associée à cette vente.
+                </div>
+                <div class="d-flex justify-content-end mt-4">
+                    <a href="?ref=<?= urlencode($numero_vente) ?>&etape=3&mode=livraison" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-right"></i> Terminer
+                    </a>
+                </div>
             <?php endif; ?>
         </div>
         </div>

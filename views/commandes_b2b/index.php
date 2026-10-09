@@ -1,5 +1,5 @@
 <!-- ============================================================
-     VUE — Interface Commandes B2B v2
+     VUE : Interface Commandes B2B v2
      ============================================================ -->
 <link rel="stylesheet" href="../assets/vendor/leaflet/leaflet.css">
 <script src="../assets/vendor/leaflet/leaflet.js"></script>
@@ -62,7 +62,7 @@
                         <label class="form-label mb-2" for="vendeur_id">Fournisseur</label>
                         <div class="d-flex gap-2">
                             <select name="vendeur_id" id="vendeur_id" class="form-control" required>
-                                <option value="">— Choisir —</option>
+                                <option value="">Choisir</option>
                                 <?php foreach ($fournisseurs as $f): ?>
                                     <option value="<?= $f['Id_Entreprise'] ?>"
                                         <?= $selected_vendeur == $f['Id_Entreprise'] ? 'selected' : '' ?>>
@@ -75,7 +75,7 @@
                                 <form method="POST" action="commandes_b2b.php" class="mb-0">
                                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                                     <input type="hidden" name="action" value="reset_vendeur">
-                                    <button type="submit" class="btn btn-outline-secondary btn-sm" title="Réinitialiser">✕</button>
+                                    <button type="submit" class="btn btn-outline-secondary btn-sm" title="Réinitialiser" aria-label="Réinitialiser"><i class="fas fa-xmark"></i></button>
                                 </form>
                             <?php endif; ?>
                         </div>
@@ -93,7 +93,7 @@
                                 <div class="form-group" style="margin-bottom:10px;">
                                     <label for="product-select">Choisir un produit</label>
                                     <select id="product-select" class="form-control form-control-sm" onchange="onProductSelect()">
-                                        <option value="">— Sélectionner un produit —</option>
+                                        <option value="">Sélectionner un produit</option>
                                         <?php foreach ($produits_b2b as $p): ?>
                                             <option value="<?= $p['Id_Produit'] ?>"
                                                 data-nom="<?= htmlspecialchars($p['Nom_Produit'], ENT_QUOTES) ?>"
@@ -190,7 +190,7 @@
 
                                 <!-- Point de livraison (mode Livraison uniquement) : l'acheteur précise où le
                                      livreur devra apporter la marchandise, indépendamment de l'adresse de
-                                     l'entreprise. Optionnel — à défaut, le livreur utilisera l'adresse de
+                                     l'entreprise. Optionnel : à défaut, le livreur utilisera l'adresse de
                                      l'entreprise (voir LogisticsRepository::findForEnterprise). -->
                                 <div id="livraison-map-group" style="margin-top:10px;">
                                     <label class="form-label small text-body-secondary mb-1">
@@ -228,10 +228,10 @@
         <div class="<?= $onglet === 'passees' ? 'col-xxl-8' : 'col-12' ?> min-w-0">
             <?php if (empty($commandes)): ?>
                 <div class="panel-soft">
-                    <div class="notif-empty py-5">
-                        <span class="notif-empty-icon"><i class="fas fa-inbox"></i></span>
-                        <span class="fw-semibold"><?= $onglet === 'recues' ? 'Aucune commande reçue' : 'Aucune commande passée' ?></span>
-                        <span><?= $onglet === 'recues' ? 'Les commandes de vos clients B2B apparaîtront ici.' : 'Choisissez un fournisseur pour passer votre première commande.' ?></span>
+                    <div class="empty-state py-5">
+                        <img src="../assets/img/illustrations/empty-inbox.svg" alt="" class="empty-state-img">
+                        <p class="empty-state-title"><?= $onglet === 'recues' ? 'Aucune commande reçue' : 'Aucune commande passée' ?></p>
+                        <p class="empty-state-text"><?= $onglet === 'recues' ? 'Les commandes de vos clients B2B apparaîtront ici.' : 'Choisissez un fournisseur pour passer votre première commande.' ?></p>
                     </div>
                 </div>
             <?php else: ?>
@@ -294,7 +294,7 @@
                                         <?php if ($urgent_actif): ?>
                                             <span class="text-danger fw-semibold"><i class="fas fa-bolt"></i> Urgent</span>
                                         <?php else: ?>
-                                            <span class="text-body-secondary">—</span>
+                                            <span class="text-body-secondary">-</span>
                                         <?php endif; ?>
                                     </td>
                                     <td><?php echo badgeStatutCommande($c['Statut']); ?></td>
@@ -337,15 +337,27 @@
                                                             <i class="fas fa-check-double"></i> Prête
                                                         </button>
                                                     </form>
-                                                <?php elseif ($c['Statut'] === 'prete'): ?>
-                                                    <form method="POST" class="d-inline" onsubmit="return confirm('Expédier cette commande ? <?= FEATURE_LOGISTIQUE_ACTIVE ? 'Une facture et une expédition logistique seront créées.' : 'Une facture sera créée.' ?>')">
+                                                <?php elseif ($c['Statut'] === 'prete'):
+                                                    $remise_directe = $mode_retrait === 'retrait_place' || !FEATURE_LOGISTIQUE_ACTIVE;
+                                                ?>
+                                                    <form method="POST" class="d-inline" <?= $remise_directe ? 'onsubmit="return confirm(\'' . ($mode_retrait === 'retrait_place' ? 'Remettre cette commande au client ? ' : 'Expédier cette commande ? ') . 'La facture sera générée.\')"' : '' ?>>
                                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                                                         <input type="hidden" name="action" value="expedier">
                                                         <input type="hidden" name="id_commande" value="<?= $c['Id_Commande_B2B'] ?>">
-                                                        <button type="submit" class="btn btn-primary btn-sm">
-                                                            <i class="fas fa-shipping-fast"></i> Expédier
-                                                        </button>
+                                                        <?php if ($mode_retrait === 'retrait_place'): ?>
+                                                            <button type="submit" class="btn btn-primary btn-sm" title="Le client vient retirer sa commande : la facture est générée">
+                                                                <i class="fas fa-store"></i> Remis au client
+                                                            </button>
+                                                        <?php else: ?>
+                                                            <button type="submit" class="btn btn-primary btn-sm" title="Ouvrir la fiche d'expédition : transporteur et date prévue à renseigner">
+                                                                <i class="fas fa-shipping-fast"></i> <?= !empty($c['Id_Logistique']) ? "Reprendre l'expédition" : 'Expédier' ?>
+                                                            </button>
+                                                        <?php endif; ?>
                                                     </form>
+                                                <?php elseif (in_array($c['Statut'], ['expediee', 'livree'], true) && !empty($c['Id_Logistique']) && FEATURE_LOGISTIQUE_ACTIVE): ?>
+                                                    <a href="logistique_edit.php?id=<?= (int) $c['Id_Logistique'] ?>" class="btn btn-outline-primary btn-sm" title="Fiche de livraison">
+                                                        <i class="fas fa-route"></i> Suivi
+                                                    </a>
                                                 <?php endif; ?>
                                                 <!-- Actions ACHETEUR (onglet passées) -->
                                             <?php else: ?>
@@ -378,7 +390,11 @@
                                                         </button>
                                                     </form>
                                                 <?php endif; ?>
-                                                <?php if ($c['Statut'] === 'expediee'): ?>
+                                                <?php if ($c['Statut'] === 'expediee' && !empty($c['Date_Confirmation_Acheteur'])): ?>
+                                                    <span class="badge text-bg-info align-self-center" title="La commande passera « Livrée » dès que le livreur aura confirmé la remise">
+                                                        <i class="fas fa-hourglass-half"></i> Attente du livreur
+                                                    </span>
+                                                <?php elseif ($c['Statut'] === 'expediee'): ?>
                                                     <form method="POST" class="d-inline" onsubmit="return confirm('Confirmer la réception correcte de cette commande ?')">
                                                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
                                                         <input type="hidden" name="action" value="livree">
@@ -444,7 +460,7 @@
                                                             <?php if ($c['Statut'] === 'a_confirmer'): ?>
                                                                 <div class="alert alert-warning small mt-2 mb-0" data-pg-ignore>
                                                                     <i class="fas fa-balance-scale"></i>
-                                                                    Proposition partielle du vendeur — nouveau total :
+                                                                    Proposition partielle du vendeur, nouveau total :
                                                                     <strong><?= number_format($total_propose, 0, ',', ' ') ?> F</strong>
                                                                     (au lieu de <?= number_format((float) $c['Montant_Total'], 0, ',', ' ') ?> F).
                                                                     <?= $onglet === 'recues' ? "En attente de la réponse de l'acheteur." : 'Acceptez ou annulez la commande.' ?>
@@ -466,7 +482,7 @@
                                                                 ?>
                                                                     <div class="d-flex align-items-center gap-2 small mb-1">
                                                                         <span class="flex-grow-1"><?= htmlspecialchars($ligne['nom']) ?>
-                                                                            <span class="text-body-secondary">— commandé <?= (int) $ligne['quantite'] ?>, en stock <?= $dispo ?></span></span>
+                                                                            <span class="text-body-secondary">(commandé <?= (int) $ligne['quantite'] ?>, en stock <?= $dispo ?>)</span></span>
                                                                         <input type="number" name="quantites[<?= (int) $ligne['Id_Ligne'] ?>]" class="form-control form-control-sm" style="width:80px"
                                                                                min="0" max="<?= min((int) $ligne['quantite'], $dispo) ?>" value="<?= min((int) $ligne['quantite'], $dispo) ?>"
                                                                                aria-label="Quantité proposée pour <?= htmlspecialchars($ligne['nom']) ?>">
@@ -494,6 +510,34 @@
                                                             <div class="retrait-info mt-2">
                                                                 <i class="fas fa-map-marker-alt text-danger"></i>
                                                                 Livraison : <?= htmlspecialchars($c['Adresse_Livraison']) ?>
+                                                            </div>
+                                                        <?php endif; ?>
+
+                                                        <?php if (!empty($c['Id_Logistique']) && in_array($c['Statut'], ['prete', 'expediee', 'livree'], true)):
+                                                            $sl_cmd = libelleStatutLivraison($c);
+                                                        ?>
+                                                            <div class="retrait-info mt-2">
+                                                                <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                                                    <i class="fas fa-truck"></i> Livraison
+                                                                    <span class="badge text-bg-<?= $sl_cmd['badge'] ?>"><?= htmlspecialchars($sl_cmd['label']) ?></span>
+                                                                </div>
+                                                                <div class="small">N° de suivi : <code><?= htmlspecialchars($c['Numero_Suivi'] ?? '-') ?></code></div>
+                                                                <?php if (!empty($c['Transporteur'])): ?>
+                                                                    <div class="small">Transporteur : <?= htmlspecialchars($c['Transporteur']) ?></div>
+                                                                <?php endif; ?>
+                                                                <?php if (!empty($c['Date_Livraison_Prevue'])): ?>
+                                                                    <div class="small">Livraison prévue le <?= date('d/m/Y', strtotime($c['Date_Livraison_Prevue'])) ?></div>
+                                                                <?php endif; ?>
+                                                                <?php if (in_array($c['Statut'], ['expediee', 'livree'], true)): ?>
+                                                                    <div class="small mt-1">
+                                                                        <i class="fas <?= !empty($c['Date_Confirmation_Livreur']) ? 'fa-check-circle text-success' : 'fa-circle text-body-secondary' ?>"></i>
+                                                                        Remise confirmée par le livreur<?= !empty($c['Date_Confirmation_Livreur']) ? ' le ' . date('d/m H:i', strtotime($c['Date_Confirmation_Livreur'])) : '' ?>
+                                                                    </div>
+                                                                    <div class="small">
+                                                                        <i class="fas <?= !empty($c['Date_Confirmation_Acheteur']) ? 'fa-check-circle text-success' : 'fa-circle text-body-secondary' ?>"></i>
+                                                                        Réception confirmée par l'acheteur<?= !empty($c['Date_Confirmation_Acheteur']) ? ' le ' . date('d/m H:i', strtotime($c['Date_Confirmation_Acheteur'])) : '' ?>
+                                                                    </div>
+                                                                <?php endif; ?>
                                                             </div>
                                                         <?php endif; ?>
 
@@ -654,7 +698,7 @@
         <div id="file-preview" class="file-preview" style="display:none;">
             <i class="fas fa-file"></i>
             <span id="file-preview-name"></span>
-            <button type="button" onclick="clearFile()" style="background:none; border:none; cursor:pointer; color:var(--danger);">✕</button>
+            <button type="button" onclick="clearFile()" style="background:none; border:none; cursor:pointer; color:var(--danger);" aria-label="Retirer le fichier"><i class="fas fa-xmark"></i></button>
         </div>
 
         <div class="chat-input-row">
@@ -774,7 +818,7 @@
             li.innerHTML = `
                 <span class="cart-item-name">${item.qte} × ${escapeHtml(item.nom)}</span>
                 <span class="cart-item-total">${formaterF(sousTotal)}</span>
-                <button type="button" class="cart-item-remove" onclick="retirerDuPanier('${id}')" aria-label="Retirer">✕</button>
+                <button type="button" class="cart-item-remove" onclick="retirerDuPanier('${id}')" aria-label="Retirer"><i class="fas fa-xmark"></i></button>
             `;
             list.appendChild(li);
 
@@ -1014,7 +1058,7 @@
         }
 
         const lu = estMoi ?
-            (msg.Est_Lu_Vendeur && msg.Est_Lu_Acheteur ? '✓✓' : '✓') :
+            (msg.Est_Lu_Vendeur && msg.Est_Lu_Acheteur ? '<i class="fas fa-check-double" title="Lu"></i>' : '<i class="fas fa-check" title="Envoyé"></i>') :
             '';
 
         div.innerHTML = `

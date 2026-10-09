@@ -13,6 +13,7 @@
 --   3) Score de fiabilité B2B recalculé ((livrées + 5) / (tranchées + 5)) (2026-10-05)
 --   4) Livraison partielle B2B : statuts a_confirmer / annulee + Ligne_Commande_B2B.Quantite_Proposee (2026-10-05)
 --   5) Reliquat B2B : Commande_B2B.Id_Commande_Origine (2026-10-05)
+--   6) Livraison structurée : livreur assigné, double confirmation livreur/acheteur, N° de suivi attribué (2026-10-09)
 -- Toute nouvelle mise à jour s'ajoute à la suite, avec une entrée dans ce sommaire.
 -- ============================================================================
 
@@ -68,3 +69,53 @@ SET @sql := IF(@existe = 0,
          ADD CONSTRAINT commande_b2b_origine_fk FOREIGN KEY (Id_Commande_Origine) REFERENCES Commande_B2B (Id_Commande_B2B) ON DELETE SET NULL',
     'DO 0');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+-- 6) Livraison structurée -----------------------------------------------------
+--    « Expédier » ouvre la fiche de livraison (N° de suivi attribué par le système) ; le
+--    transporteur (livreur de l'équipe ou transporteur externe) et la date prévue sont
+--    obligatoires pour valider l'expédition. La livraison n'est close qu'une fois confirmée
+--    par le livreur ET par l'acheteur (dans n'importe quel ordre).
+SET @existe := (SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Logistique' AND COLUMN_NAME = 'Id_Livreur');
+SET @sql := IF(@existe = 0,
+    'ALTER TABLE Logistique ADD COLUMN Id_Livreur INT NULL AFTER Transporteur,
+         ADD KEY Id_Livreur (Id_Livreur),
+         ADD CONSTRAINT logistique_livreur_fk FOREIGN KEY (Id_Livreur) REFERENCES Utilisateur (Id_Utilisateur) ON DELETE SET NULL',
+    'DO 0');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @existe := (SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Logistique' AND COLUMN_NAME = 'Date_Confirmation_Livreur');
+SET @sql := IF(@existe = 0,
+    'ALTER TABLE Logistique ADD COLUMN Date_Confirmation_Livreur DATETIME NULL AFTER Date_Livraison_Effectuee,
+         ADD COLUMN Date_Confirmation_Acheteur DATETIME NULL AFTER Date_Confirmation_Livreur',
+    'DO 0');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+--    Reprise des fiches existantes (chaque requête ne touche que ce qui n'est pas encore repris).
+--    « En attente d'enlèvement » disparaît : ces fiches redeviennent « à planifier ».
+UPDATE Logistique SET Statut_Livraison = 'traitement' WHERE Statut_Livraison = 'en_attente';
+ALTER TABLE Logistique
+    MODIFY Statut_Livraison ENUM('traitement','expediee','livree','annulee') DEFAULT 'traitement';
+--    Commande déjà expédiée par l'ancien parcours alors que sa fiche était restée « en préparation ».
+UPDATE Logistique l JOIN Commande_B2B c ON c.Id_Commande_B2B = l.Id_Commande_B2B
+SET l.Statut_Livraison = 'expediee', l.Date_Expedition = COALESCE(l.Date_Expedition, c.Date_Expedition_Reelle, NOW())
+WHERE l.Statut_Livraison = 'traitement' AND c.Statut IN ('expediee', 'livree');
+--    Fiches livrées : la remise par le livreur est datée de la livraison.
+UPDATE Logistique
+SET Date_Confirmation_Livreur = COALESCE(Date_Livraison_Effectuee, Date_Expedition, NOW())
+WHERE Statut_Livraison = 'livree' AND Date_Confirmation_Livreur IS NULL;
+--    Commandes dont l'acheteur a confirmé la réception.
+UPDATE Logistique l JOIN Commande_B2B c ON c.Id_Commande_B2B = l.Id_Commande_B2B
+SET l.Date_Confirmation_Acheteur = COALESCE(l.Date_Livraison_Effectuee, NOW())
+WHERE c.Statut = 'livree' AND l.Date_Confirmation_Acheteur IS NULL;
+UPDATE Logistique l JOIN Commande_B2B c ON c.Id_Commande_B2B = l.Id_Commande_B2B
+SET l.Statut_Livraison = 'livree', l.Date_Livraison_Effectuee = COALESCE(l.Date_Livraison_Effectuee, l.Date_Confirmation_Acheteur)
+WHERE c.Statut = 'livree' AND l.Statut_Livraison = 'expediee';
+--    Remise confirmée par le livreur mais pas encore par l'acheteur : la livraison reste en cours.
+UPDATE Logistique l JOIN Commande_B2B c ON c.Id_Commande_B2B = l.Id_Commande_B2B
+SET l.Statut_Livraison = 'expediee', l.Date_Livraison_Effectuee = NULL
+WHERE l.Statut_Livraison = 'livree' AND c.Statut = 'expediee';
+--    N° de suivi attribué aux fiches qui n'en ont pas (même forme que la numérotation : LIV-AAAAMMJJ-NNNN).
+UPDATE Logistique
+SET Numero_Suivi = CONCAT('LIV-', DATE_FORMAT(COALESCE(Date_Expedition, NOW()), '%Y%m%d'), '-', LPAD(Id_Logistique, 4, '0'))
+WHERE Numero_Suivi IS NULL OR TRIM(Numero_Suivi) = '';

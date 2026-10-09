@@ -199,7 +199,7 @@ function joinSession() {
 
 function renderScanUI() {
     // Champ manuel toujours disponible : la caméra (getUserMedia) exige un contexte sécurisé
-    // (HTTPS, ou littéralement "localhost") — sur un réseau local en HTTP, le navigateur du
+    // (HTTPS, ou littéralement "localhost"), sur un réseau local en HTTP, le navigateur du
     // téléphone la bloque silencieusement. La saisie manuelle garantit que le relais reste
     // utilisable même sans HTTPS configuré.
     mainArea.innerHTML = `

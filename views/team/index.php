@@ -37,11 +37,11 @@
                         <div class="mb-3">
                             <label class="form-label">Rôle</label>
                             <select name="role" class="form-select">
-                                <option value="vendeur">Vendeur — ventes, clients, factures, stocks (lecture)</option>
+                                <option value="vendeur">Vendeur : ventes, clients, factures, stocks (lecture)</option>
                                 <?php if (FEATURE_LOGISTIQUE_ACTIVE): ?>
-                                <option value="livreur">Livreur — logistique uniquement</option>
+                                <option value="livreur">Livreur : logistique uniquement</option>
                                 <?php endif; ?>
-                                <option value="proprio">Propriétaire — accès complet à l'entreprise</option>
+                                <option value="proprio">Propriétaire : accès complet à l'entreprise</option>
                             </select>
                         </div>
                         <button type="submit" class="btn btn-success w-100">Ajouter</button>
@@ -120,11 +120,11 @@
                     <div class="mb-3">
                         <label class="form-label">Nouveau rôle</label>
                         <select name="new_role" class="form-select">
-                            <option value="vendeur">Vendeur — ventes, clients, factures, stocks (lecture)</option>
+                            <option value="vendeur">Vendeur : ventes, clients, factures, stocks (lecture)</option>
                             <?php if (FEATURE_LOGISTIQUE_ACTIVE): ?>
-                            <option value="livreur">Livreur — logistique uniquement</option>
+                            <option value="livreur">Livreur : logistique uniquement</option>
                             <?php endif; ?>
-                            <option value="proprio">Propriétaire — accès complet à l'entreprise</option>
+                            <option value="proprio">Propriétaire : accès complet à l'entreprise</option>
                         </select>
                     </div>
 

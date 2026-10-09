@@ -186,7 +186,7 @@ HTML;
 
         envoyerEmailB2b(
             $email,
-            "Bienvenue sur FactuPro — Vos identifiants de connexion",
+            "Bienvenue sur FactuPro : vos identifiants de connexion",
             $html,
             $altText
         );

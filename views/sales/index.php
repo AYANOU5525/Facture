@@ -51,7 +51,7 @@ code {
             <div>
                 <h2 class="h6 mb-0">Transactions</h2>
                 <p class="text-body-secondary small mb-0">
-                    Page <?= $page ?>/<?= max(1,$total_pages) ?> — <?= number_format($total_ventes) ?> ventes
+                    Page <?= $page ?>/<?= max(1,$total_pages) ?> · <?= number_format($total_ventes) ?> ventes
                 </p>
             </div>
             <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -85,16 +85,16 @@ code {
                 <tbody>
                     <?php foreach ($ventes as $i => $v): ?>
                     <tr data-date="<?= $v['Date_Vente'] ?>" data-client="<?= htmlspecialchars($v['Nom_Client'] ?? '') ?>">
-                        <td><code><?= htmlspecialchars($v['Numero_Vente'] ?? '—') ?></code></td>
+                        <td><code><?= htmlspecialchars($v['Numero_Vente'] ?? '-') ?></code></td>
                         <td class="text-nowrap text-body-secondary small">
-                            <?= !empty($v['Date_Vente']) ? date('d/m/Y H:i', strtotime($v['Date_Vente'])) : '—' ?>
+                            <?= !empty($v['Date_Vente']) ? date('d/m/Y H:i', strtotime($v['Date_Vente'])) : '-' ?>
                         </td>
-                        <td class="fw-semibold"><?= htmlspecialchars($v['Nom_Client'] ?? '—') ?></td>
+                        <td class="fw-semibold"><?= htmlspecialchars($v['Nom_Client'] ?? '-') ?></td>
                         <td>
                             <?php $articles = json_decode($v['Articles_JSON'], true); ?>
                             <span class="small text-body-secondary">
                                 <?php if ($articles): ?>
-                                    <span class="fw-semibold me-1"><?= count($articles) ?> art. —</span>
+                                    <span class="fw-semibold me-1"><?= count($articles) ?> art. :</span>
                                     <?php foreach (array_slice($articles, 0, 2) as $art): ?>
                                         <?= htmlspecialchars($art['nom'] ?? '') ?><?= count($articles) > 1 ? ', ' : '' ?>
                                     <?php endforeach; ?>
@@ -129,12 +129,10 @@ code {
             </table>
         </div>
         <?php else: ?>
-            <div class="text-center py-5">
-                <div class="btn-icon mx-auto mb-3 fs-3" style="width:68px;height:68px;">
-                    <i class="fas fa-receipt"></i>
-                </div>
-                <h3 class="h6 mb-2">Aucune vente enregistrée</h3>
-                <p class="text-body-secondary mb-3">Commencez à enregistrer vos transactions.</p>
+            <div class="empty-state py-5">
+                <img src="../assets/img/illustrations/empty-receipt.svg" alt="" class="empty-state-img">
+                <p class="empty-state-title">Aucune vente enregistrée</p>
+                <p class="empty-state-text">Commencez à enregistrer vos transactions.</p>
                 <a href="invoice_add.php" class="btn btn-primary"><i class="fas fa-plus"></i> Première vente</a>
             </div>
         <?php endif; ?>
@@ -170,7 +168,7 @@ code {
                 </ul>
             </nav>
             <p class="text-center text-body-secondary small mb-0">
-                Page <?= $page ?>/<?= $total_pages ?> — <?= number_format($total_ventes) ?> ventes au total
+                Page <?= $page ?>/<?= $total_pages ?> · <?= number_format($total_ventes) ?> ventes au total
             </p>
         </div>
         <?php endif; ?>

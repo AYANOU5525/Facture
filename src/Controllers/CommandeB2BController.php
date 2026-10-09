@@ -5,6 +5,8 @@ namespace App\Controllers;
 use App\Application\B2B\OrderService;
 use App\Application\B2B\B2BOrderService;
 use App\Application\B2B\ShipmentService;
+use App\Application\Logistics\LogisticsService;
+use App\Infrastructure\Persistence\LogisticsRepository;
 use App\Infrastructure\Persistence\OrderRepository;
 
 /**
@@ -17,6 +19,7 @@ class CommandeB2BController extends Controller
     private OrderService $orderService;
     private B2BOrderService $b2bOrderService;
     private ShipmentService $shipmentService;
+    private LogisticsService $logisticsService;
 
     /** Nom d'entreprise, mis en cache par requête (portée sur l'instance du contrôleur). */
     private array $nomEntrepriseCache = [];
@@ -27,6 +30,7 @@ class CommandeB2BController extends Controller
         $this->orderService = new OrderService($pdo, new OrderRepository($pdo));
         $this->b2bOrderService = new B2BOrderService($pdo, new OrderRepository($pdo));
         $this->shipmentService = new ShipmentService($pdo, new OrderRepository($pdo));
+        $this->logisticsService = new LogisticsService($pdo, new LogisticsRepository($pdo));
     }
 
     public function index(): void
@@ -93,11 +97,17 @@ class CommandeB2BController extends Controller
                        e.Nom_Entreprise AS Autre_Partie,
                        e.Tel_Entreprise,
                        e.Email_Entreprise,
-                       f.Numero_Facture, o.Numero_Commande AS Numero_Origine
+                       f.Numero_Facture, o.Numero_Commande AS Numero_Origine,
+                       l.Id_Logistique, l.Numero_Suivi, l.Transporteur, l.Statut_Livraison,
+                       l.Date_Livraison_Prevue, l.Date_Confirmation_Livreur, l.Date_Confirmation_Acheteur
                 FROM Commande_B2B c
                 JOIN Entreprise e ON c.Id_Entreprise_Acheteuse = e.Id_Entreprise
                 LEFT JOIN Facture f ON f.Id_Commande_B2B = c.Id_Commande_B2B
                 LEFT JOIN Commande_B2B o ON o.Id_Commande_B2B = c.Id_Commande_Origine
+                LEFT JOIN Logistique l ON l.Id_Logistique = (
+                    SELECT MAX(l2.Id_Logistique) FROM Logistique l2
+                    WHERE l2.Id_Commande_B2B = c.Id_Commande_B2B AND l2.Statut_Livraison <> 'annulee'
+                )
                 WHERE c.Id_Entreprise_Vendeuse = ?
                 ORDER BY c.Est_Urgente DESC, c.Date_Commande DESC
             ";
@@ -108,11 +118,17 @@ class CommandeB2BController extends Controller
                        e.Nom_Entreprise AS Autre_Partie,
                        e.Tel_Entreprise,
                        e.Email_Entreprise,
-                       f.Numero_Facture, o.Numero_Commande AS Numero_Origine
+                       f.Numero_Facture, o.Numero_Commande AS Numero_Origine,
+                       l.Id_Logistique, l.Numero_Suivi, l.Transporteur, l.Statut_Livraison,
+                       l.Date_Livraison_Prevue, l.Date_Confirmation_Livreur, l.Date_Confirmation_Acheteur
                 FROM Commande_B2B c
                 JOIN Entreprise e ON c.Id_Entreprise_Vendeuse = e.Id_Entreprise
                 LEFT JOIN Facture f ON f.Id_Commande_B2B = c.Id_Commande_B2B
                 LEFT JOIN Commande_B2B o ON o.Id_Commande_B2B = c.Id_Commande_Origine
+                LEFT JOIN Logistique l ON l.Id_Logistique = (
+                    SELECT MAX(l2.Id_Logistique) FROM Logistique l2
+                    WHERE l2.Id_Commande_B2B = c.Id_Commande_B2B AND l2.Statut_Livraison <> 'annulee'
+                )
                 WHERE c.Id_Entreprise_Acheteuse = ?
                 ORDER BY c.Est_Urgente DESC, c.Date_Commande DESC
             ";
@@ -229,7 +245,7 @@ class CommandeB2BController extends Controller
             $titre_notif = $est_urgente
                 ? "Commande urgente de $mon_nom"
                 : "Nouvelle commande de $mon_nom";
-            $msg_notif = "Commande $numero — Total : " . number_format($total_commande, 0, ',', ' ') . " F.";
+            $msg_notif = "Commande $numero, total : " . number_format($total_commande, 0, ',', ' ') . " F.";
             if ($est_urgente) {
                 $msg_notif .= " Délai de réponse requis : $delai_minutes minutes.";
             }
@@ -268,12 +284,12 @@ class CommandeB2BController extends Controller
                 throw new \RuntimeException("Commande introuvable ou déjà traitée.");
             }
 
-            // ⚠️ Contrôle de stock avant validation
+            // Contrôle de stock avant validation
             $erreurs_stock = verifierStockAvantValidation($this->pdo, $id_commande);
             if (!empty($erreurs_stock)) {
                 $messages_erreur = array_map(fn($e) => $e['message'], $erreurs_stock);
                 throw new \RuntimeException(
-                    "Validation impossible — stock insuffisant :\n• "
+                    "Validation impossible, stock insuffisant :\n• "
                         . implode("\n• ", $messages_erreur)
                         . "\nOuvrez le détail de la commande pour proposer une livraison partielle à l'acheteur."
                 );
@@ -374,27 +390,47 @@ class CommandeB2BController extends Controller
     }
 
     // ──────────────────────────────────────────────
-    // 4. EXPÉDITION + FACTURATION AUTOMATIQUE
+    // 4. EXPÉDITION
+    // Livraison : le clic ouvre la fiche de livraison (N° de suivi attribué) ; la commande
+    // n'est expédiée et facturée qu'à la validation de cette fiche (LogistiqueEditController).
+    // Retrait sur place (ou logistique désactivée) : remise directe, facture générée.
     // ──────────────────────────────────────────────
     private function handleExpedier(int $mon_entreprise_id): array
     {
         try {
             $id_commande = intval($_POST['id_commande'] ?? 0);
+
+            $stmt = $this->pdo->prepare("SELECT Mode_Retrait FROM Commande_B2B WHERE Id_Commande_B2B = ? AND Id_Entreprise_Vendeuse = ?");
+            $stmt->execute([$id_commande, $mon_entreprise_id]);
+            $mode = $stmt->fetchColumn();
+            if ($mode === false) {
+                throw new \RuntimeException('Commande introuvable.');
+            }
+
+            if (FEATURE_LOGISTIQUE_ACTIVE && $mode !== 'retrait_place') {
+                $id_logistique = $this->logisticsService->prepareForOrder($id_commande, $mon_entreprise_id);
+                $this->redirect('logistique_edit.php?id=' . $id_logistique);
+            }
+
             $shipment = $this->shipmentService->ship($id_commande, $mon_entreprise_id, (string) ($_SESSION['username'] ?? ''), (int) ($_SESSION['user_id'] ?? 0));
             $cmd = $shipment['order'];
             $ref_facture = $shipment['number'];
 
             $nom_vendeur = $this->getNomEntrepriseLocal($mon_entreprise_id);
+            $retrait = $mode === 'retrait_place';
             creerNotificationB2b(
                 $this->pdo,
                 (int) $cmd['Id_Entreprise_Acheteuse'],
                 'expedition',
-                "Commande {$cmd['Numero_Commande']} expédiée",
-                "Votre commande {$cmd['Numero_Commande']} a été expédiée par $nom_vendeur et est en cours de livraison. Facture N° $ref_facture : consultable dans Factures › Factures d'achat, ou depuis la commande.",
+                $retrait ? "Commande {$cmd['Numero_Commande']} prête au retrait" : "Commande {$cmd['Numero_Commande']} expédiée",
+                ($retrait
+                    ? "Votre commande {$cmd['Numero_Commande']} vous attend chez $nom_vendeur. Confirmez sa réception une fois retirée."
+                    : "Votre commande {$cmd['Numero_Commande']} a été expédiée par $nom_vendeur.")
+                    . " Facture N° $ref_facture : consultable dans Factures › Factures d'achat, ou depuis la commande.",
                 $id_commande
             );
 
-            return ["Commande expédiée. Facture N° $ref_facture et suivi logistique créés. L'acheteur a été notifié.", ''];
+            return [($retrait ? 'Commande remise au retrait.' : 'Commande expédiée.') . " Facture N° $ref_facture générée. L'acheteur a été notifié.", ''];
         } catch (\Exception $e) {
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
@@ -404,50 +440,31 @@ class CommandeB2BController extends Controller
     }
 
     // ──────────────────────────────────────────────
-    // 5. LIVRAISON CONFIRMÉE par l'acheteur
+    // 5. RÉCEPTION CONFIRMÉE par l'acheteur
+    // La livraison n'est close qu'une fois confirmée par le livreur ET par l'acheteur, dans
+    // n'importe quel ordre (LogisticsService). Sans fiche de livraison (retrait sur place),
+    // la confirmation de l'acheteur suffit.
     // ──────────────────────────────────────────────
     private function handleLivree(int $mon_entreprise_id): array
     {
         try {
             $id_commande = intval($_POST['id_commande'] ?? 0);
+            $result = $this->logisticsService->confirmByBuyer($id_commande, $mon_entreprise_id);
+            $cmd = $result['order'];
+            $nom_acheteur = $this->getNomEntrepriseLocal($mon_entreprise_id);
 
-            $this->pdo->beginTransaction();
-
-            // Verrouiller la ligne avant de statuer, comme handleValider() : sans ce FOR UPDATE
-            // à l'intérieur de la transaction, deux confirmations concurrentes (double clic,
-            // deux onglets) passeraient toutes les deux le contrôle de statut et dupliqueraient
-            // l'incrément du score de fiabilité et les notifications.
-            $stmt = $this->pdo->prepare("
-                SELECT * FROM Commande_B2B
-                WHERE Id_Commande_B2B = ? AND Id_Entreprise_Acheteuse = ? AND Statut = 'expediee'
-                FOR UPDATE
-            ");
-            $stmt->execute([$id_commande, $mon_entreprise_id]);
-            $cmd = $stmt->fetch();
-
-            if (!$cmd) {
-                throw new \RuntimeException("Commande introuvable.");
+            if (!$result['finalized']) {
+                creerNotificationB2b(
+                    $this->pdo,
+                    (int) $cmd['Id_Entreprise_Vendeuse'],
+                    'reception',
+                    "Réception de {$cmd['Numero_Commande']} confirmée par l'acheteur",
+                    "$nom_acheteur a confirmé la réception de la commande {$cmd['Numero_Commande']}. La livraison sera close dès que le livreur aura confirmé la remise.",
+                    $id_commande
+                );
+                return ["Réception enregistrée. La commande passera « Livrée » dès que le livreur aura confirmé la remise ; vous pourrez alors l'ajouter à votre stock dans Approvisionnement.", ''];
             }
 
-            $this->pdo->prepare("
-                UPDATE Commande_B2B SET Statut = 'livree' WHERE Id_Commande_B2B = ?
-            ")->execute([$id_commande]);
-
-            // La logistique appartient au vendeur (Id_Entreprise = vendeur)
-            $this->pdo->prepare("
-                UPDATE Logistique
-                SET Statut_Livraison = 'livree', Date_Livraison_Effectuee = NOW()
-                WHERE Id_Commande_B2B = ? AND Id_Entreprise = ?
-            ")->execute([$id_commande, $cmd['Id_Entreprise_Vendeuse']]);
-
-            enregistrerHistoriqueCommande($this->pdo, $id_commande, 'expediee', 'livree', 'Réception confirmée par l\'acheteur', $mon_entreprise_id);
-
-            // Score de fiabilité recalculé (livrées / commandes tranchées), cf. OrderRepository.
-            (new OrderRepository($this->pdo))->recalculateSellerReliability((int) $cmd['Id_Entreprise_Vendeuse']);
-
-            $this->pdo->commit();
-
-            $nom_acheteur = $this->getNomEntrepriseLocal($mon_entreprise_id);
             creerNotificationB2b(
                 $this->pdo,
                 (int) $cmd['Id_Entreprise_Vendeuse'],

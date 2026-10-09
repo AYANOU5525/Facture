@@ -57,7 +57,7 @@ final class ProductService
         $column = $type === 'carton' ? 'Code_Barre_Carton' : 'Code_Barre_Unite';
         if (!empty($product[$column])) {
             throw new InvalidArgumentException(
-                'Ce produit a déjà un code ' . ($type === 'carton' ? 'carton' : 'unité') . ' enregistré — modifiez-le depuis la fiche produit si besoin.'
+                'Ce produit a déjà un code ' . ($type === 'carton' ? 'carton' : 'unité') . ' enregistré : modifiez-le depuis la fiche produit si besoin.'
             );
         }
 

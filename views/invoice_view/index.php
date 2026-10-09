@@ -183,7 +183,7 @@ $label_conservation = $label_conservation ?? '';
             <tbody>
                 <?php foreach (($articles ?? []) as $art):
                     // Articles_JSON a eu plusieurs formats historiques (seed, ancien facteur_conversion,
-                    // nouveau format carton+unité) — on reste tolérant aux trois pour l'affichage.
+                    // nouveau format carton+unité), on reste tolérant aux trois pour l'affichage.
                     $qte_carton = (int) ($art['quantite_carton'] ?? 0);
                     $qte_unite  = $art['quantite_unite'] ?? null;
                     $qte_totale = $art['quantite_unites'] ?? $art['quantite'] ?? 1;
@@ -226,8 +226,8 @@ $label_conservation = $label_conservation ?? '';
             <p>Merci de votre confiance.</p>
             <p>Facture générée numériquement via FactuPro le <?= date('d/m/Y à H:i') ?></p>
             <p style="margin-top: 10px; border-top: 1px solid #ddd; padding-top: 10px; font-style: italic;">
-                Ce document comptable est conservé conformément aux obligations légales —
-                durée minimale : <strong>10 ans</strong> — jusqu'au <strong><?= $label_conservation ?></strong>.
+                Ce document comptable est conservé conformément aux obligations légales.
+                Durée minimale : <strong>10 ans</strong>, jusqu'au <strong><?= $label_conservation ?></strong>.
             </p>
         </div>
 

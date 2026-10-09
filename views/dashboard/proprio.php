@@ -1,24 +1,45 @@
 <div class="container fade-in py-4">
 
     <!-- EN-TÊTE -->
-    <div class="mb-3">
-        <h1 class="fs-4 fw-bold mb-1"><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?></h1>
-        <p class="text-body-secondary small mb-0">Aperçu de l'activité de votre entreprise — <?= date('d/m/Y') ?></p>
+    <div class="dash-hero">
+        <div>
+            <span class="dash-hero-date"><i class="far fa-calendar"></i> <?= date('d/m/Y') ?></span>
+            <h1 class="dash-hero-title"><?= $salutation ?>, <?= htmlspecialchars($_SESSION['username']) ?></h1>
+            <p class="dash-hero-text">Aperçu de l'activité de votre entreprise</p>
+            <div class="dash-hero-actions">
+                <?php if (peutCreerVente()): ?>
+                    <a href="invoice_add.php" class="btn btn-hero btn-sm"><i class="fas fa-cash-register me-1"></i> Nouvelle vente</a>
+                <?php endif; ?>
+                <?php if (peutGererB2B()): ?>
+                    <a href="commandes_b2b.php" class="btn btn-hero-ghost btn-sm"><i class="fas fa-comments me-1"></i> Commandes B2B</a>
+                <?php endif; ?>
+            </div>
+        </div>
+        <img src="../assets/img/illustrations/banner-growth.svg" alt="" class="dash-hero-art">
     </div>
 
     <!-- ZONE SUPÉRIEURE : CA / VENTES / COMMANDES EN COURS -->
     <div class="dash-kpi-row">
         <div class="dash-kpi is-primary">
-            <div class="dash-kpi-label">Chiffre d'affaires</div>
-            <div class="dash-kpi-value"><?= number_format($total_ca, 0, ',', ' ') ?> <small>FCFA</small></div>
+            <span class="dash-kpi-icon"><i class="fas fa-coins"></i></span>
+            <div>
+                <div class="dash-kpi-label">Chiffre d'affaires</div>
+                <div class="dash-kpi-value"><?= number_format($total_ca, 0, ',', ' ') ?> <small>FCFA</small></div>
+            </div>
         </div>
-        <div class="dash-kpi">
-            <div class="dash-kpi-label">Ventes</div>
-            <div class="dash-kpi-value"><?= $nb_ventes ?></div>
+        <div class="dash-kpi kpi-success">
+            <span class="dash-kpi-icon"><i class="fas fa-receipt"></i></span>
+            <div>
+                <div class="dash-kpi-label">Ventes</div>
+                <div class="dash-kpi-value"><?= $nb_ventes ?></div>
+            </div>
         </div>
-        <div class="dash-kpi <?= count($b2b) > 0 ? 'is-danger' : '' ?>">
-            <div class="dash-kpi-label">Commandes B2B en attente</div>
-            <div class="dash-kpi-value"><?= count($b2b) ?></div>
+        <div class="dash-kpi <?= count($b2b) > 0 ? 'is-danger' : 'kpi-warning' ?>">
+            <span class="dash-kpi-icon"><i class="fas fa-hourglass-half"></i></span>
+            <div>
+                <div class="dash-kpi-label">Commandes B2B en attente</div>
+                <div class="dash-kpi-value"><?= count($b2b) ?></div>
+            </div>
         </div>
     </div>
 
@@ -76,8 +97,9 @@
                     </table>
                 </div>
             <?php else: ?>
-                <div class="card-body text-center text-body-secondary py-4">
-                    <p class="mb-0 small">Aucune commande en attente de validation.</p>
+                <div class="empty-state">
+                    <img src="../assets/img/illustrations/empty-done.svg" alt="" class="empty-state-img">
+                    <p class="empty-state-text">Aucune commande en attente de validation.</p>
                 </div>
             <?php endif; ?>
         </div>
@@ -113,8 +135,10 @@
                 </table>
             </div>
         <?php else: ?>
-            <div class="card-body text-center text-body-secondary py-4">
-                <p class="mb-0 small">Aucune vente enregistrée.</p>
+            <div class="empty-state">
+                <img src="../assets/img/illustrations/empty-receipt.svg" alt="" class="empty-state-img">
+                <p class="empty-state-title">Aucune vente enregistrée</p>
+                <p class="empty-state-text">Vos dernières ventes apparaîtront ici.</p>
             </div>
         <?php endif; ?>
     </div>

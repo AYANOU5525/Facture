@@ -17,7 +17,7 @@ code {
     <!-- KPI STRIP -->
     <div class="dash-kpi-row">
         <div class="dash-kpi">
-            <div class="dash-kpi-label">En préparation</div>
+            <div class="dash-kpi-label">À planifier</div>
             <div class="dash-kpi-value"><?= $nb_attente ?></div>
         </div>
         <div class="dash-kpi is-primary">
@@ -49,8 +49,7 @@ code {
                 </div>
                 <select name="statut" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
                     <option value="">Tous les statuts</option>
-                    <option value="traitement" <?= $statut_filtre === 'traitement' ? 'selected' : '' ?>>En préparation</option>
-                    <option value="en_attente" <?= $statut_filtre === 'en_attente' ? 'selected' : '' ?>>En attente</option>
+                    <option value="traitement" <?= $statut_filtre === 'traitement' ? 'selected' : '' ?>>À planifier</option>
                     <option value="expediee" <?= $statut_filtre === 'expediee' ? 'selected' : '' ?>>En route</option>
                     <option value="livree" <?= $statut_filtre === 'livree' ? 'selected' : '' ?>>Livrée</option>
                     <option value="annulee" <?= $statut_filtre === 'annulee' ? 'selected' : '' ?>>Annulée</option>
@@ -79,24 +78,10 @@ code {
                     <tbody>
                         <?php foreach ($logistique as $i => $l):
                             $dp = $l['Date_Livraison_Prevue'];
-                            $retard = $dp && strtotime($dp) < time() && $l['Statut_Livraison'] !== 'livree' && $l['Statut_Livraison'] !== 'annulee';
+                            $retard = $dp && strtotime($dp) < strtotime('today') && $l['Statut_Livraison'] !== 'livree' && $l['Statut_Livraison'] !== 'annulee';
 
-                            $sbadge = match($l['Statut_Livraison']) {
-                                'livree'     => 'success',
-                                'expediee'   => 'info',
-                                'en_attente' => 'warning',
-                                'traitement' => 'warning',
-                                'annulee'    => 'danger',
-                                default      => 'secondary',
-                            };
-                            $slabel = match($l['Statut_Livraison']) {
-                                'livree'     => 'Livrée',
-                                'expediee'   => 'En route',
-                                'en_attente' => 'En attente',
-                                'traitement' => 'Préparation',
-                                'annulee'    => 'Annulée',
-                                default      => ucfirst($l['Statut_Livraison']),
-                            };
+                            $sl = libelleStatutLivraison($l);
+                            $a_confirmer = $l['Statut_Livraison'] === 'expediee' && empty($l['Date_Confirmation_Livreur']);
                         ?>
                             <tr>
                                 <td>
@@ -118,7 +103,7 @@ code {
                                 <td><?= htmlspecialchars($l['Transporteur'] ?? '-') ?></td>
                                 <td><code><?= htmlspecialchars($l['Numero_Suivi'] ?? '-') ?></code></td>
                                 <td>
-                                    <span class="badge text-bg-<?= $sbadge ?>"><?= $slabel ?></span>
+                                    <span class="badge text-bg-<?= $sl['badge'] ?>"><?= htmlspecialchars($sl['label']) ?></span>
                                 </td>
                                 <td>
                                     <?php if ($retard): ?>
@@ -127,18 +112,18 @@ code {
                                         </span>
                                     <?php else: ?>
                                         <span class="text-body-secondary small">
-                                            <?= $dp ? date('d/m/Y', strtotime($dp)) : '—' ?>
+                                            <?= $dp ? date('d/m/Y', strtotime($dp)) : '-' ?>
                                         </span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="text-center">
-                                    <?php if (aRole(ROLE_LIVREUR) && $l['Statut_Livraison'] === 'expediee'): ?>
-                                        <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-success" title="Confirmer la livraison">
-                                            <i class="fas fa-check-circle"></i> Livré
+                                    <?php if ($l['Statut_Livraison'] === 'traitement' && aRole(ROLE_PROPRIO)): ?>
+                                        <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-primary" title="Renseigner le transporteur et valider l'expédition">
+                                            <i class="fas fa-shipping-fast"></i> Expédier
                                         </a>
-                                    <?php elseif (aRole(ROLE_LIVREUR) && in_array($l['Statut_Livraison'], ['traitement', 'en_attente'], true)): ?>
-                                        <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-primary" title="Traiter cette livraison">
-                                            <i class="fas fa-arrow-right"></i> Traiter
+                                    <?php elseif ($a_confirmer): ?>
+                                        <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-success" title="Confirmer la remise du colis">
+                                            <i class="fas fa-check-circle"></i> Livré
                                         </a>
                                     <?php else: ?>
                                         <a href="logistique_edit.php?id=<?= $l['Id_Logistique'] ?>" class="btn btn-sm btn-outline-primary" title="Suivi &amp; Carte">
@@ -152,12 +137,10 @@ code {
                 </table>
             </div>
         <?php else: ?>
-            <div class="card-body text-center py-5">
-                <div class="d-inline-flex align-items-center justify-content-center rounded-4 bg-body-secondary text-body-tertiary mb-3" style="width:68px;height:68px;font-size:1.8rem;">
-                    <i class="fas fa-truck"></i>
-                </div>
-                <h3 class="fs-6 mb-2">Aucune expédition</h3>
-                <p class="text-body-secondary small mb-0">Aucun colis ne correspond aux critères de recherche actuels.</p>
+            <div class="empty-state py-5">
+                <img src="../assets/img/illustrations/empty-inbox.svg" alt="" class="empty-state-img">
+                <p class="empty-state-title">Aucune expédition</p>
+                <p class="empty-state-text">Aucun colis ne correspond aux critères de recherche actuels.</p>
             </div>
         <?php endif; ?>
     </div>

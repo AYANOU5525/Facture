@@ -4,12 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Confirmation d'email - FactuPro</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/logo.svg">
+    <link rel="stylesheet" href="../assets/vendor/fonts/fonts.css">
     <link rel="stylesheet" href="../assets/vendor/bootstrap/bootstrap.min.css">
     <link rel="stylesheet" href="../assets/css/theme.css?v=<?= @filemtime(__DIR__ . '/../../assets/css/theme.css') ?>">
     <script src="../assets/js/page-loader.js?v=<?= @filemtime(__DIR__ . '/../../assets/js/page-loader.js') ?>"></script>
     <link rel="stylesheet" href="../assets/vendor/fontawesome/css/all.min.css">
 </head>
 <body class="login-body fade-in">
+
+    <div class="auth-shell">
+    <?php require __DIR__ . '/../partials/auth_showcase.php'; ?>
 
     <div class="authentication-card">
         <div class="auth-header">
@@ -75,6 +80,7 @@
                 <i class="fas fa-arrow-left"></i> Retour à la connexion
             </a>
         </div>
+    </div>
     </div>
 
     <script src="../assets/vendor/bootstrap/bootstrap.bundle.min.js"></script>

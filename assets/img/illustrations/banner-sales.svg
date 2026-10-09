@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 150" fill="none">
+  <defs>
+    <filter id="sh" x="-25%" y="-25%" width="150%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="9" flood-color="#0b1442" flood-opacity=".25"/>
+    </filter>
+  </defs>
+  <circle cx="120" cy="78" r="70" fill="#fff" fill-opacity=".08"/>
+
+  <!-- Ticket de caisse -->
+  <g transform="rotate(-6 85 75)">
+    <path d="M40 16h90v114l-9-6-9 6-9-6-9 6-9-6-9 6-9-6-9 6-9-6-9 6z" fill="#fff" filter="url(#sh)"/>
+    <rect x="66" y="28" width="38" height="8" rx="4" fill="#4f6ef7"/>
+    <rect x="52" y="48" width="44" height="6" rx="3" fill="#e2e8f0"/>
+    <rect x="104" y="48" width="14" height="6" rx="3" fill="#e2e8f0"/>
+    <rect x="52" y="62" width="36" height="6" rx="3" fill="#e2e8f0"/>
+    <rect x="104" y="62" width="14" height="6" rx="3" fill="#e2e8f0"/>
+    <rect x="52" y="76" width="48" height="6" rx="3" fill="#e2e8f0"/>
+    <rect x="104" y="76" width="14" height="6" rx="3" fill="#e2e8f0"/>
+    <line x1="52" y1="92" x2="118" y2="92" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="4 4"/>
+    <rect x="52" y="102" width="24" height="7" rx="3.5" fill="#94a3b8"/>
+    <rect x="90" y="100" width="28" height="11" rx="5.5" fill="#10b981"/>
+  </g>
+
+  <!-- Sac de courses -->
+  <g filter="url(#sh)">
+    <path d="M150 62h62l6 66a6 6 0 0 1-6 6.5h-62a6 6 0 0 1-6-6.5z" fill="#fbbf24"/>
+  </g>
+  <path d="M166 70v-10a15 15 0 0 1 30 0v10" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="166" cy="72" r="3.5" fill="#b45309"/>
+  <circle cx="196" cy="72" r="3.5" fill="#b45309"/>
+  <rect x="160" y="96" width="42" height="22" rx="6" fill="#fff" fill-opacity=".9"/>
+  <path d="M172 107.5l4.5 4.5 9-9.5" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <g stroke="#fff" stroke-opacity=".75" stroke-width="2.2" stroke-linecap="round">
+    <path d="M222 30v10M217 35h10"/>
+    <path d="M22 118v8M18 122h8"/>
+  </g>
+  <circle cx="140" cy="22" r="3.5" fill="#fff" fill-opacity=".55"/>
+</svg>

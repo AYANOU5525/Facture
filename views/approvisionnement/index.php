@@ -86,7 +86,7 @@
         }
 
         function approRenderOptions(selectedValue) {
-            let opts = '<option value="">— Sélectionner un produit —</option>';
+            let opts = '<option value="">Sélectionner un produit</option>';
             approProducts.forEach(p => {
                 opts += `<option value="${p.Id_Produit}" ${p.Id_Produit == selectedValue ? 'selected' : ''}>${approEscHtml(p.Nom_Produit)}</option>`;
             });
@@ -154,7 +154,7 @@
                 .then(data => {
                     if (!data.found) {
                         feedback.innerHTML = '<i class="fas fa-triangle-exclamation me-1"></i>' + approEscHtml(data.message || 'Produit introuvable')
-                            + ' — <a href="#" onclick="openApproAssociateModal(' + JSON.stringify(barcode) + '); return false;">Associer ce code à un produit existant</a>';
+                            + ' <a href="#" onclick="openApproAssociateModal(' + JSON.stringify(barcode) + '); return false;">Associer ce code à un produit existant</a>';
                         feedback.style.color = 'var(--bs-danger)';
                         return;
                     }
@@ -185,8 +185,8 @@
             } else {
                 addApproItem(data.id_produit, isCarton ? 1 : 0, isCarton ? 0 : 1);
                 setIconText(feedback, 'fa-circle-check', 'Ajouté : ' + data.nom_produit + (isCarton
-                    ? ` — conditionnement Carton (1 = ${data.coefficient} unités)`
-                    : ' — conditionnement Unité'));
+                    ? `, conditionnement Carton (1 = ${data.coefficient} unités)`
+                    : ', conditionnement Unité'));
             }
             feedback.style.color = 'var(--bs-success)';
         }
@@ -271,7 +271,7 @@
             </div>
             <div style="padding:20px;">
                 <p style="color:#ddd; font-size:0.88rem; margin:0 0 12px;">
-                    Code scanné : <code id="appro_associate_barcode_value" style="color:#17a2b8;"></code> — inconnu du catalogue.
+                    Code scanné : <code id="appro_associate_barcode_value" style="color:#17a2b8;"></code>, inconnu du catalogue.
                     À quel produit correspond-il ?
                 </p>
                 <label class="form-label small" style="color:#aaa;">Produit</label>
@@ -293,7 +293,7 @@
         <div class="card">
             <div class="card-header">
                 <h2 class="h6 mb-1"><i class="fas fa-boxes-stacked text-primary me-2"></i> Réceptions à traiter</h2>
-                <p class="text-body-secondary small mb-0">Indiquez la quantité reçue pour chaque ligne — le stock n'est mis à jour qu'après votre confirmation ci-dessous.</p>
+                <p class="text-body-secondary small mb-0">Indiquez la quantité reçue pour chaque ligne : le stock n'est mis à jour qu'après votre confirmation ci-dessous.</p>
             </div>
             <form method="POST" id="approForm">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars(jetonCsrf(), ENT_QUOTES, 'UTF-8') ?>">
@@ -320,14 +320,14 @@
                                     <td><?= htmlspecialchars($reception['Nom_Vendeur']) ?></td>
                                     <td><?= htmlspecialchars($reception['Nom_Produit']) ?></td>
                                     <td class="text-center"><?= (int) $reception['Quantite_Restante'] ?></td>
-                                    <td class="text-center text-body-secondary"><?= $stockActuel !== null ? $stockActuel : '—' ?></td>
+                                    <td class="text-center text-body-secondary"><?= $stockActuel !== null ? $stockActuel : '-' ?></td>
                                     <td>
                                         <input type="number" name="receptions[<?= (int) $reception['Id_Ligne'] ?>]" class="form-control form-control-sm appro-qte-input" min="0" max="<?= (int) $reception['Quantite_Restante'] ?>" value="0"
                                             data-stock-actuel="<?= $stockActuel !== null ? $stockActuel : 0 ?>"
                                             oninput="updateStockApres(this)"
                                             aria-label="Quantité reçue pour <?= htmlspecialchars($reception['Nom_Produit']) ?>">
                                         <div class="appro-stock-after text-body-secondary mt-1">
-                                            Stock après : <span class="val"><?= $stockActuel !== null ? $stockActuel : '—' ?></span>
+                                            Stock après : <span class="val"><?= $stockActuel !== null ? $stockActuel : '-' ?></span>
                                         </div>
                                     </td>
                                     <td class="text-center">
@@ -373,9 +373,10 @@
         </script>
     <?php else: ?>
         <div class="card">
-            <div class="card-body text-center text-body-secondary py-5">
-                <i class="fas fa-boxes-stacked fs-1 d-block mb-3 opacity-50"></i>
-                <p class="mb-2">Aucune réception B2B en attente.</p>
+            <div class="empty-state py-5">
+                <img src="../assets/img/illustrations/empty-box.svg" alt="" class="empty-state-img">
+                <p class="empty-state-title">Aucune réception B2B en attente.</p>
+                <p class="empty-state-text">Les commandes B2B livrées à réceptionner apparaîtront ici.</p>
                 <a href="products.php" class="btn btn-outline-secondary btn-sm">Retour aux Stocks</a>
             </div>
         </div>

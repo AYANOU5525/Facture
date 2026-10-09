@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inscription - FactuPro</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/logo.svg">
+    <link rel="stylesheet" href="../assets/vendor/fonts/fonts.css">
     <link rel="stylesheet" href="../assets/vendor/bootstrap/bootstrap.min.css">
     <link rel="stylesheet" href="../assets/css/theme.css?v=<?= @filemtime(__DIR__ . '/../../assets/css/theme.css') ?>">
     <script src="../assets/js/page-loader.js?v=<?= @filemtime(__DIR__ . '/../../assets/js/page-loader.js') ?>"></script>
@@ -12,7 +14,10 @@
 </head>
 
 <body class="login-body fade-in">
-    <div class="authentication-card" style="max-width: 500px;">
+    <div class="auth-shell">
+    <?php require __DIR__ . '/../partials/auth_showcase.php'; ?>
+
+    <div class="authentication-card">
         <div class="auth-header">
             <div class="auth-icon">
                 <i class="fas fa-rocket"></i>
@@ -119,6 +124,7 @@
                 Déjà un compte ? <a href="login.php" class="fw-semibold">Se connecter</a>
             </p>
         </div>
+    </div>
     </div>
 
     <script src="../assets/vendor/bootstrap/bootstrap.bundle.min.js"></script>

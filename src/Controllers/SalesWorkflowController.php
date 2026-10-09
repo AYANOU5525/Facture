@@ -32,10 +32,9 @@ class SalesWorkflowController extends Controller
             $this->redirect('dashboard.php');
         }
 
-        // « Existe » = transport déjà renseigné ; une entrée créée à la vente sans transporteur
-        // laisse le formulaire de l'étape 2 accessible pour la compléter.
-        $logistique = $this->workflow->hasLogistics((int) $vente['Id_Vente']);
-        $logistique_existe = $logistique !== null && trim((string) $logistique['Transporteur']) !== '';
+        // Fiche de livraison créée à la vente (N° de suivi déjà attribué). Le transporteur et la
+        // date prévue se renseignent sur logistique_edit.php, comme pour une commande B2B.
+        $logistique = $this->workflow->findLogistics((int) $vente['Id_Vente']);
 
         $success = '';
         $error = '';
@@ -56,35 +55,10 @@ class SalesWorkflowController extends Controller
             $etape = $avec_livraison ? '2' : '3';
         }
 
-        if (FEATURE_LOGISTIQUE_ACTIVE && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['creer_logistique'])) {
-            exigerCsrf();
-            $transporteur = trim($_POST['transporteur'] ?? '');
-            $numero_suivi = trim($_POST['numero_suivi'] ?? '');
-            // Un champ date laissé vide arrive en '' (pas absent) : le normaliser en null,
-            // sinon MySQL rejette '' comme valeur DATETIME (SQLSTATE 22007).
-            $date_livraison = trim($_POST['date_livraison'] ?? '') ?: null;
-
-            try {
-                $this->workflow->createLogistics(
-                    $vente['Id_Vente'],
-                    $entreprise_id,
-                    $transporteur,
-                    $numero_suivi,
-                    $date_livraison
-                );
-                $success = "Logistique créée avec succès !";
-                $etape = '3';
-                $logistique_existe = true;
-            } catch (\InvalidArgumentException | \PDOException $e) {
-                $error = "Erreur lors de la création : " . $e->getMessage();
-                $etape = '2'; // rester sur le formulaire logistique (l'URL porte encore etape=1)
-            }
-        }
-
         $this->render('vente_workflow/index', [
             'numero_vente'        => $numero_vente,
             'vente'               => $vente,
-            'logistique_existe'   => $logistique_existe,
+            'logistique'          => $logistique,
             'success'             => $success,
             'error'               => $error,
             'etape'               => $etape,

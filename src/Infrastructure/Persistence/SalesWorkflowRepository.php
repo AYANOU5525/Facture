@@ -26,9 +26,14 @@ final class SalesWorkflowRepository
         return $sale ?: null;
     }
 
-    public function hasLogistics(int $saleId): ?array
+    /** Fiche de livraison de la vente (la plus récente non annulée), créée à la vente par InvoiceService. */
+    public function findLogistics(int $saleId): ?array
     {
-        $statement = $this->pdo->prepare('SELECT Id_Logistique, Transporteur FROM Logistique WHERE Id_Vente = ?');
+        $statement = $this->pdo->prepare(
+            "SELECT Id_Logistique, Transporteur, Numero_Suivi, Statut_Livraison, Date_Livraison_Prevue
+             FROM Logistique WHERE Id_Vente = ? AND Statut_Livraison <> 'annulee'
+             ORDER BY Id_Logistique DESC LIMIT 1"
+        );
         $statement->execute([$saleId]);
         $logistics = $statement->fetch();
 
@@ -39,32 +44,5 @@ final class SalesWorkflowRepository
     {
         $statement = $this->pdo->prepare("UPDATE Facture SET Statut_Paiement = 'payee' WHERE Id_Facture = ?");
         $statement->execute([$invoiceId]);
-    }
-
-    public function createLogistics(
-        int $saleId,
-        int $enterpriseId,
-        string $carrier,
-        string $trackingNumber,
-        ?string $deliveryDate
-    ): void {
-        // La vente en livraison a déjà créé une entrée « traitement » (InvoiceService) : on la
-        // complète plutôt que d'en créer une seconde.
-        $existing = $this->hasLogistics($saleId);
-        if ($existing !== null) {
-            $statement = $this->pdo->prepare(
-                'UPDATE Logistique SET Transporteur = ?, Numero_Suivi = ?, Date_Livraison_Prevue = ?
-                 WHERE Id_Logistique = ? AND Id_Entreprise = ?'
-            );
-            $statement->execute([$carrier, $trackingNumber, $deliveryDate, $existing['Id_Logistique'], $enterpriseId]);
-            return;
-        }
-
-        $statement = $this->pdo->prepare(
-            "INSERT INTO Logistique
-                (Id_Vente, Id_Entreprise, Transporteur, Numero_Suivi, Date_Livraison_Prevue, Statut_Livraison)
-             VALUES (?, ?, ?, ?, ?, 'traitement')"
-        );
-        $statement->execute([$saleId, $enterpriseId, $carrier, $trackingNumber, $deliveryDate]);
     }
 }

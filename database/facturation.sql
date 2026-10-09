@@ -488,11 +488,14 @@ CREATE TABLE `Logistique` (
   `Id_Commande_B2B` int DEFAULT NULL,
   `Id_Facture` int DEFAULT NULL,
   `Transporteur` varchar(100) DEFAULT NULL,
+  `Id_Livreur` int DEFAULT NULL,
   `Numero_Suivi` varchar(100) DEFAULT NULL,
-  `Statut_Livraison` enum('traitement','en_attente','expediee','livree','annulee') DEFAULT 'traitement',
+  `Statut_Livraison` enum('traitement','expediee','livree','annulee') DEFAULT 'traitement',
   `Date_Expedition` datetime DEFAULT NULL,
   `Date_Livraison_Prevue` datetime DEFAULT NULL,
   `Date_Livraison_Effectuee` datetime DEFAULT NULL,
+  `Date_Confirmation_Livreur` datetime DEFAULT NULL,
+  `Date_Confirmation_Acheteur` datetime DEFAULT NULL,
   `Adresse_Livraison` text,
   `Notes_Logistique` text,
   `Id_Entreprise` int DEFAULT NULL,
@@ -502,11 +505,13 @@ CREATE TABLE `Logistique` (
   KEY `Id_Vente` (`Id_Vente`),
   KEY `Id_Commande_B2B` (`Id_Commande_B2B`),
   KEY `Id_Facture` (`Id_Facture`),
+  KEY `Id_Livreur` (`Id_Livreur`),
   KEY `idx_logistique_ent_statut` (`Id_Entreprise`,`Statut_Livraison`),
   CONSTRAINT `logistique_ibfk_1` FOREIGN KEY (`Id_Vente`) REFERENCES `Vente` (`Id_Vente`) ON DELETE SET NULL,
   CONSTRAINT `logistique_ibfk_2` FOREIGN KEY (`Id_Commande_B2B`) REFERENCES `Commande_B2B` (`Id_Commande_B2B`) ON DELETE SET NULL,
   CONSTRAINT `logistique_ibfk_3` FOREIGN KEY (`Id_Facture`) REFERENCES `Facture` (`Id_Facture`) ON DELETE SET NULL,
-  CONSTRAINT `logistique_ibfk_4` FOREIGN KEY (`Id_Entreprise`) REFERENCES `Entreprise` (`Id_Entreprise`) ON DELETE CASCADE
+  CONSTRAINT `logistique_ibfk_4` FOREIGN KEY (`Id_Entreprise`) REFERENCES `Entreprise` (`Id_Entreprise`) ON DELETE CASCADE,
+  CONSTRAINT `logistique_livreur_fk` FOREIGN KEY (`Id_Livreur`) REFERENCES `Utilisateur` (`Id_Utilisateur`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

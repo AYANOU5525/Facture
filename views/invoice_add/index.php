@@ -1,6 +1,6 @@
 <style>
     /* .item-row/.item-row-legend/.qte-carton-input/.qte-unite-input/.product-select/.item-subtotal-inline
-       are generated dynamically by JS below (addItem()) and read back via querySelector — class names
+       are generated dynamically by JS below (addItem()) and read back via querySelector, class names
        are load-bearing, kept exactly as-is. Only their visual styling is refreshed here. */
     .scanner-box {
         background: var(--bs-tertiary-bg);
@@ -185,7 +185,7 @@
 
                     <div id="empty-items" class="text-center text-body-secondary py-4">
                         <i class="fas fa-shopping-cart fs-2 opacity-25 d-block mb-2"></i>
-                        Aucun article — scannez un produit ou cliquez sur Ajouter
+                        Aucun article : scannez un produit ou cliquez sur Ajouter
                     </div>
                     </div>
                 </div>
@@ -263,10 +263,10 @@
     products.forEach(p => { productMap[p.Id_Produit] = p; });
 
     function renderOptions(selectedValue) {
-        let opts = '<option value="">— Sélectionner un produit —</option>';
+        let opts = '<option value="">Sélectionner un produit</option>';
         products.forEach(p => {
             const stock = parseInt(p.Quantite_En_Stock);
-            const label = `${p.Nom_Produit} — ${parseInt(p.Prix_Unitaire_Produit).toLocaleString('fr-FR')} F (stock: ${stock})`;
+            const label = `${p.Nom_Produit} · ${parseInt(p.Prix_Unitaire_Produit).toLocaleString('fr-FR')} F (stock: ${stock})`;
             opts += `<option value="${p.Id_Produit}" ${p.Id_Produit == selectedValue ? 'selected' : ''}
                         data-prix="${p.Prix_Unitaire_Produit}" ${stock <= 0 ? 'disabled' : ''}>${label}</option>`;
         });
@@ -305,7 +305,7 @@
     }
 
     // Active/désactive le champ "Cartons" selon que le produit sélectionné a un conditionnement carton.
-    // Le coefficient réel (Quantite_Par_Carton) n'est utilisé ici que pour l'affichage — le serveur
+    // Le coefficient réel (Quantite_Par_Carton) n'est utilisé ici que pour l'affichage, le serveur
     // recalcule tout indépendamment à partir du produit en base au moment de la validation.
     function updateCartonAvailability(row) {
         const select = row.querySelector('.product-select');
@@ -385,7 +385,7 @@
                 if (qteCarton > 0) parts.push(`${qteCarton} carton(s)`);
                 if (qteUnite > 0) parts.push(`${qteUnite} u.`);
                 summaryHtml += `<div class="sale-summary-row">
-                    <span>${escHtml(selectedOpt.text.split('—')[0].trim())} (${parts.join(' + ')})</span>
+                    <span>${escHtml(selectedOpt.text.split(' · ')[0].trim())} (${parts.join(' + ')})</span>
                     <span>${sub.toLocaleString('fr-FR')} F</span>
                 </div>`;
             }
@@ -405,7 +405,7 @@
         const hint = document.getElementById('mode-remise-hint');
         if (hint) {
             hint.innerHTML = mode === 'retrait'
-                ? '<i class="fas fa-info-circle"></i> Retrait sur place — l\'étape logistique sera ignorée.'
+                ? '<i class="fas fa-info-circle"></i> Retrait sur place : l\'étape logistique sera ignorée.'
                 : '<i class="fas fa-info-circle"></i> L\'étape logistique sera incluse dans la finalisation.';
         }
     }
@@ -462,7 +462,7 @@
                     lookupBarcode();
                 }, 600);
             },
-            () => { /* frame sans détection — ignoré */ }
+            () => { /* frame sans détection, ignoré */ }
         ).catch((err) => {
             const noCamera = /NotFoundError|NotAllowedError|NotReadableError/i.test(String(err));
             document.getElementById('cam-status').textContent = noCamera
@@ -475,7 +475,7 @@
 
     function closeCamera() {
         // Si la caméra n'a jamais réussi à démarrer (ex: NotFoundError), .stop() peut lever
-        // une exception SYNCHRONE plutôt qu'une promesse rejetée — Promise.resolve().then(...)
+        // une exception SYNCHRONE plutôt qu'une promesse rejetée, Promise.resolve().then(...)
         // capture les deux cas, et le try/finally garantit que la modale se ferme dans tous les cas.
         try {
             const scanner = qrScanner;
@@ -510,7 +510,7 @@
             .then(data => {
                 if (!data.found) {
                     feedback.innerHTML = '<i class="fas fa-triangle-exclamation me-1"></i>' + escHtml(data.message || 'Produit introuvable')
-                        + ' — <a href="#" onclick="openAssociateModal(' + JSON.stringify(barcode) + '); return false;">Associer ce code à un produit existant</a>';
+                        + ' <a href="#" onclick="openAssociateModal(' + JSON.stringify(barcode) + '); return false;">Associer ce code à un produit existant</a>';
                     feedback.style.color = 'var(--danger)';
                     return;
                 }
@@ -584,7 +584,7 @@
             });
     }
 
-    // Fonction commune d'ajout au panier — appelée aussi bien par le scanner caméra du PC
+    // Fonction commune d'ajout au panier, appelée aussi bien par le scanner caméra du PC
     // (lookupBarcode ci-dessus) que par les scans reçus du téléphone distant (polling scan_session).
     // Centralise toute la logique métier : un même produit scanné plusieurs fois incrémente
     // la quantité existante au lieu de créer une nouvelle ligne.
@@ -606,8 +606,8 @@
         } else {
             addItem(data.id_produit, isCarton ? 1 : 0, isCarton ? 0 : 1);
             setIconText(feedback, 'fa-circle-check', 'Ajouté : ' + data.nom_produit + (isCarton
-                ? ` — conditionnement Carton (1 = ${data.coefficient} unités, ${Math.round(data.prix_conditionnement).toLocaleString('fr-FR')} F)`
-                : ' — conditionnement Unité'), fromPhone);
+                ? `, conditionnement Carton (1 = ${data.coefficient} unités, ${Math.round(data.prix_conditionnement).toLocaleString('fr-FR')} F)`
+                : ', conditionnement Unité'), fromPhone);
         }
         feedback.style.color = 'var(--success)';
     }
@@ -718,7 +718,7 @@
             <p id="phone-modal-status" style="color:#ddd; font-size:0.9rem; margin:16px 0 4px;">Génération du QR Code…</p>
             <p id="phone-modal-warning" style="display:none; color:var(--warning,#d97706); font-size:0.8rem; margin:0 0 10px; text-align:left; background:rgba(217,119,6,.12); border-radius:8px; padding:8px 10px;"></p>
             <p style="color:#888; font-size:0.78rem; margin:0;">
-                Scannez ce QR Code avec l'appareil photo de votre téléphone (même réseau Wi-Fi que ce PC), puis scannez vos produits — ils s'ajoutent automatiquement à cette vente.
+                Scannez ce QR Code avec l'appareil photo de votre téléphone (même réseau Wi-Fi que ce PC), puis scannez vos produits : ils s'ajoutent automatiquement à cette vente.
             </p>
         </div>
 
@@ -747,7 +747,7 @@
 
         <div style="padding:20px;">
             <p style="color:#ddd; font-size:0.88rem; margin:0 0 12px;">
-                Code scanné : <code id="associate_barcode_value" style="color:#17a2b8;"></code> — inconnu du catalogue.
+                Code scanné : <code id="associate_barcode_value" style="color:#17a2b8;"></code>, inconnu du catalogue.
                 À quel produit correspond-il ?
             </p>
 
@@ -858,7 +858,7 @@ function startScanSessionPolling() {
 
                 setPhoneStatus(data.statut);
                 if (data.statut === 'connecte') {
-                    document.getElementById('phone-modal-status').innerHTML = '<i class="fas fa-circle text-success me-1"></i> Téléphone connecté — continuez à scanner sur votre téléphone.';
+                    document.getElementById('phone-modal-status').innerHTML = '<i class="fas fa-circle text-success me-1"></i> Téléphone connecté, continuez à scanner sur votre téléphone.';
                 }
 
                 (data.scans || []).forEach(scan => {
@@ -870,7 +870,7 @@ function startScanSessionPolling() {
                     resetPhoneScanner();
                 }
             })
-            .catch(() => { /* réseau temporairement indisponible — on retentera au prochain tick */ });
+            .catch(() => { /* réseau temporairement indisponible, on retentera au prochain tick */ });
     }, 1200);
 }
 

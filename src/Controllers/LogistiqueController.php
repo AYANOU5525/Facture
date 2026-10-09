@@ -15,7 +15,7 @@ class LogistiqueController extends Controller
 
         $recherche = trim($_GET['q'] ?? '');
         $statut_filtre = $_GET['statut'] ?? '';
-        $statuts_valides = ['traitement', 'en_attente', 'expediee', 'livree', 'annulee'];
+        $statuts_valides = ['traitement', 'expediee', 'livree', 'annulee'];
         if (!in_array($statut_filtre, $statuts_valides, true)) {
             $statut_filtre = '';
         }
@@ -24,6 +24,13 @@ class LogistiqueController extends Controller
         // reste rapide même quand l'historique de livraisons grossit.
         $conditions = ['l.Id_Entreprise = ?'];
         $params = [$entreprise_id];
+        // Un livreur ne voit que les livraisons qui lui sont assignées (à l'expédition).
+        $filtre_livreur = '';
+        if (aRole(ROLE_LIVREUR)) {
+            $filtre_livreur = ' AND Id_Livreur = ' . (int) $_SESSION['user_id'];
+            $conditions[] = 'l.Id_Livreur = ?';
+            $params[] = (int) $_SESSION['user_id'];
+        }
 
         if ($statut_filtre !== '') {
             $conditions[] = 'l.Statut_Livraison = ?';
@@ -65,13 +72,13 @@ class LogistiqueController extends Controller
         // requête agrégée plutôt qu'en itérant sur toutes les lignes côté PHP.
         $stmt = $this->pdo->prepare("
             SELECT
-                SUM(CASE WHEN Statut_Livraison IN ('traitement', 'en_attente') THEN 1 ELSE 0 END) AS nb_attente,
+                SUM(CASE WHEN Statut_Livraison = 'traitement' THEN 1 ELSE 0 END) AS nb_attente,
                 SUM(CASE WHEN Statut_Livraison = 'expediee' THEN 1 ELSE 0 END) AS nb_route,
                 SUM(CASE WHEN Statut_Livraison = 'livree' THEN 1 ELSE 0 END) AS nb_livrees,
-                SUM(CASE WHEN Date_Livraison_Prevue IS NOT NULL AND Date_Livraison_Prevue < NOW()
+                SUM(CASE WHEN Date_Livraison_Prevue IS NOT NULL AND Date_Livraison_Prevue < CURDATE()
                           AND Statut_Livraison NOT IN ('livree', 'annulee') THEN 1 ELSE 0 END) AS nb_retard
             FROM Logistique
-            WHERE Id_Entreprise = ?
+            WHERE Id_Entreprise = ?$filtre_livreur
         ");
         $stmt->execute([$entreprise_id]);
         $kpi = $stmt->fetch();

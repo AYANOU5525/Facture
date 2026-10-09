@@ -81,9 +81,10 @@
                 </div>
 
                 <?php if (empty($annonces)): ?>
-                    <div class="text-center text-body-secondary py-5">
-                        <i class="fas fa-bullhorn fs-1 opacity-25 d-block mb-3"></i>
-                        <p class="mb-0">Aucune annonce active pour le moment.</p>
+                    <div class="empty-state">
+                        <img src="../assets/img/illustrations/empty-inbox.svg" alt="" class="empty-state-img">
+                        <p class="empty-state-title">Aucune annonce active pour le moment.</p>
+                        <p class="empty-state-text">Les appels d'offre et partenariats publiés apparaîtront ici.</p>
                     </div>
                 <?php else: ?>
                     <div class="offres-list" data-paginate="5" data-paginate-always>

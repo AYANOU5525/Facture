@@ -23,6 +23,7 @@ final class DocumentNumberRepository
     private const COLUMNS = [
         'Vente' => 'Numero_Vente',
         'Commande_B2B' => 'Numero_Commande',
+        'Logistique' => 'Numero_Suivi',
     ];
 
     public function __construct(private PDO $pdo)
